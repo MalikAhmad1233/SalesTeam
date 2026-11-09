@@ -1,8 +1,9 @@
 # 05: Pricing Data Register
 
-> **Status: INCOMPLETE. NOT ACTIVE. NOT FOR CUSTOMER USE.**
-> This register transcribes the pricing data supplied by Mixt Academy in the brief of 2026-11-09, unchanged.
-> Mixt states that **more pricing data is still being collected**. Nothing below is active, and nothing below may be quoted to a customer until it passes the activation gate in [04 §5](04-pricing-engine.md#5-lifecycle-and-the-activation-gate).
+> **Status: INCOMPLETE (CONFIRMED, BD-017). NOT ACTIVE. NOT FOR CUSTOMER USE.**
+> This register transcribes the pricing data supplied by Mixt Academy in the brief of 2026-11-09, **unchanged**. Updated 2026-11-09 (v0.2) with Mixt's clarification: statuses changed, **no figure changed**.
+> Additional pricing sheets are still being collected. Nothing below is active, and nothing below may be quoted to a customer until it passes the activation gate in [04 §5](04-pricing-engine.md#5-lifecycle-and-the-activation-gate).
+> Original schedules are preserved: any correction is added as a **new version** next to the original, never written over it (BD-018, ADR-14).
 
 **Column meanings**
 - **Package total**: as supplied (CONFIRMED figure). The only amount that can ever be charged.
@@ -14,23 +15,27 @@
 
 ## 1. Summary of supplied price books
 
-| # | Proposed code | Currency | Tier / plan label (as supplied) | Unit | Entries | Market assignment | Activation status |
-|---|---------------|----------|-------------------------------|------|---------|-------------------|-------------------|
-| 1 | `UK-GBP-TIER-A` | GBP | Tier A | hour | 7 | United Kingdom (stated in brief) | **Not active**: blocked by Q-PRC-02, Q-PAY-04 |
-| 2 | `UK-GBP-TIER-B` | GBP | Tier B | hour | 8 | United Kingdom (stated in brief) | **Not active**: blocked by Q-PRC-02, Q-PAY-04 |
-| 3 | `USD-SCHEDULE-A` | USD | Schedule A | hour | 8 | **None: unconfirmed.** Never US. | **Not active**: blocked by Q-MKT-01 |
-| 4 | `USD-SCHEDULE-B` | USD | Schedule B | hour | 7 | **None: unconfirmed.** Never US. | **Not active**: blocked by Q-MKT-01 |
-| 5 | `AE-AED-TIER-A` | AED | Tier A | hour | 8 | United Arab Emirates (stated) | **Not active**: blocked by Q-PRC-02, Q-PAY-04 |
-| 6 | `AE-AED-TIER-B` | AED | Tier B | hour | 8 | United Arab Emirates (stated) | **Not active**: blocked by Q-PRC-02, Q-PAY-04 |
-| 7 | `SA-SAR` | SAR | *(no tier label supplied)* | hour | 8 | Saudi Arabia (stated) | **Not active**: blocked by Q-PRC-06, Q-PAY-04 |
-| 8 | `QA-QAR` | QAR | *(no tier label supplied)* | hour | 8 | Qatar (stated) | **Not active**: blocked by Q-PRC-06, Q-PAY-04 |
-| 9 | `MY-MYR` | MYR | *(no tier label supplied)* | hour | 8 | Malaysia (stated) | **Not active**: blocked by Q-PRC-06, Q-PAY-04 |
-| 10 | `IE-EUR-SCHEDULE-A` | EUR | Schedule A | **class** | 7 | Ireland (stated) | **Not active**: blocked by Q-PRC-03, Q-PRC-07, Q-PAY-04 |
-| 11 | `IE-EUR-SCHEDULE-B` | EUR | Schedule B | hour | 6 | Ireland (stated) | **Not active**: blocked by Q-PRC-03, Q-PAY-04 |
-| 12 | `HK-HKD-STANDARD` | HKD | Standard | hour | 4 | Hong Kong (stated) | **Not active**: blocked by Q-PRC-10, Q-PAY-04 |
-| 13 | `HK-HKD-PREMIUM` | HKD | Premium | hour | 4 | Hong Kong (stated) | **Not active**: blocked by Q-PRC-10, Q-PAY-04 |
+| # | Proposed code | Currency | Tier / plan label (as supplied) | Unit | Entries | Market assignment | What is CONFIRMED | Activation status: still blocked by |
+|---|---------------|----------|-------------------------------|------|---------|-------------------|-------------------|-------------------------------------|
+| 1 | `UK-GBP-TIER-A` | GBP | Tier A | hour | 7 | United Kingdom | Valid, separate UK tier (BD-012) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-14 |
+| 2 | `UK-GBP-TIER-B` | GBP | Tier B | hour | 8 | United Kingdom | Valid, separate UK tier (BD-012) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-16 |
+| 3 | `USD-SCHEDULE-A` | USD | Schedule A | hour | 8 | **None: unconfirmed.** Never US (BD-006). | Exists as a USD currency record | **Not active**: Q-MKT-01, Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-16 |
+| 4 | `USD-SCHEDULE-B` | USD | Schedule B | hour | 7 | **None: unconfirmed.** Never US (BD-006). | Exists as a USD currency record | **Not active**: Q-MKT-01, Q-PAY-04, Q-PRC-09, Q-PRC-20 |
+| 5 | `AE-AED-TIER-A` | AED | Tier A | hour | 8 | United Arab Emirates | Valid, separate UAE tier (BD-013) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-15, Q-PRC-16 |
+| 6 | `AE-AED-TIER-B` | AED | Tier B | hour | 8 | United Arab Emirates | Valid, separate UAE tier (BD-013) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-15, Q-PRC-16 |
+| 7 | `SA-SAR` | SAR | *(no tier label supplied)* | hour | 8 | Saudi Arabia | Market (BD-004) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-16 |
+| 8 | `QA-QAR` | QAR | *(no tier label supplied)* | hour | 8 | Qatar | Market (BD-004) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-16 |
+| 9 | `MY-MYR` | MYR | *(no tier label supplied)* | hour | 8 | Malaysia | Totals have been mathematically corrected (BD-015) | **Not active**: **Q-PRC-21**, Q-PAY-04, Q-PRC-09, Q-PRC-20 |
+| 10 | `IE-EUR-SCHEDULE-A` | EUR | Schedule A | **class** (1 class = 1 hour) | 7 | Ireland | Separate Ireland schedule (BD-014); 1 class = 1 hour (BD-011) | **Not active**: Q-PRC-03, Q-PAY-04, Q-PRC-09, Q-PRC-20 |
+| 11 | `IE-EUR-SCHEDULE-B` | EUR | Schedule B | hour | 6 | Ireland | Separate Ireland schedule (BD-014) | **Not active**: Q-PRC-03, Q-PAY-04, Q-PRC-09, Q-PRC-20, Q-PRC-16 |
+| 12 | `HK-HKD-STANDARD` | HKD | Standard | hour | 4 | Hong Kong | Separate Standard plan (BD-016) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20 |
+| 13 | `HK-HKD-PREMIUM` | HKD | Premium | hour | 4 | Hong Kong | Separate Premium plan (BD-016) | **Not active**: Q-PAY-04, Q-PRC-09, Q-PRC-20 |
 
-Plan type: only Hong Kong's books are explicitly labelled Standard/Premium. The other books will be stored as `standard` **provisionally**, flagged as unconfirmed (Q-PRC-06).
+**Tier and schedule selection:** UK, UAE and Ireland each have two books. Until Mixt defines how customers are placed on each (Q-PRC-02, Q-PRC-03), the market's `tier_selection_mode` is `manual`: a person picks the tier/schedule per customer, with a reason; the AI never picks (ADR-12). Ireland additionally stays inactive until the relationship between its schedules is confirmed.
+
+**Plan type:** Hong Kong's Standard and Premium plans are CONFIRMED (BD-016). The other books are stored as `standard` internally, but **no plan name is shown to customers** until confirmed (Q-PRC-06, setting `pricing.plan_label_display`).
+
+**Promotions:** none of these books is a promotional book. Promotional terms are kept separate from standard pricing (BD-021, ADR-15); no promotion exists yet (Q-PRC-05).
 
 **Markets with no pricing supplied:** Kuwait, Oman, Bahrain, Singapore, Indonesia, South Korea.
 → The engine returns `NO_APPROVED_PRICING_FOR_MARKET` for these and escalates. No other book (USD included) is used as a stand-in.
@@ -134,6 +139,9 @@ Plan type: only Hong Kong's books are explicitly labelled Standard/Premium. The 
 | 200h | 200 | hour | QAR 7,600 | 760000 | QAR 38.00 |
 
 ### 2.9 `MY-MYR`: Malaysia, MYR
+
+> **Version 1, received 2026-11-09.** Mixt confirmed that the Malaysia package totals "have been mathematically corrected" (BD-015). The figures below are exactly those received on 2026-11-09, and every one is internally consistent (each total = a whole-number rate × hours). **Not yet confirmed:** whether these are the corrected totals, or whether a further corrected set is to be supplied (Q-PRC-21). If a new set arrives, it becomes version 2 with `change_type = correction`; this version 1 stays in the history unchanged.
+
 | Package | Quantity | Unit | Package total | Minor units | Derived rate/unit |
 |---------|---------:|------|--------------:|------------:|------------------:|
 | 15h | 15 | hour | RM 1,170 | 117000 | RM 78.00 |
@@ -156,7 +164,7 @@ Plan type: only Hong Kong's books are explicitly labelled Standard/Premium. The 
 | 80 classes | 80 | class | €1,040 | 104000 | €13.00 |
 | 100 classes | 100 | class | €1,200 | 120000 | €12.00 |
 
-Per the brief, a class is **one hour** unless a package policy says otherwise; stored as `unit_type = class`, `session_minutes_per_unit = 60`, flagged for confirmation (Q-PRC-07).
+**CONFIRMED (BD-011):** one class = one hour for this class-based schedule, unless a package-specific exception is confirmed later. Stored as `unit_type = class`, `session_minutes_per_unit = 60`.
 
 ### 2.11 `IE-EUR-SCHEDULE-B`: Ireland, EUR, Schedule B
 | Package | Quantity | Unit | Package total | Minor units | Derived rate/unit |
@@ -168,7 +176,7 @@ Per the brief, a class is **one hour** unless a package policy says otherwise; s
 | 75h | 75 | hour | €1,350 | 135000 | €18.00 |
 | 100h | 100 | hour | €1,500 | 150000 | €15.00 |
 
-The two Ireland schedules are kept **separate**. Which customers are eligible for each and how they relate are **not confirmed** (Q-PRC-03).
+The two Ireland schedules are **separate** (CONFIRMED, BD-014). How they relate and which customers are eligible for each are **OPEN** (Q-PRC-03).
 
 ### 2.12 `HK-HKD-STANDARD`: Hong Kong, HKD, Standard
 | Package | Quantity | Unit | Package total | Minor units | Derived rate/unit |
@@ -202,7 +210,10 @@ These are **observations, not corrections**. The figures above stay exactly as s
 | DC-06 | Ireland Schedule B 20h/30h/50h/100h (480/660/1,000/1,500) equal USD Schedule A at the same durations; 10h differs (€250 vs USD 260). | `IE-EUR-SCHEDULE-B`, `USD-SCHEDULE-A` | Q-PRC-16 |
 | DC-07 | Package sizes differ between books (e.g. UK Tier A stops at 100h and has 80h; Tier B has no 80h but goes to 200h; USD A has 50h/70h; Ireland B has 75h; HK Standard stops at 40h, Premium starts at 60h). | All | Q-PRC-17 (are any rows missing?) |
 | DC-08 | Every derived rate is a whole number, which suggests the sheets were built from per-hour rates. | All | Q-PRC-08 (store as official advertised rates?) |
-| DC-09 | Ireland Schedule A is in "classes"; Schedule B in hours. | `IE-EUR-*` | Q-PRC-07 |
+| DC-09 | Ireland Schedule A is in "classes"; Schedule B in hours. | `IE-EUR-*` | **Resolved 2026-11-09:** 1 class = 1 hour (BD-011) |
+| DC-10 | Malaysia totals were corrected; the register holds the set received 2026-11-09. | `MY-MYR` | Q-PRC-21 |
+
+UK Tier A/B and UAE Tier A/B are now CONFIRMED as **valid, separate tiers** (BD-012, BD-013). That confirms the tiers themselves; the specific figure checks DC-01 to DC-05 are still OPEN until answered individually.
 
 Identical figures may well be intentional (e.g. same price points across Gulf markets). The system just needs that confirmed rather than assumed.
 
@@ -211,10 +222,21 @@ Identical figures may well be intentional (e.g. same price points across Gulf ma
 | Scope (as supplied) | Items | Storage plan |
 |---------------------|-------|--------------|
 | General ("supplied so far") | Past papers and curated study resources; dedicated academic support; flexible scheduling; no expiry on purchased hours *in applicable packages*; multiple subjects across grades; sibling/family hour sharing | Benefit **definitions only**; attached to no package until Q-PKG-01 is answered |
-| Ireland packages | 18-month validity; pause and resume; recorded sessions; fortnightly progress reports; parent check-in calls; dedicated WhatsApp coordinator; Irish-curriculum-trained tutors; advertised first-paid-session refund or free tutor swap guarantee | Draft benefits/policies on **both** Ireland books? Not assumed: which Ireland schedule(s) they apply to is Q-PKG-03 |
+| Ireland packages | 18-month validity; pause and resume; recorded sessions; fortnightly progress reports; parent check-in calls; dedicated WhatsApp coordinator; Irish-curriculum-trained tutors; advertised first-paid-session refund or free tutor swap guarantee | Benefit definitions only; **not attached to either Ireland schedule** until Q-PKG-03 says which schedule(s) they belong to |
 | HK Standard | No expiry; up to four subjects; family sharing; flexible scheduling | Draft on `HK-HKD-STANDARD` |
 | HK Premium | Recorded sessions; unlimited subjects across grades; no expiry; bi-monthly parent-teacher consultations; bi-weekly progress reports; academic support team; teacher chat access | Draft on `HK-HKD-PREMIUM` (wording for "bi-monthly"/"bi-weekly" to confirm: Q-PKG-04) |
 
 ## 5. Machine check of this register
 
-The derived-rate column was checked by script: for every row, `minor units = package total × 100` and `derived rate = package total ÷ quantity`. All 13 books and 91 entries match the brief exactly, and every minor-unit and derived-rate value is consistent. The same check will become the golden test suite in Phase 2.
+The derived-rate column was checked by script: for every row, `minor units = package total × 100` and `derived rate = package total ÷ quantity`. All 13 books and 91 entries match the brief exactly, and every minor-unit and derived-rate value is consistent. The check was re-run after the v0.2 update to prove no figure changed. The same check will become the golden test suite in Phase 2.
+
+Benefits are never shown with a price until they are attached to that exact version and approved (setting `benefits.claims_mode = approved_only`).
+
+## 6. Version history of this register
+
+| Date | Register version | Change | Figures changed? |
+|------|------------------|--------|------------------|
+| 2026-11-09 | 0.1 | 13 books / 91 entries transcribed from the brief (all `version 1`, draft, inactive) | — (initial) |
+| 2026-11-09 | 0.2 | Statuses updated from Mixt's clarification: UK and UAE tiers valid (BD-012, BD-013); Ireland schedules separate (BD-014); 1 class = 1 hour (BD-011); HK Standard/Premium separate (BD-016); Malaysia correction noted (BD-015, Q-PRC-21); catalogue still incomplete (BD-017) | **No** (verified by script) |
+
+Future corrections (e.g. a new Malaysia set) are added as **new price-book versions**. The original version stays listed here and in the pricing history screen.

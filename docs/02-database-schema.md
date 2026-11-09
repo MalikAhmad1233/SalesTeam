@@ -399,6 +399,8 @@ price_books (                                -- one "pricing sheet"
 price_book_versions (
   id uuid PK, price_book_id uuid NOT NULL, version_no int NOT NULL,
   status text NOT NULL CHECK (status IN ('draft','in_review','approved','active','superseded','retired','rejected')),
+  change_type text NOT NULL DEFAULT 'initial' CHECK (change_type IN ('initial','correction','price_change')),
+  supersedes_version_id uuid NULL REFERENCES price_book_versions,   -- required when change_type = 'correction'
   figures_confirmation text NOT NULL CHECK (figures_confirmation IN ('supplied_unverified','confirmed')),
   session_minutes_per_unit smallint NOT NULL DEFAULT 60,
   tax_treatment text NOT NULL DEFAULT 'unknown' CHECK (tax_treatment IN ('unknown','inclusive','exclusive','not_applicable')),
@@ -409,6 +411,7 @@ price_book_versions (
   content_hash text NULL,                    -- SHA-256 of canonical entries+benefits+policies, set at approval
   created_at,
   UNIQUE (price_book_id, version_no),
+  CHECK (change_type <> 'correction' OR supersedes_version_id IS NOT NULL),
   EXCLUDE USING gist (price_book_id WITH =, tstzrange(effective_from, effective_to) WITH &&)
      WHERE (status = 'active')
 );
@@ -481,6 +484,17 @@ customer_pricing_assignments (               -- special/confidential pricing; ne
   status CHECK IN ('pending_approval','active','expired','revoked'),
   requested_by, approved_by, approved_at, created_at
 );
+
+pricing_tier_selections (                    -- a PERSON's choice between valid tiers/schedules (ADR-12)
+  id uuid PK, account_id uuid NOT NULL, opportunity_id uuid NULL,    -- NULL = applies to the whole account
+  market_id uuid NOT NULL, price_book_id uuid NOT NULL,
+  reason text NOT NULL,
+  selected_by_user_id uuid NOT NULL REFERENCES users,                -- users only: agents cannot select (DB-12)
+  selected_at timestamptz NOT NULL, valid_until timestamptz NULL,
+  status text NOT NULL CHECK (status IN ('active','replaced','revoked')),
+  replaced_by_id uuid NULL
+);
+-- Partial unique index: one active selection per (account, opportunity, market, plan type) (plan type via trigger).
 
 discount_authority_rules (id, role_id FK, market_id NULL, max_discount_pct numeric(5,2),
                           max_discount_minor bigint NULL, currency_code NULL, requires_second_approver boolean);
@@ -781,6 +795,28 @@ idempotency_keys   (key text, principal_id uuid, request_hash text, response jso
                     PRIMARY KEY (principal_id, key));
 sync_cursors       (connection_id FK, resource text, cursor text, updated_at,      -- Gmail historyId, Graph deltaLink
                     PRIMARY KEY (connection_id, resource));
+
+-- Configurable settings for outstanding business decisions (ADR-11; register in doc 13)
+setting_definitions (
+  key text PK,                               -- e.g. 'pricing.tier_selection_mode'
+  description text NOT NULL,
+  value_schema jsonb NOT NULL,               -- JSON Schema; values are validated against it
+  safe_default jsonb NOT NULL,
+  allowed_scopes text[] NOT NULL,            -- global, market, price_book, price_book_version, channel, agent, role
+  change_permission text NOT NULL REFERENCES permissions,
+  requires_dual_approval boolean NOT NULL DEFAULT false,
+  open_question_ref text NULL                -- e.g. 'Q-PRC-02'
+);
+system_settings (
+  id uuid PK, key text NOT NULL REFERENCES setting_definitions,
+  scope_type text NOT NULL, scope_id uuid NULL,
+  value jsonb NOT NULL,
+  status text NOT NULL CHECK (status IN ('safe_default','confirmed')),
+  decision_ref text NULL,                    -- e.g. 'BD-012'; required when status = 'confirmed'
+  updated_by uuid NOT NULL, updated_at timestamptz NOT NULL, version int NOT NULL,
+  UNIQUE (key, scope_type, scope_id),
+  CHECK (status <> 'confirmed' OR decision_ref IS NOT NULL)
+);
 ```
 
 ## 16. Audit and privacy
@@ -815,13 +851,17 @@ legal_holds           (id, account_id FK, reason, placed_by, placed_at, released
 | DB-02 | An approved/active price-book version and its entries, benefits and policies cannot be edited. | Trigger blocks UPDATE/DELETE unless status is `draft` (status-only transitions allowed) |
 | DB-03 | Two active versions of the same price book cannot overlap in time. | `EXCLUDE USING gist` on effective range |
 | DB-04 | A version can only become `active` if `figures_confirmation = 'confirmed'`, `tax_treatment <> 'unknown'`, it has at least one entry, and the price book has at least one **confirmed** market assignment. | Trigger (the service layer also enforces the full activation gate) |
-| DB-05 | At most one default price book per (market, plan type). | Trigger on `price_book_market_assignments` |
+| DB-05 | At most one default price book per (market, plan type); a `promotional` price book can never be a market default. | Trigger on `price_book_market_assignments` |
 | DB-06 | Quotation lines are immutable after the quotation leaves `draft`. | Trigger |
 | DB-07 | Quotation line currency = quotation currency = price book currency. | Trigger |
 | DB-08 | Payment currency = invoice currency. | Trigger |
 | DB-09 | `audit_log`, `consents`, `hours_ledger_entries` are append-only. | `REVOKE UPDATE, DELETE` from the app role; separate migration role |
 | DB-10 | Provider IDs are unique (no duplicate messages, leads, payments). | Unique constraints |
 | DB-11 | Promotions must have an end date after their start date. | `CHECK` |
+| DB-12 | Only users (never agent principals) can create `pricing_tier_selections` or `customer_pricing_assignments`. | Trigger checks `principals.kind = 'user'` + permission check in service |
+| DB-13 | A correction version must reference the version it supersedes; the superseded version's entries remain unchanged (DB-02). | `CHECK` + DB-02 trigger |
+| DB-14 | Promotions and promotional books never write to standard `price_book_entries`. | No write path in the promotion service; DB-02 trigger; test (04 §18) |
+| DB-15 | A setting cannot be marked `confirmed` without a decision-log reference. | `CHECK` on `system_settings` |
 
 ## 18. Indexing and partitioning (initial)
 
@@ -832,6 +872,8 @@ legal_holds           (id, account_id FK, reason, placed_by, placed_at, released
 
 ## 19. Seed data policy
 
-- Reference seeds: the 13 markets (status `planned` until go-live), the US excluded country row, currencies, the four curricula, the four British exam boards and four qualifications **exactly as supplied**.
+- Reference seeds: the **13 operating markets** (BD-004; `status = 'active'`, while each market's Mixt AI rollout is a separate setting, `markets.mixt_ai_rollout = off`), the **US as an excluded country only** (BD-005), currencies, the **four confirmed curricula** (Irish, SABIS, American, British: BD-007; **no IB**, BD-008), the four British exam boards and four qualifications **exactly as supplied** (BD-009).
 - Pricing seeds: the 13 supplied price books (91 entries) are loaded as **`draft`** versions with `figures_confirmation = 'confirmed'` (figures confirmed by Mixt) but **no confirmed market assignments for USD**, `tax_treatment = 'unknown'` everywhere, and **nothing active** (see [05](05-pricing-data-register.md)).
-- No invented grade levels, subjects, benefits assignments, promotions or tutors are seeded.
+- Pricing seed details (v0.2): `IE-EUR-SCHEDULE-A` with `unit_type = 'class'`, `session_minutes_per_unit = 60` (BD-011); UK, UAE and Ireland markets with `pricing.tier_selection_mode = manual` (safe default); `MY-MYR` as **version 1** (`change_type = 'initial'`), with a corrected set, if supplied, loaded as version 2 (`correction`) (BD-015, Q-PRC-21).
+- Settings seeds: every setting in [13](13-configurable-settings.md) with its safe default; settings already confirmed by Mixt carry their `BD-` reference.
+- No invented grade levels, subjects, benefit assignments, promotions, tier rules or tutors are seeded.

@@ -36,11 +36,13 @@ Phases 2 and 3 can run in parallel after Phase 1. Phases 5 and 6 can run in para
 |--------------|--------|
 | Requirements analysis, architecture, schema, agent design, pricing design, CRM design, integrations, security, UX direction, roadmap, open questions | **Drafted in this repository: awaiting approval** |
 | Pricing data register (supplied figures, verified by script against the brief) | Drafted; **incomplete and not active** |
-| Answers to P0 (blocking) questions | Waiting for Mixt |
+| First round of business confirmations applied (markets, US exclusion, USD rule, curricula, 1:1 model, class = 1 hour, UK/UAE tiers, Ireland schedules, Malaysia correction, HK plans, catalogue incomplete) | **Done (v0.2, 2026-11-09)**: see [decision log](12-decision-log.md) |
+| Configurable settings register with safe defaults for open decisions | **Drafted**: [13](13-configurable-settings.md) |
+| Answers to remaining questions | Waiting for Mixt; only 3 questions block Phase 1 production use ([11 §2](11-open-questions.md#2-questions-that-block-phase-1)) |
 | External accounts started (Meta verification, WhatsApp numbers, email platform access, payment provider, cloud account, LLM provider terms) | Waiting for Mixt |
 | Legal review kick-off (hosting region, consent wording, children's data, AI disclosure) | Waiting for Mixt |
 
-**Exit criteria:** architecture approved (with changes noted); P0 questions answered; hosting region decided; sample data (anonymised leads/conversations) received for testing; brand assets received.
+**Exit criteria:** architecture **explicitly approved** by Mixt (BD-031). Open business questions do **not** hold up the start of Phase 1: each has a safe default setting. Before Phase 1 is used with real customer data: hosting region (Q-CMP-02), legal/privacy sign-off (Q-CMP-01) and production cloud account (Q-TECH-04).
 
 ## Phase 1: Foundation and core CRM (L)
 
@@ -61,7 +63,8 @@ Phases 2 and 3 can run in parallel after Phase 1. Phases 5 and 6 can run in para
 - Activation gate; dual approval; history and diffs; spreadsheet import with anomaly detection.
 - Deterministic resolution engine with error codes; pricing API.
 - Quotations: builder from resolved options, approvals, immutable snapshots, PDF, revisions.
-- Load the 13 supplied price books as **drafts**.
+- Load the 13 supplied price books as **drafts**, figures unchanged; tier selection mode `manual` for UK, UAE and Ireland; Malaysia as version 1 (a corrected set, if supplied, as version 2).
+- Per-market tier selection, correction versions, separate promotions, settings register and "Outstanding decisions" view.
 
 **Exit criteria:** golden tests for all 91 supplied entries; property tests (no cross-market results, no restricted books without assignment, no conversion); activation gate tests; a test quotation round trip in staging; **Mixt's pricing owner signs off each book before it is activated**.
 

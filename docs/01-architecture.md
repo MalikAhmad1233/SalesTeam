@@ -128,6 +128,7 @@ flowchart TB
 | `knowledge` | Knowledge documents, chunks, embeddings, approval | AI agents |
 | `integrations` | Connections, encrypted credentials, webhook events, sync cursors | Channel modules |
 | `audit` | Audit log, data-subject requests, retention jobs | Admin, compliance |
+| `settings` | Setting definitions, scoped values with `safe_default`/`confirmed` status and decision references ([13](13-configurable-settings.md)) | Everything that depends on an outstanding business decision |
 | `analytics` | Read models, metric definitions, report queries | Reports, Manager agent |
 
 **Module rules (enforced with import-linting in CI):**
@@ -290,6 +291,14 @@ Expected volumes are unknown (Q-TECH-02). The design comfortably handles hundred
 | ADR-08 | pgvector inside PostgreSQL for knowledge retrieval | Separate vector database | Fewer moving parts; the knowledge base is small and admin-curated |
 | ADR-09 | Money as integer minor units + ISO currency code | Floats/decimals without currency | Correct arithmetic; no currency mix-ups |
 | ADR-10 | Immutable price-book versions; quotations snapshot what they used | Editing prices in place | Pricing history and exact reproduction of every quote |
+| ADR-11 | Configurable settings register with safe defaults for every outstanding business decision ([13](13-configurable-settings.md)) | Wait for all answers; hard-code guesses | Architecture proceeds without guessing business answers (BD-030) |
+| ADR-12 | Per-market tier selection mode; default `manual` (a person selects the tier/schedule per customer) | Auto-select by rule now; one tier only | UK/UAE tiers are valid but placement is unknown; never auto-select (BD-012, BD-013, BD-019) |
+| ADR-13 | Pricing market confirmed by staff; currency, phone prefix and curriculum never decide a market | Infer market from currency or phone | USD ≠ US; American curriculum ≠ US (BD-005, BD-006) |
+| ADR-14 | Corrections are new versions that supersede, never overwrite, the original | Edit figures in place | Original schedules preserved (BD-015, BD-018) |
+| ADR-15 | Promotions only as separate records or promotional books; never modify standard entries | Discounted copies of standard books | Promotional terms separate from standard pricing (BD-021) |
+| ADR-16 | Safe-default principle: while a decision is OPEN, take the most restrictive safe path | Optimistic defaults | No guessed business behaviour reaches customers |
+
+All decisions are **PROPOSED** and tracked with dates and status in the [decision log](12-decision-log.md).
 
 ## 14. Proposed repository layout
 

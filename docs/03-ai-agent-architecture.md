@@ -154,7 +154,7 @@ Checks run on every proposed customer-facing output **before** the policy decisi
 | **Price guard** | Finds every monetary amount and currency in the draft. Each must match exactly a figure returned by the pricing tool *in this run* for this account, or a quotation already issued to this account. Anything else → block. |
 | **Claims guard** | Statements about benefits/policies (validity, refunds, recordings, sharing, number of subjects) must match the approved benefits/policies of the package version being discussed, in this customer's market. |
 | **Confidentiality guard** | No other customer's names, data or pricing; no internal-only fields (tutor pay, margins, internal notes). |
-| **Market guard** | No offers, pricing or outreach for excluded or unsupported markets; US never treated as a market. |
+| **Market guard** | No offers, pricing or outreach for excluded or unsupported markets; the US is never treated as a market; USD is never presented as US pricing; no market is inferred from currency, phone prefix or curriculum (ADR-13). |
 | **Channel guard** | WhatsApp: 24-hour window open, or an approved template is used; opt-in present for marketing; quiet hours in the recipient's time zone; frequency caps; suppression list. Email: unsubscribe link on marketing; suppression. |
 | **Safety guard** | Safeguarding concerns, self-harm, abuse disclosures, threats → immediate `urgent` escalation; the AI only sends a pre-approved holding reply. |
 | **Promise guard** | No guarantees of grades or exam results; no commitments on tutor identity or schedule that haven't been confirmed. |
@@ -269,7 +269,8 @@ Legend: **Core** = how the work is done. *LLM-led* = the language model does the
 - **Core:** **Deterministic pricing engine** ([04](04-pricing-engine.md)) + LLM only for recommendation wording.
 - **Does:** Calls price resolution for the account's confirmed market; returns eligible packages with exact totals, currency, tier, version and benefits; recommends package size using admin-configured guidance (e.g. based on subjects, weeks until exams, lessons per week); reports clearly when pricing is missing or a tier decision is needed.
 - **Default approval:** Read-only, so `auto`.
-- **Never:** Compute, convert, interpolate or estimate a price; pick a special tier; fall back to another market's pricing.
+- **Tiers:** in UK, UAE and Ireland (two valid tiers/schedules each), the engine returns `TIER_DECISION_REQUIRED` until a person has selected the tier for this customer; the agent then creates a task for the owner and waits (ADR-12).
+- **Never:** Compute, convert, interpolate or estimate a price; pick a tier, schedule or special pricing; fall back to another market's pricing; infer a market from currency, phone prefix or curriculum; present a promotion as standard pricing.
 
 ### 10. Negotiation Agent
 - **Mission:** Help people handle price objections and discount requests well, inside approved limits.

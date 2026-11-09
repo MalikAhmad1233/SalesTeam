@@ -1,100 +1,115 @@
 # 00: Requirements Analysis
 
-Status: **Draft for approval** · Phase 0 · Source: Mixt Academy project brief received 2026-11-09
+Status: **Draft for approval** · Phase 0 · v0.2 (2026-11-09) · Sources: project brief (S1) and Mixt clarification (S2), both 2026-11-09. Every confirmed item cites its entry in the [decision log](12-decision-log.md).
 
 ## 1. How information is labelled
 
-Every statement in these documents carries one of these labels, so the evidence behind it is clear:
-
 | Label | Meaning |
 |-------|---------|
-| **CONFIRMED** | Stated by Mixt Academy in the project brief. |
+| **CONFIRMED** | Stated by Mixt Academy (S1 or S2) and recorded in the decision log with a `BD-` number. |
+| **OPEN** | Not yet answered. Tracked as a question in [11-open-questions](11-open-questions.md). A safe default setting applies meanwhile ([13](13-configurable-settings.md)); nothing is guessed. |
 | **DERIVED** | Calculated from confirmed data (e.g. package total ÷ hours). For information only, **never official**. |
 | **ASSUMPTION** | A working design assumption. Must be checked; the impact if it is wrong is given. |
-| **UNKNOWN** | Missing information. Each one maps to a question in [11-open-questions](11-open-questions.md). |
-| **PROPOSAL** | An architecture or product recommendation awaiting approval. |
+| **PROPOSAL** | An architecture or product recommendation awaiting approval (`ADR-` numbers in the decision log). |
 
 ---
 
 ## 2. Confirmed business information
 
 ### 2.1 Company and services: CONFIRMED
-- Company: **Mixt Academy**, international online tutoring.
-- Services: personalised 1:1 online tutoring; academic support; exam preparation; past-paper practice; curriculum-specific tutoring; long-term academic improvement.
+- Company: **Mixt Academy**, international online tutoring (BD-001).
+- Service model: **personalised 1:1 online tutoring** (BD-002, re-confirmed in S2). Whether any other format exists is OPEN (Q-BIZ-02).
+- Services: academic support; exam preparation; past-paper practice; curriculum-specific tutoring; long-term academic improvement (BD-003).
 
 ### 2.2 Curricula: CONFIRMED
+Four confirmed curriculum categories (BD-007):
+
 | Category | Detail supplied |
 |----------|-----------------|
-| Irish Curriculum | No sub-levels supplied |
-| SABIS Curriculum | No sub-levels supplied |
-| American Curriculum | No sub-levels supplied |
-| British Curriculum | Exam boards: Cambridge, Pearson Edexcel, AQA, OCR. Qualifications: IGCSE, GCSE, AS Level, A Level |
+| Irish Curriculum | No sub-levels supplied (grade structure OPEN: Q-ACA-03) |
+| SABIS Curriculum | No sub-levels supplied (OPEN: Q-ACA-03) |
+| American Curriculum | No sub-levels supplied (OPEN: Q-ACA-03) |
+| British Curriculum | Exam boards: Cambridge, Pearson Edexcel, AQA, OCR. Qualifications: IGCSE, GCSE, AS Level, A Level (BD-009) |
 
-> Design note (PROPOSAL): the brief lists exam boards and qualifications together. The schema stores **exam board** and **qualification** as separate dimensions, so "Cambridge IGCSE", "Edexcel A Level" and "AQA GCSE" can each be represented. Which board/qualification combinations Mixt teaches is UNKNOWN (Q-ACA-02).
+- **IB is not on the confirmed list** and is not added unless separately approved (BD-008). Adding any curriculum needs Owner approval and a decision-log entry (setting `crm.curricula`).
+- Design note (PROPOSAL): exam board and qualification are stored as separate dimensions, so "Cambridge IGCSE", "Edexcel A Level" and "AQA GCSE" can each be represented. Which combinations Mixt teaches is OPEN (Q-ACA-02).
+- **A curriculum never indicates a market.** The American curriculum is taught to students in Mixt's markets and says nothing about the US; a British-curriculum student in Dubai is a UAE customer (ADR-13).
 
 ### 2.3 Markets: CONFIRMED
-Target countries (13): United Arab Emirates, Qatar, Kuwait, Saudi Arabia, Oman, Bahrain, Malaysia, Hong Kong, Singapore, Indonesia, South Korea, United Kingdom, Ireland.
+**Mixt Academy operates in 13 markets** (BD-004): United Arab Emirates, Qatar, Kuwait, Saudi Arabia, Oman, Bahrain, Malaysia, Hong Kong, Singapore, Indonesia, South Korea, United Kingdom, Ireland.
 
-**Explicit exclusion: the United States is not a market.** It must never be a target market, acquisition market or operating country.
-USD-denominated schedules are **currency records whose market assignment is unconfirmed**. A USD price never implies a US market.
+- **The United States is NOT a target market** (BD-005): never a target, customer-acquisition or operating market. The database refuses to create a US market (DB-01).
+- **USD pricing schedules exist, but their market assignment is unconfirmed. USD is never associated with the US market** (BD-006). Which market(s) USD applies to is OPEN (Q-MKT-01).
+- A customer's pricing market is confirmed by staff; **currency, phone prefix (e.g. +1) and curriculum never decide a market** (ADR-13, PROPOSED). The exact basis (residence, school country, billing address) is OPEN (Q-MKT-04).
+- Which markets move onto Mixt AI first is OPEN (Q-MKT-06).
 
-### 2.4 Pricing: CONFIRMED figures, activation NOT confirmed
-13 price schedules (91 package entries) supplied: UK GBP Tier A/B, USD Schedule A/B, UAE AED Tier A/B, Saudi SAR, Qatar QAR, Malaysia MYR, Ireland EUR Schedule A/B, Hong Kong HKD Standard/Premium. Full transcription in [05-pricing-data-register](05-pricing-data-register.md).
+### 2.4 Pricing: figures CONFIRMED, catalogue INCOMPLETE, nothing active
+13 price schedules (91 package entries) supplied: UK GBP Tier A/B, USD Schedule A/B, UAE AED Tier A/B, Saudi SAR, Qatar QAR, Malaysia MYR, Ireland EUR Schedule A/B, Hong Kong HKD Standard/Premium. Full transcription, unchanged, in [05-pricing-data-register](05-pricing-data-register.md).
 
-Confirmed rules about pricing:
-- Figures are **package totals**. Hourly rates and package totals are **stored in separate fields**.
-- A "class" in the original schedules is **one hour** unless a package policy says otherwise.
-- The full pricing data is **still being collected**. The pricing database is **not complete**.
-- The two Ireland schedules stay **separate**; eligibility for each and how they relate are **not confirmed**.
-- Prohibited: inventing prices or durations; assuming pricing for countries that have none; using converted currency values as official prices; mixing countries' pricing; selecting a special tier automatically.
-- Every quotation must record the exact price, currency, tier and package version used.
-- Confidential pricing must never be disclosed to another customer.
-- New pricing sheets must be addable **without code changes**.
+| Confirmed rule | Decision |
+|----------------|----------|
+| Figures are **package totals**; hourly rates and package totals are **separate fields**. | BD-010 |
+| **One class = one hour** for the supplied class-based schedules, unless a package-specific exception is confirmed later. | BD-011 |
+| **UK has two separate, valid pricing tiers** (Tier A, Tier B). | BD-012 |
+| **UAE has two separate, valid pricing tiers** (Tier A, Tier B). | BD-013 |
+| **Ireland has two separate pricing schedules** (A, B); their relationship is OPEN (Q-PRC-03). | BD-014 |
+| **Malaysia package totals have been mathematically corrected.** Whether the register's figures (received 2026-11-09) are the corrected set is OPEN (Q-PRC-21). | BD-015 |
+| **Hong Kong has separate Standard and Premium plans.** | BD-016 |
+| **Additional pricing sheets are still being collected; the pricing database stays marked INCOMPLETE.** | BD-017 |
+| Supplied figures are never silently changed; **original schedules are preserved**; corrections become new versions. | BD-018 |
+| No invented prices or durations; no assumed country pricing; no currency conversion as official price; no mixing countries; no automatic special-tier selection. | BD-019 |
+| **Unconfirmed pricing tiers, pricing and promotional rules are not activated.** | BD-020 |
+| **Promotional terms are kept separate from standard pricing.** | BD-021 |
+| Every quotation records the exact price, currency, tier and package version; confidential pricing is never disclosed to another customer. | BD-023, BD-024 |
+| New pricing sheets can be added **without code changes**. | S1 |
 
-Countries with **no pricing supplied**: Kuwait, Oman, Bahrain, Singapore, Indonesia, South Korea. The system must treat these as having **no approved pricing** and escalate to a person.
+- **How customers are placed on UK/UAE tiers is OPEN** (Q-PRC-02). Until then a person selects the tier per customer (`tier_selection_mode = manual`, ADR-12); the AI never selects.
+- Markets with **no pricing supplied**: Kuwait, Oman, Bahrain, Singapore, Indonesia, South Korea. The system treats them as having **no approved pricing** and escalates to a person (Q-MKT-03).
+- **No price book is active.** Remaining activation blockers: [11 §3](11-open-questions.md#3-questions-that-block-pricing-activation-p2-activate).
 
-### 2.5 Benefits and policies: CONFIRMED as supplied, scope partly UNKNOWN
+### 2.5 Benefits and policies: CONFIRMED as supplied, scope OPEN
 | Scope stated in brief | Items |
 |-----------------------|-------|
-| "General package benefits supplied so far" (which packages they apply to: UNKNOWN) | Past papers and curated study resources · Dedicated academic support · Flexible scheduling · No expiry on purchased hours *in applicable packages* · Multiple subjects across grades · Sharing hours with siblings/family |
-| Ireland packages | 18-month validity · Pause and resume · Recorded sessions · Fortnightly progress reports · Parent check-in calls · Dedicated WhatsApp coordinator · Irish-curriculum-trained tutors · Advertised first-paid-session refund **or** free tutor swap guarantee |
+| "General package benefits supplied so far" (which packages they apply to: OPEN, Q-PKG-01) | Past papers and curated study resources · Dedicated academic support · Flexible scheduling · No expiry on purchased hours *in applicable packages* · Multiple subjects across grades · Sharing hours with siblings/family |
+| Ireland packages (which schedule(s): OPEN, Q-PKG-03) | 18-month validity · Pause and resume · Recorded sessions · Fortnightly progress reports · Parent check-in calls · Dedicated WhatsApp coordinator · Irish-curriculum-trained tutors · Advertised first-paid-session refund **or** free tutor swap guarantee |
 | Hong Kong Standard | No expiry · Up to four subjects · Family sharing · Flexible scheduling |
 | Hong Kong Premium | Recorded sessions · Unlimited subjects across grades · No expiry · Bi-monthly parent-teacher consultations · Bi-weekly progress reports · Academic support team · Teacher chat access |
 
-Rule (CONFIRMED): benefits and policies are stored **separately by package, country and plan**, and are **never applied from one country to another without administrator approval**.
+Rule (CONFIRMED, BD-022): benefits and policies are stored **separately by package, country and plan**, and are **never applied from one country to another without administrator approval**.
 
-> Possible conflict to resolve (Q-PKG-02): "no expiry on purchased hours" vs Ireland's "18-month validity". The design treats them as package-specific policies, so both can exist. Which applies where still needs confirming.
+> To resolve (Q-PKG-02): "no expiry on purchased hours" vs Ireland's "18-month validity". The design treats both as package-specific policies, so both can exist; which applies where is OPEN.
 
 ### 2.6 Platform scope: CONFIRMED
 - Capabilities: lead generation, lead research, qualification, AI sales conversations, WhatsApp automation, email automation, CRM, tutor matching, trial scheduling, pricing recommendations, negotiation assistance, quotations, payment tracking, student registration, follow-ups, retention, renewals, referrals, sales analytics.
-- **All modules share one central CRM database.** No agent has its own separate customer store.
+- **All modules share one central CRM database**; no agent has its own customer store (BD-025). Several students under one parent account (BD-026).
 - 14 specialised agents (see [03](03-ai-agent-architecture.md)), each with defined responsibilities, controlled permissions, CRM access, conversation memory, activity logging, error handling and human escalation.
-- **Default autonomy mode:** AI prepares suggestions; **a person approves important actions**. Approval levels are configurable.
-- Integrations: WhatsApp Business Cloud API, Gmail, Microsoft 365, Facebook Lead Ads, Instagram lead sources, website enquiry forms, website chat, all through **official APIs** with secure credentials, webhook processing, message status tracking, retries and audit logs.
+- **Default autonomy mode:** AI prepares suggestions; **a person approves important actions**; approval levels configurable (BD-027).
+- Integrations: WhatsApp Business Cloud API, Gmail, Microsoft 365, Facebook Lead Ads, Instagram lead sources, website enquiry forms, website chat, all through **official APIs** with secure credentials, webhook processing, message status tracking, retries and audit logs (BD-028).
 - Dashboard modules (17): Overview, Leads, Customers, Conversations, AI Agents, Sales Pipeline, Tutors, Scheduling, Pricing, Quotations, Payments, Follow-ups, Retention, Reports, Team, Integrations, Settings.
 - Brand direction: pink/magenta and blue accents; white and light neutral backgrounds; modern typography; responsive.
 - Security: secure login, role-based permissions (admin and representative levels at minimum), encrypted credentials, API rate limiting, input validation, secure webhooks, audit trails, backups, privacy controls, customer data isolation.
-- Preferred stack: Next.js/React/TypeScript/Tailwind · Python/FastAPI · PostgreSQL · Redis + background workers · Claude API and OpenAI API via modular adapters · Docker, environment variables, migrations.
+- Preferred stack (BD-029): Next.js/React/TypeScript/Tailwind · Python/FastAPI · PostgreSQL · Redis + background workers · Claude API and OpenAI API via modular adapters · Docker, environment variables, migrations.
+- Outstanding business decisions are handled with **configurable settings**, so the architecture is not blocked (BD-030). **No full implementation until the architecture is explicitly approved** (BD-031).
 
 ---
 
 ## 3. Design assumptions (must be checked)
 
-| ID | Assumption | Impact if wrong | Question |
-|----|-----------|-----------------|----------|
-| A-01 | One company, one brand: Mixt Academy (single-tenant system). | Multi-brand or franchise use would need a tenant layer. | Q-BIZ-01 |
-| A-02 | The buyer is usually a **parent/guardian**; most students are **minors**. | Changes consent design, safeguarding rules and who the AI talks to. | Q-CMP-03, Q-AI-05 |
-| A-03 | One parent account can hold several students (CONFIRMED), and one student may have more than one guardian contact (ASSUMPTION). | Small schema change. | Q-CRM-02 |
-| A-04 | All lessons are **1:1, online, 60 minutes** unless a policy says otherwise. | The hours ledger and scheduling durations would change. | Q-PRC-07, Q-SCH-03 |
-| A-05 | Packages are **prepaid**; hours are drawn down as lessons are delivered. | The payment and ledger design would change for subscriptions or instalments. | Q-PAY-02 |
-| A-06 | Lessons are delivered on an **external video platform** (e.g. Zoom, Google Meet, Teams). | The scheduling integration would change. | Q-SCH-01 |
-| A-07 | Tutor records and lesson-delivery data currently live outside any system Mixt AI can read (spreadsheets or another tool). | Migration and integration effort. | Q-TUT-01, Q-DAT-01 |
-| A-08 | The sales team is small (fewer than 50 internal users) and works mainly in English. | Sizing, dashboard language. | Q-TEAM-01 |
-| A-09 | Customers may write in several languages (e.g. Arabic, Malay, Indonesian, Chinese, Korean). | Supported AI reply languages and staff review ability. | Q-AI-03 |
-| A-10 | A US-resident enquiry can still arrive by accident (e.g. ads, referrals). It is **flagged as out-of-market for a person to review**, never targeted. | Handling rule needed. | Q-MKT-02 |
-| A-11 | One shared WhatsApp Business number serves all markets. | Separate numbers would mean several channel accounts (already supported). | Q-COM-01 |
-| A-12 | Prices are **final consumer prices**; tax treatment is not yet known. | Quotation and invoice totals would change. | Q-PAY-04 |
-| A-13 | Hosting is in one cloud region chosen for data-protection reasons. | Data residency could require a different region or several regions. | Q-CMP-02 |
+| ID | Assumption | Status (v0.2) | Impact if wrong | Question |
+|----|-----------|---------------|-----------------|----------|
+| A-01 | One company, one brand: Mixt Academy (single-tenant system). | ASSUMPTION | Multi-brand or franchise use would need a tenant layer. | Q-BIZ-01 |
+| A-02 | The buyer is usually a **parent/guardian**; most students are **minors**. | ASSUMPTION (system treats all students as minors meanwhile) | Consent design, safeguarding, who the AI talks to. | Q-CMP-03, Q-AI-05 |
+| A-03 | One parent account can hold several students; one student may have more than one guardian contact. | Several students: **CONFIRMED** (BD-026). Several guardians: ASSUMPTION | Small schema change. | Q-CRM-02 |
+| A-04 | Lessons are **1:1, online, 60 minutes**. | 1:1 online: **CONFIRMED** (BD-002). 1 class = 60 min for class-based schedules: **CONFIRMED** (BD-011). Other lesson lengths: ASSUMPTION (60 only) | Hours ledger and scheduling durations. | Q-SCH-03 |
+| A-05 | Packages are **prepaid**; hours are drawn down as lessons are delivered. | ASSUMPTION | Payment and ledger design. | Q-PAY-02 |
+| A-06 | Lessons are delivered on an **external video platform**. | ASSUMPTION | Scheduling integration. | Q-SCH-01 |
+| A-07 | Tutor records and lesson data live outside any system Mixt AI can read today. | ASSUMPTION | Migration effort. | Q-TUT-01, Q-DAT-01 |
+| A-08 | The sales team is small (fewer than 50 internal users) and works mainly in English. | ASSUMPTION | Sizing, dashboard language. | Q-TEAM-01 |
+| A-09 | Customers may write in several languages (e.g. Arabic, Malay, Indonesian, Chinese, Korean). | ASSUMPTION (AI replies in English only meanwhile) | AI reply languages, staff review. | Q-AI-03 |
+| A-10 | Unsolicited enquiries from outside the 13 markets (including US residents) can still arrive (e.g. via ads or referrals). They are flagged out-of-market for a person to review and are never targeted; **the US is never added as a market** (BD-005). | Handling: OPEN (safe default `human_review`) | Out-of-market wording. | Q-MKT-02 |
+| A-11 | One shared WhatsApp Business number serves all markets. | ASSUMPTION | Several channel accounts (already supported). | Q-COM-01 |
+| A-12 | Prices are **final consumer prices**; tax treatment unknown. | ASSUMPTION (tax `unknown` blocks activation) | Quotation and invoice totals. | Q-PAY-04 |
+| A-13 | Hosting is in one cloud region chosen for data-protection reasons. | ASSUMPTION | Possibly several regions. | Q-CMP-02 |
 
 ---
 
@@ -138,6 +153,9 @@ Priority: **MVP** = needed for the first production release used by the sales te
 | FR-32 | Analytics | Funnel, conversion, response time, revenue by market/currency (never summed across currencies without a labelled reporting rate), agent performance. | P2/P3 |
 | FR-33 | Sales Manager Agent | Pipeline digests, SLA monitoring, conversation QA scoring, anomaly detection. | P3 |
 | FR-34 | Privacy | Consent records, data export (DSAR), erasure/anonymisation, retention schedules. | MVP (records) / P2 (workflows) |
+| FR-35 | Settings | Configurable settings register with safe defaults for every outstanding business decision, and an "Outstanding decisions" view ([13](13-configurable-settings.md)). | MVP |
+| FR-36 | Pricing | Per-market tier selection mode; manual per-customer tier selection by authorised staff, with reason (ADR-12). | MVP |
+| FR-37 | Pricing | Correction versions that supersede, never overwrite, original figures; original schedules preserved in history (ADR-14). | MVP |
 
 ## 5. Non-functional requirements
 

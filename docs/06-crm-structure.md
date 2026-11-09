@@ -56,7 +56,8 @@ stateDiagram-v2
 | Attribution | Source, campaign/ad/form IDs, UTM parameters, landing page, referrer, first-touch vs last-touch on the account. |
 | Normalisation | Phone → E.164 using the submitted country; email lower-cased; country → ISO code; names trimmed. |
 | Duplicate detection | Exact match on phone/email contact points → link to the existing account; fuzzy name + school match → "possible duplicate" for a person to review. Merges are logged and reversible from the snapshot. |
-| Market check | Submitted/detected country ∈ 13 markets → continue. US or another non-target country → `out_of_market` (no automated outreach; a person decides: Q-MKT-02). |
+| Market check | Submitted/detected country ∈ the 13 operating markets (BD-004) → continue. US or another non-target country → `out_of_market`: no automated outreach, no pricing, never added as a market (BD-005); handling per Q-MKT-02 (safe default: a person reviews). |
+| Pricing market | Confirmed **by staff** on the account (`market_confirmed_by/at`). Currency, phone prefix (e.g. +1) and curriculum are **never** used to set it (ADR-13). |
 | Consent capture | Wording shown on the form, timestamp and form ID stored as evidence in `consents`. |
 | Speed-to-lead | SLA timer from `received_at` to first human-approved response (target to set: Q-TEAM-03). |
 
@@ -87,7 +88,7 @@ Whether a free trial is always offered, and in which markets, is unknown (Q-SAL-
 
 | Field | Notes |
 |-------|-------|
-| Curriculum | Irish / SABIS / American / British (CONFIRMED list) |
+| Curriculum | Irish / SABIS / American / British (CONFIRMED, BD-007; IB not included, BD-008). The curriculum never determines the pricing market. |
 | Grade / year level | Per-curriculum grade list (to be supplied: Q-ACA-03) |
 | School | Free text + optional link to a school reference list later |
 | Subjects | Each with exam board, qualification, current grade, target grade, priority |

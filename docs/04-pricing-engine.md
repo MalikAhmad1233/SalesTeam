@@ -1,26 +1,35 @@
 # 04: Pricing Engine Design
 
-Status: **PROPOSAL, awaiting approval** · **Pricing database: NOT complete** · **No pricing or promotion is active.**
+Status: **PROPOSAL, awaiting approval** · **Pricing database: INCOMPLETE (CONFIRMED, BD-017)** · **No pricing or promotion is active.** · Updated 2026-11-09 (v0.2)
 
-## 1. Rules taken from the brief (CONFIRMED)
+## 1. Confirmed pricing rules
 
-| # | Rule |
-|---|------|
-| P-01 | Pricing is held in the database and driven by data. New pricing sheets are added **without code changes**. |
-| P-02 | Countries, currencies, durations, tiers, Standard/Premium/promotional packages and benefits are each supported independently. |
-| P-03 | Supplied figures are **package totals**. **Hourly rates and package totals are separate fields.** |
-| P-04 | A class = one hour, unless a package policy says otherwise. |
-| P-05 | Never invent prices or package durations. |
-| P-06 | Never assume pricing for a country that has none. |
-| P-07 | Never convert currencies to produce an official price. |
-| P-08 | Never mix one country's pricing with another's. |
-| P-09 | **Never select a customer's special pricing tier automatically.** |
-| P-10 | USD schedules are currency records; their **market assignment is unconfirmed**; USD never implies a US market; the US is never a market. |
-| P-11 | The two Ireland schedules are kept separate; eligibility for each and how they relate are unconfirmed. |
-| P-12 | Benefits and policies are stored per package, country and plan; they are never applied across countries without administrator approval. |
-| P-13 | Every quotation records the exact price, currency, tier and package version used. |
-| P-14 | Confidential pricing is never disclosed to another customer. |
-| P-15 | Unconfirmed pricing or promotional rules are never activated. |
+All rules below are CONFIRMED by Mixt. Decision references: [12-decision-log](12-decision-log.md).
+
+| # | Rule | Decision |
+|---|------|----------|
+| P-01 | Pricing is held in the database and driven by data. New pricing sheets are added **without code changes**. | S1 |
+| P-02 | Countries, currencies, durations, tiers, Standard/Premium/promotional packages and benefits are each supported independently. | S1 |
+| P-03 | Supplied figures are **package totals**. **Hourly rates and package totals are separate fields.** | BD-010 |
+| P-04 | **One class = one hour** for the supplied class-based schedules, unless a package-specific exception is confirmed later. | BD-011 |
+| P-05 | Never invent prices or package durations. | BD-019 |
+| P-06 | Never assume pricing for a country that has none. | BD-019 |
+| P-07 | Never convert currencies to produce an official price. | BD-019 |
+| P-08 | Never mix one country's pricing with another's. | BD-019 |
+| P-09 | **Never select a customer's special pricing tier automatically.** | BD-019 |
+| P-10 | USD schedules exist as currency records; their **market assignment is unconfirmed**; **USD is never associated with the US market**; the US is not a market. | BD-005, BD-006 |
+| P-11 | **UK has two separate, valid tiers; UAE has two separate, valid tiers.** | BD-012, BD-013 |
+| P-12 | **Ireland has two separate schedules**, kept separate; their relationship is unconfirmed. | BD-014 |
+| P-13 | **Hong Kong has separate Standard and Premium plans.** | BD-016 |
+| P-14 | Benefits and policies are stored per package, country and plan; never applied across countries without administrator approval. | BD-022 |
+| P-15 | Every quotation records the exact price, currency, tier and package version used. | BD-023 |
+| P-16 | Confidential pricing is never disclosed to another customer. | BD-024 |
+| P-17 | **Unconfirmed pricing tiers, pricing and promotional rules are never activated.** | BD-020 |
+| P-18 | **Promotional terms are kept separate from standard pricing.** | BD-021 |
+| P-19 | **Supplied figures are never silently changed; original schedules are preserved.** Corrections become new versions. | BD-015, BD-018 |
+| P-20 | **The pricing database stays marked incomplete** while sheets are still being collected. | BD-017 |
+
+**Design rules derived from these (PROPOSED, ADR-13):** a customer's pricing market is confirmed by staff. **Currency, phone prefix and curriculum never decide a market.** A USD-paying, +1-phone or American-curriculum family is not a US-market customer; a British-curriculum student in Dubai is priced as UAE, not UK; an Irish-curriculum student is priced by their confirmed market, not by "Ireland".
 
 ## 2. Concepts
 
@@ -40,6 +49,9 @@ Status: **PROPOSAL, awaiting approval** · **Pricing database: NOT complete** ·
 | **Policy** | Enforceable rule with typed values the system acts on. | `validity_months = 18` |
 | **Promotion** | Time-limited change to price, units or a promotional price book, with eligibility and expiry. | — |
 | **Customer pricing assignment** | Human-approved link of an account to a restricted/special price book. Confidential by default. | — |
+| **Tier selection mode** | Per-market setting for choosing between several valid books of the same plan type: `manual` (a person selects per customer, **current default**), `market_default`, or `rule_based`. | UK, UAE, Ireland: `manual` |
+| **Tier selection** | A person's recorded choice of tier/schedule for one account (and optionally one opportunity), with reason. Never created by AI. | "UK Tier B selected by J. Smith: reason …" |
+| **Version change type** | Why a version exists: `initial`, `correction` (fixes figures; supersedes the version it corrects), or `price_change` (a new commercial price). | Malaysia v2 would be a `correction` |
 | **Pricing rule** | Eligibility / minimum-purchase / availability logic stored as validated data. | "Minimum 60 h for Premium" (example only, **not** a confirmed rule) |
 
 ## 3. Data model
@@ -110,15 +122,26 @@ stateDiagram-v2
 |---|-------|
 | G-01 | Figures confirmed by Mixt (`figures_confirmation = confirmed`), and the data-review checklist for this book is signed off (see [05 §3](05-pricing-data-register.md#3-points-to-double-check-before-activation)). |
 | G-02 | At least one **confirmed** market assignment; the market is not excluded. |
-| G-03 | If the book is `public` and the market has several public books of the same plan type: a market default **or** an eligibility rule that tells them apart is set (otherwise the engine would have to guess). |
+| G-03 | If the market has several public books of the same plan type, the market's `tier_selection_mode` is set. `manual` passes this check (a person selects per customer); `market_default` needs a default; `rule_based` needs an approved rule. The engine never guesses. For Ireland, the relationship between the schedules must also be confirmed (Q-PRC-03) before either is activated. |
 | G-04 | Unit definition confirmed (hour vs class; minutes per unit). |
 | G-05 | Tax treatment set (`inclusive` / `exclusive` / `not_applicable`), not `unknown`. |
-| G-06 | Benefits and policies for this version reviewed and approved; any cross-market copy explicitly approved. |
+| G-06 | Every benefit and policy **attached** to this version is reviewed and approved; any cross-market copy explicitly approved. A version may go live with none attached; then nothing about benefits can be claimed for it (`benefits.claims_mode = approved_only`). |
 | G-07 | Approved by a user with `pricing.version.approve`; second approver if the dual-control setting is on (proposed default: on). |
 | G-08 | No overlap with another active version of the same book. |
 | G-09 | Golden tests generated from the version pass in the pricing test suite (automated pre-activation check). |
 
-**Today, no supplied price book passes the gate.** All of them lack confirmed tax treatment, and the tier/eligibility rules are unknown; USD books also lack a market assignment.
+**Today, no supplied price book passes the gate**, so none is active. Remaining blockers per book are listed in [05 §1](05-pricing-data-register.md#1-summary-of-supplied-price-books) and [11 §3](11-open-questions.md#3-questions-that-block-pricing-activation-p2-activate). In short:
+- **All books:** tax treatment (Q-PAY-04), whether price varies by level/subject (Q-PRC-09), named approvers (Q-PRC-20).
+- **Specific books:** figure checks (Q-PRC-14 to Q-PRC-16), Malaysia correction confirmation (Q-PRC-21), Ireland relationship (Q-PRC-03), USD market assignment (Q-MKT-01).
+- **No longer blocking:** UK/UAE tier validity (confirmed, BD-012/013, with `manual` tier selection); Ireland class length (confirmed, BD-011); HK plan structure (confirmed, BD-016).
+
+### 5.3 Corrections and preserving originals (BD-015, BD-018, ADR-14)
+
+- A figure is **never edited in place**, not even in a draft that has been reviewed. A correction creates a **new version** with `change_type = correction` and `supersedes_version_id` pointing at the version it corrects.
+- The original version stays in the database, visible in **Pricing → History** with its figures, source and dates. Only its status changes (`superseded`, or `rejected` if it never went live).
+- The import diff (§15) shows old and new figures side by side; the change summary must state the reason (e.g. "mathematical correction supplied by Mixt on …").
+- Quotations already issued from an earlier version keep their snapshot; acceptance after a supersession follows `quotations.on_price_change` (default: a person reconfirms).
+- **Malaysia:** Mixt confirmed the totals were mathematically corrected (BD-015). The register holds version 1, received 2026-11-09. If the corrected set differs, it is loaded as version 2 (`correction`); otherwise version 1 is simply confirmed (Q-PRC-21).
 
 ## 6. Price resolution algorithm
 
@@ -127,7 +150,7 @@ Input: `account_id`, `student_ids`, requested `plan_type` (optional), requested 
 ```
 resolve_options(account, students, plan_type?, quantity?, at):
   1. market := account.market_id
-       if NULL or not confirmed          → error MARKET_NOT_CONFIRMED (escalate; never infer from currency/phone code)
+       if NULL or not confirmed          → error MARKET_NOT_CONFIRMED (escalate; never infer from currency, phone prefix or curriculum)
        if market.country is excluded     → error MARKET_EXCLUDED
        if market.status != 'active'      → error MARKET_NOT_ACTIVE
   2. special := active customer_pricing_assignments for account at `at` (approved by a person)
@@ -136,10 +159,16 @@ resolve_options(account, students, plan_type?, quantity?, at):
   4. candidates := special ∪ public   (special books appear ONLY through step 2)
        if candidates is empty            → error NO_APPROVED_PRICING_FOR_MARKET
        if plan_type given: filter; if empty → error PLAN_NOT_OFFERED_IN_MARKET
-  5. tier decision:
-       if several public books of the same plan type remain and no market default /
-          eligibility rule separates them        → error TIER_DECISION_REQUIRED (a person decides)
-       never choose between them by price, tier label, or customer attributes
+  5. tier decision (only when several public books of the same plan type remain):
+       mode := market.tier_selection_mode            -- UK, UAE, Ireland: 'manual' today
+       if mode = 'manual':
+            selection := active pricing_tier_selections for (account[, opportunity]) made by a person
+            if none                       → error TIER_DECISION_REQUIRED (task created for the owner)
+            keep only the selected book
+       if mode = 'market_default':  keep the market default book
+       if mode = 'rule_based':      keep books whose approved eligibility rule passes; if not exactly one
+                                     → error TIER_DECISION_REQUIRED
+       never choose between them by price, tier label, or customer attributes; the AI never creates a selection
   6. entries := entries of the chosen version(s)
        if quantity given and no entry has exactly that quantity
                                          → error QUANTITY_NOT_OFFERED (+ nearest listed options, no interpolation)
@@ -167,18 +196,21 @@ Properties guaranteed by tests:
 | `MARKET_NOT_ACTIVE` | Market exists but isn't live | Escalate |
 | `NO_APPROVED_PRICING_FOR_MARKET` | No active, confirmed pricing (e.g. Kuwait today) | Escalate; **AI says the team will confirm pricing**, no figures |
 | `PLAN_NOT_OFFERED_IN_MARKET` | e.g. Premium requested where none exists | Offer what exists or escalate |
-| `TIER_DECISION_REQUIRED` | More than one possible tier, no rule to choose | Escalate to a person with pricing authority |
+| `TIER_DECISION_REQUIRED` | More than one valid tier/schedule and no tier selected for this customer yet | Task for the account owner to select the tier (with reason); AI waits |
 | `QUANTITY_NOT_OFFERED` | Requested hours not in the sheet | Show listed options or request a custom quote (approval) |
 | `BELOW_MINIMUM_PURCHASE` | Fails a minimum rule | Show eligible options |
 
 ## 7. Tiers and special pricing (P-09)
 
 - Tier labels ("Tier A", "Schedule B") are **just names**. The engine never treats A as cheaper or B as premium.
-- How a customer ends up on a tier is decided by Mixt and recorded as either:
-  1. a **market default** (admin config), or
-  2. a **pricing rule** (e.g. eligibility by lead source or campaign, if Mixt defines one), or
-  3. a **customer pricing assignment** made by a person with `pricing.assign_special`, with a reason and approval.
-- The Pricing and Negotiation agents can **recommend** that a person consider an assignment. They cannot create one.
+- **Current status (2026-11-09):** UK Tier A/B and UAE Tier A/B are **valid, separate tiers** (CONFIRMED). Ireland Schedule A/B are **separate schedules** whose relationship is OPEN. *How* a customer is placed on each is OPEN (Q-PRC-02, Q-PRC-03).
+- Until Mixt defines that, each of these markets uses `tier_selection_mode = manual` (ADR-12):
+  - a person with `pricing.tier.select` picks the tier/schedule for the account (optionally per opportunity) and gives a reason;
+  - the choice is stored in `pricing_tier_selections`, audited, and visible on the customer page and the quotation;
+  - the AI shows the rep both valid options internally, but **never** picks one and never mentions the other tier to the customer.
+- When Mixt confirms a rule, the mode switches to `market_default` or `rule_based` by changing a setting; no code change.
+- Separately, **special/confidential pricing** for an individual customer is a **customer pricing assignment** made by a person with `pricing.assign_special`, with reason and approval.
+- The Pricing and Negotiation agents can **recommend** that a person consider a tier selection or special assignment. They cannot create either.
 - Customer pricing assignments are **confidential by default**: they are visible only to roles with `pricing.special.view` and to agent runs scoped to that same account.
 
 ## 8. Eligibility and rules (no code changes needed)
@@ -202,6 +234,12 @@ Rules are stored as JSON in a small, validated rule language: conditions over a 
 
 ## 9. Promotions
 
+- **Kept separate from standard pricing (BD-021, ADR-15):**
+  - a promotion **never edits** a standard price-book entry, version or benefit;
+  - it exists only as a separate `promotions` record or a separately labelled **promotional price book** (`plan_type = promotional`), which can never be a market default;
+  - quotations show the **standard list price** and the **promotion** as separate items, so it is always clear what is standard and what is promotional;
+  - promotional benefits/terms are stored on the promotion, not on the standard version;
+  - `promotions.enabled = false` globally until the first promotion is confirmed.
 - Kinds: `percent_off`, `amount_off` (same currency as the book), `bonus_units`, or a separate `promotional_price_book`.
 - **Mandatory end date.** A scheduled job expires promotions at `ends_at`; expiry is also checked at resolution time.
 - Not stackable unless explicitly marked; at most one promotion per line by default.
@@ -212,7 +250,7 @@ Rules are stored as JSON in a small, validated rule language: conditions over a 
 ## 10. Benefits and policies
 
 - Stored **per price book version** (optionally per entry). A benefit is shown to customers only if it is attached to the exact version (and entry) being quoted.
-- **Cross-market reuse:** copying a benefit/policy from one market's version to another's creates a new row with `copied_from_id` and requires `cross_market_copy_approved_by` (P-12).
+- **Cross-market reuse:** copying a benefit/policy from one market's version to another's creates a new row with `copied_from_id` and requires `cross_market_copy_approved_by` (P-14).
 - Enforceable policies drive behaviour:
   - `validity_months` → `package_purchases.expires_at` at activation (+ pause days if `pause_resume`).
   - `no_expiry` → no expiry date.
@@ -266,6 +304,9 @@ Stored as `pricing_rules` of kind `minimum_purchase` (e.g. minimum quantity per 
 | Set customer eligibility | Eligibility rules with a rule tester |
 | Activate / deactivate pricing | Activation gate checklist; deactivate = retire |
 | Mark special customer pricing | Customer pricing assignment with approval; confidential |
+| *(added)* Choose between valid tiers/schedules | Per-market tier selection mode; manual tier selection per customer with reason (UK, UAE, Ireland today) |
+| *(added)* Record corrections without losing originals | Correction versions with `supersedes_version_id`; originals kept in history |
+| *(added)* Keep promotions separate | Promotions and promotional books never modify standard entries |
 | Set minimum package requirements | Minimum-purchase rules |
 | Approve custom quotations | Approval inbox with authority limits |
 | View pricing history | Version timeline, diffs, who/when/why, quotations per version |
@@ -318,4 +359,8 @@ The price guard (see [03 §9](03-ai-agent-architecture.md#9-guardrails)) accepts
 - **Property-based tests** (Hypothesis): resolution never returns another market's entries; never returns a restricted book without an assignment; never returns an inactive/expired version or promotion; output currency always equals book currency.
 - **State machine tests:** activation gate rejects each missing condition individually.
 - **Leakage tests:** account B's special pricing never appears for account A.
+- **Market-inference tests (ADR-13):** an account with a +1 phone number, a USD budget, or the American curriculum but **no confirmed market** gets `MARKET_NOT_CONFIRMED`, never USD or "US" pricing; a US market cannot be created; USD books never resolve without a confirmed, non-US market assignment.
+- **Tier tests (ADR-12):** in a `manual` market with two valid tiers, resolution returns `TIER_DECISION_REQUIRED` until a person's selection exists, then returns only the selected tier; an agent principal cannot create a selection.
+- **Correction tests (ADR-14):** loading a correction creates a new version; the original's entries are unchanged and still readable; issued quotations keep their snapshot.
+- **Promotion tests (ADR-15):** activating, expiring or cancelling a promotion leaves every standard entry byte-for-byte unchanged.
 - **Concurrency tests:** activating a new version while quotations are being drafted doesn't create mixed-version quotations.
