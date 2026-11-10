@@ -78,7 +78,7 @@ OWASP **ASVS Level 2** as the verification standard, with the OWASP Top 10 and t
 
 ## 7. Audit trail
 
-- Append-only `audit_log` with **hash chaining** (each row includes the previous row's hash), monthly partitions, and `UPDATE`/`DELETE` revoked from the application role.
+- Append-only `audit_log` with **hash chaining** (each row includes the previous row's hash), monthly partitions, and `UPDATE`/`DELETE` revoked from the application role (implemented: IN-20).
 - Logged: logins (success/failure), permission changes, every create/update/delete on business records (changed fields, sensitive values masked), approvals and rejections, AI proposals and their policy decisions, outbound messages, exports, pricing changes, integration changes, kill-switch use.
 - A daily job verifies the hash chain and alerts on breaks. Logs are retained per policy (Q-CMP-07).
 
@@ -130,3 +130,33 @@ Design implications already included: consent records with evidence, purpose-spe
 - Severity levels, on-call contacts and runbooks (data breach, credential leak, AI misbehaviour, provider outage, WhatsApp number restriction).
 - Breach notification timelines vary by law (e.g. 72 hours to the regulator under UK/EU GDPR); the runbook includes a per-market notification checklist from counsel.
 - AI incident playbook: kill switch → identify affected conversations from run logs → correct with customers → root-cause fix → new eval case added.
+
+## 11. What is implemented today (Phases 1a–1d)
+
+The sections above are the design. This table lists only controls with working code **and** automated tests (rule 7). Everything else in this document is still planned.
+
+| Area | Implemented control | Where it is tested |
+|------|---------------------|--------------------|
+| Sign-in | Argon2id passwords with policy; mandatory TOTP two-step verification with replay protection; lockout after repeated failures; temporary passwords that must be changed | `test_auth.py`, `test_more_paths.py` |
+| Single sign-on (off by default) | OIDC code flow with PKCE, state, nonce; RS256 signature, issuer, audience, expiry, `azp` checks; existing active staff only; Microsoft single tenant; TOTP still required unless `auth.sso_satisfies_mfa` (IN-23) | `test_sso.py` (fake provider, real signed tokens) |
+| Sessions and CSRF | HttpOnly/Secure/SameSite cookies, idle and absolute expiry, rotation after MFA, CSRF token on every state-changing request | `test_auth.py` |
+| Rate limiting | Per address, per user, per account and per address for sign-in, per session for codes, per user for password changes and imports; Redis-backed in staging (IN-21) | `test_hardening.py`, `infra/staging/smoke.sh` |
+| Client addresses | `X-Forwarded-For` only from the trusted proxy; a forged header is ignored | `test_hardening.py`, `smoke.sh` |
+| Authorisation | Roles with market scope, record-level visibility, "grant only what you hold" | `test_admin.py`, `test_crm.py` |
+| Database privileges | API and worker as a data-only role; append-only tables insert-only; refuses to start over-privileged in staging/production (IN-20) | `test_hardening.py`, `test_database.py`, E2E and `smoke.sh` |
+| Audit | Append-only, hash-chained audit log (privileges **and** triggers); chain verification detects edited, removed and reordered rows | `test_database.py`, restore check |
+| Encryption | AES-256-GCM field encryption with key rotation (MFA secrets, learning-needs notes, single sign-on state cookie) | `test_core.py`, `test_sso.py` |
+| Browser | Nonce-based Content-Security-Policy, `frame-ancestors 'none'`, HSTS, `nosniff`, `no-referrer`, Permissions-Policy (IN-24) | E2E (`dashboard.spec.ts`), `smoke.sh` |
+| Transport | TLS via Caddy, HTTP→HTTPS redirect, request size limits; API schema and docs hidden in deployed environments | `smoke.sh` |
+| Containers | Non-root, read-only filesystems, no capabilities, `no-new-privileges`, database network without internet (IN-25) | `staging-ci` |
+| Backups | Encrypted (age) six-hourly dumps by a read-only role; restore check verifies schema, triggers, the audit chain and the last audited entry (IN-22) | `test_hardening.py`, `staging-ci` |
+| Dependencies | Locked dependencies; `pip-audit` in CI | `backend-ci` |
+
+**Not yet implemented (planned):**
+* WebAuthn/passkeys and a breached-password check.
+* "Sign out everywhere" in the dashboard.
+* A KMS for key wrapping (keys currently come from the environment).
+* Managed point-in-time recovery (needed for RPO ≤ 15 min).
+* A WAF, DAST and the external penetration test.
+* Webhook verification (arrives with the channels in Phase 3).
+* Malware scanning of uploads.

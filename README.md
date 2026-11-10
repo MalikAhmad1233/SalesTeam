@@ -1,13 +1,15 @@
 # Mixt AI: AI Sales & CRM Platform for Mixt Academy
 
-> **Project status: Phase 1 (foundation and core CRM) in progress.** Architecture approved by Mixt on 2026-11-10 (BD-032).
-> **Built so far (increments 1a, 1b and 1c):** the backend (secure sign-in with mandatory two-step verification, roles and
-> record-level access, a tamper-evident audit log, reference data with the US blocked, the settings register, the core CRM,
-> lead intake and spreadsheet import, duplicate review and merge, the sales pipeline, tasks, notes, tags and the customer
-> timeline) and the **dashboard** for all of it. 119 backend tests run against a real PostgreSQL database, and a browser
-> end-to-end test drives the real stack. Details: [services/backend/README.md](services/backend/README.md),
-> [apps/web/README.md](apps/web/README.md).
-> **Not built yet:** hardening and staging deployment (1d, next), pricing, messaging channels, AI agents and everything in later phases.
+> **Project status: Phase 1 (foundation and core CRM) is code complete.** Architecture approved by Mixt on 2026-11-10 (BD-032).
+> **Built so far (increments 1a to 1d):**
+> * The backend: sign-in with mandatory two-step verification and optional single sign-on; roles and record-level access; a tamper-evident audit log; reference data with the US blocked; the settings register.
+> * The CRM: lead intake and spreadsheet import, duplicate review and merge, the sales pipeline, tasks, notes, tags and the customer timeline.
+> * The **dashboard** for all of the above.
+> * Hardening: separate database roles, rate limiting, a nonce-based Content-Security-Policy, a staging stack with HTTPS, and encrypted backups with a restore check.
+>
+> 202 backend tests run against a real PostgreSQL database as the least-privileged application role. A browser end-to-end test drives the real stack, and CI starts the full staging stack on every push and checks it over HTTPS.
+> Details: [services/backend/README.md](services/backend/README.md), [apps/web/README.md](apps/web/README.md), [operations runbook](docs/14-operations-runbook.md).
+> **Not built yet:** pricing (Phase 2, next), messaging channels, AI agents and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
 > A feature counts as implemented only when working code and passing tests exist for it.
 
 Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.
@@ -33,6 +35,7 @@ All of it runs on **one central CRM database**, with **people in control** of ev
 | 11 | [Open questions](docs/11-open-questions.md) | Remaining missing business information, with the phase each question blocks and the safe default meanwhile |
 | 12 | [Decision log](docs/12-decision-log.md) | Every business and architecture decision with date, status (CONFIRMED / OPEN / PROPOSED) and source |
 | 13 | [Configurable settings](docs/13-configurable-settings.md) | Safe-default settings for outstanding decisions, so the architecture is not blocked |
+| 14 | [Operations runbook](docs/14-operations-runbook.md) | Deploying staging, releases, secrets and rotation, backups, restore checks, recovery, rate limits, single sign-on set-up |
 
 ## Non-negotiable rules (apply to every phase)
 
@@ -55,9 +58,13 @@ Claude API and OpenAI API behind interchangeable model adapters · Docker · Ale
 
 ```
 docs/                 architecture, decisions, open questions (start with docs/12-decision-log.md)
-apps/web/             Next.js dashboard (Phase 1c implemented): see its README
-services/backend/     FastAPI backend (Phase 1a and 1b implemented): see its README to run and test it
+apps/web/             Next.js dashboard (Phase 1c, hardened in 1d): see its README
+services/backend/     FastAPI backend (Phases 1a, 1b, 1d): see its README to run and test it
 infra/compose.yaml    local PostgreSQL, Redis, API and worker for development
-.github/workflows/    CI: backend lint, strict types, tests on PostgreSQL 16 and 17, dependency audit, Docker build;
-                      dashboard type check, build, API-type drift check and browser end-to-end test
+infra/staging/        staging stack: Caddy (TLS), API, worker, dashboard, PostgreSQL roles, Redis, backups (docs/14)
+infra/backup/         encrypted backup and restore image
+.github/workflows/    backend-ci: lint, strict types, tests on PostgreSQL 16 and 17 with Redis, dependency audit, Docker build
+                      web-ci: type check, build, API-type drift check, browser end-to-end test
+                      staging-ci: full stack from the Dockerfiles, browser journey over HTTPS, smoke test, backup, restore check
+                      images: publishes container images to GitHub Container Registry (main branch)
 ```

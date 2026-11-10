@@ -44,7 +44,7 @@ Phases 2 and 3 can run in parallel after Phase 1. Phases 5 and 6 can run in para
 
 **Exit criteria:** architecture **explicitly approved** by Mixt (BD-031): **met on 2026-11-10 (BD-032)**. Open business questions do **not** hold up the start of Phase 1: each has a safe default setting. Before Phase 1 is used with real customer data: hosting region (Q-CMP-02), legal/privacy sign-off (Q-CMP-01) and production cloud account (Q-TECH-04).
 
-## Phase 1: Foundation and core CRM (L): **in progress**
+## Phase 1: Foundation and core CRM (L): **code complete**; waiting only for a hosted staging server and the real-data blockers
 
 Delivered in four increments, each tested and pushed:
 
@@ -53,7 +53,7 @@ Delivered in four increments, each tested and pushed:
 | **1a** Backend foundation | Project set-up, CI, core utilities, migrations, sign-in with MFA, sessions, CSRF, roles with market scope, record-level access, hash-chained audit log, reference data (US blocked), settings register with Outstanding decisions, CRM households/contacts/contact points/consents/students/subjects/exams | **Done 2026-11-10**: 90 automated tests, 91.6% coverage; details in [services/backend/README.md](../services/backend/README.md) |
 | **1b** Leads and pipeline | Lead intake (manual entry and two-step CSV import), duplicate review and merge, configurable pipeline stages with required checks, opportunities, tasks, notes, tags, customer timeline, outbox and scheduled-action worker, scheduling preferences API | **Done 2026-11-10**: 119 automated tests in total, 93% coverage; implementation notes IN-08 to IN-14 |
 | **1c** Dashboard | Next.js shell, design system, sign-in and MFA screens, Leads, Customers (360 v1), Pipeline, Tasks, Team, Settings incl. Outstanding decisions | **Done 2026-11-10**: production build, browser end-to-end test against the real stack, typed API client checked in CI; implementation notes IN-15 to IN-19; details in [apps/web/README.md](../apps/web/README.md) |
-| **1d** Hardening | Rate limiting (Redis), SSO option, nonce-based Content-Security-Policy, staging deployment, separate migration and application database roles, backups and restore check | Next |
+| **1d** Hardening | Rate limiting (Redis), SSO option, nonce-based Content-Security-Policy, staging deployment, separate migration and application database roles, backups and restore check | **Done 2026-11-10**: 202 backend tests (93% coverage) run as the least-privileged application role; single sign-on tested against a fake provider with signed tokens; the staging stack ([infra/staging](../infra/staging)) is built from the real Dockerfiles and started on every push (`staging-ci`), which runs the browser journey over HTTPS, a security smoke test, an encrypted backup and a restore check; implementation notes IN-20 to IN-26; runbook [14](14-operations-runbook.md). **Not done:** a permanently hosted staging server. It needs a server or cloud account, which Mixt has to provide; staging may use a temporary account with synthetic data (Q-TECH-04). |
 
 Original Phase 1 scope:
 
@@ -68,6 +68,8 @@ Original Phase 1 scope:
 - Dashboard shell with design system; Leads, Customers (360 v1), Pipeline, Tasks, Team, Settings screens.
 
 **Exit criteria:** Mixt staff can log in with MFA, manage leads/households/students/opportunities/tasks with correct permissions; audit trail verified; ≥ 85% coverage on domain modules; staging deployed.
+
+**Exit criteria status (2026-11-10):** sign-in with MFA, permissions, leads/households/students/opportunities/tasks and audit verification are met and tested; coverage is 93%. "Staging deployed" is met as a deployable stack that CI starts and checks on every push. A permanently running staging server is still to be set up, once a server or cloud account is available ([14 §2](14-operations-runbook.md#2-first-deployment-a-linux-server-with-docker)).
 
 ## Phase 2: Pricing engine and quotations (L)
 

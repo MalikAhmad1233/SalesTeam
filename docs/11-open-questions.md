@@ -231,7 +231,7 @@ These don't block Phase 1, but **Q-COM-01 and Q-COM-02 should be answered early*
 
 | ID | Open question | Why it matters | Needed by | Until answered |
 |----|---------------|----------------|-----------|----------------|
-| Q-TECH-01 | Staff login via SSO (Google/Microsoft) or local accounts? | Auth. | P1 | Local accounts + MFA (SSO addable later) |
+| Q-TECH-01 | Staff login via SSO (Google/Microsoft) or local accounts? And should the provider's own multi-factor sign-in replace Mixt's two-step code? | Auth. | P1 | Local accounts + MFA. Single sign-on for Google and Microsoft is **built and tested but off** (`auth.sso` = `off`, `auth.sso_satisfies_mfa` = `false`); switching it on needs only this answer and the client credentials ([14 §9](14-operations-runbook.md#9-single-sign-on-optional-off-until-mixt-decides-q-tech-01)) |
 | Q-TECH-02 | Expected volumes (leads/month, conversations/day, active students). | Sizing. | P1 (nice to have) | Design sized for 10⁵ contacts |
 | Q-TECH-03 | Accept proposed targets (99.5%, RPO ≤ 15 min, RTO ≤ 4 h)? | Infrastructure cost. | P1 (nice to have) | Proposed targets apply |
 | Q-TECH-04 | Cloud provider / account for production. | See §2. | **P1-live** | Temporary staging only |
