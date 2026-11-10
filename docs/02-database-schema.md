@@ -1,6 +1,6 @@
 # 02: Database Schema Design
 
-Status: **APPROVED 2026-11-10** (BD-032) · Database: PostgreSQL 17+ (CI also tests 16) · **Phase 1a tables exist** in migration `services/backend/migrations/versions/0001_foundation.py`: identity, reference data, settings values, audit log, and CRM accounts, contacts, contact points, consents, students, subjects, exams, scheduling preferences. Where this document and the migration differ, the migration is authoritative. All other tables are not created yet.
+Status: **APPROVED 2026-11-10** (BD-032) · Database: PostgreSQL 17+ (CI also tests 16) · **Phase 1a tables exist** in migration `services/backend/migrations/versions/0001_foundation.py`: identity, reference data, settings values, audit log, and CRM accounts, contacts, contact points, consents, students, subjects, exams, scheduling preferences. **Phase 1b tables exist** in migration `0002_leads_pipeline.py`: lead sources, campaigns, leads, lead imports, duplicate candidates, merge records, opportunities (+ students, stage history), tasks, notes, tags, timeline activities, outbox, event consumptions, scheduled actions, dead letters. Pipeline stages and lost reasons are settings rather than tables (IN-08). Where this document and the migrations differ, the migrations are authoritative. All other tables are not created yet.
 
 The DDL below is **illustrative**: it is meant to be read and reviewed. The authoritative schema will be Alembic migrations written in Phase 1, with tests.
 

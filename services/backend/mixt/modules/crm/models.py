@@ -70,6 +70,8 @@ class Account(Base):
     lifecycle_stage: Mapped[str] = mapped_column(String(24), server_default=text("'lead'"))
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
     is_vip: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    first_touch_lead_source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("lead_sources.id"))
+    merged_into_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("accounts.id"))
     status: Mapped[str] = mapped_column(String(16), server_default=text("'active'"))
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
     created_at: Mapped[datetime] = created_at_col()
@@ -250,4 +252,10 @@ Index(
     postgresql_where=text("is_primary AND archived_at IS NULL"),
 )
 Index("ix_contact_points_kind_value", ContactPoint.kind, ContactPoint.value)
+Index(
+    "ix_accounts_display_name_trgm",
+    Account.display_name,
+    postgresql_using="gin",
+    postgresql_ops={"display_name": "gin_trgm_ops"},
+)
 Index("ix_consents_current", Consent.contact_id, Consent.purpose, Consent.captured_at)

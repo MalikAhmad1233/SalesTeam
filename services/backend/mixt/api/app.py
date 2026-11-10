@@ -12,8 +12,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-import mixt.models  # noqa: F401  (registers every table so foreign keys resolve)
-from mixt.api.routers import audit, auth, crm, health, reference, settings, users
+import mixt.wiring  # noqa: F401  (tables, event consumers, validators)
+from mixt.api.routers import audit, auth, crm, engagement, health, leads, pipeline, reference, settings, users
 from mixt.core.config import get_config
 from mixt.core.errors import DomainError
 from mixt.core.logging import configure_logging, get_logger
@@ -43,7 +43,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Mixt AI API",
         version="0.1.0",
-        description="Mixt AI backend. Phase 1a: identity, reference data, settings, audit and core CRM.",
+        description="Mixt AI backend: identity, reference data, settings, audit, CRM, leads, pipeline and tasks.",
         openapi_url="/api/v1/openapi.json",
         docs_url="/api/docs" if config.env.value in ("local", "test") else None,
         redoc_url=None,
@@ -105,4 +105,7 @@ def create_app() -> FastAPI:
     app.include_router(settings.router, prefix=prefix)
     app.include_router(audit.router, prefix=prefix)
     app.include_router(crm.router, prefix=prefix)
+    app.include_router(leads.router, prefix=prefix)
+    app.include_router(pipeline.router, prefix=prefix)
+    app.include_router(engagement.router, prefix=prefix)
     return app

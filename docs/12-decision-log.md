@@ -84,9 +84,9 @@ Proposed 2026-11-09; **APPROVED 2026-11-10** (BD-032). ADR-01 to ADR-10 are desc
 | ADR-15 | **Promotions never modify standard entries.** They live only as separate promotion records or separately labelled promotional price books; quotations show list price and promotion as separate items; promotions are globally disabled until the first promotion is confirmed. | APPROVED | BD-020, BD-021 |
 | ADR-16 | **Safe-default principle:** while a decision is OPEN the system takes the most restrictive safe path (escalate to a person, show no figure, send nothing automatically), never a guessed business value. | APPROVED | BD-019, BD-030 |
 
-## C. Implementation notes (Phase 1a)
+## C. Implementation notes
 
-Choices made while building, within the approved architecture. None of them changes a business decision.
+Choices made while building (Phase 1a: IN-01 to IN-07; Phase 1b: IN-08 to IN-14), within the approved architecture. None of them changes a business decision.
 
 | ID | Date | Note | Why |
 |----|------|------|-----|
@@ -97,6 +97,13 @@ Choices made while building, within the approved architecture. None of them chan
 | IN-05 | 2026-11-10 | A contact point that already exists on another household is flagged as a "possible duplicate" without revealing which household. | Customer data isolation: reps must not learn about accounts they cannot see. |
 | IN-06 | 2026-11-10 | Accounts living outside the 13 operating markets (including the US) are flagged `out_of_market` automatically for a person to review; the pricing market itself is only ever set by a person. | Implements BD-005 and ADR-13 with the safe default `markets.out_of_market_handling = human_review`. |
 | IN-07 | 2026-11-10 | Sales reps hold neither read nor write access to restricted learning-needs notes; Sales Managers and Tutor Coordinators do. | Data minimisation for children's sensitive data; adjustable through roles (Q-TEAM-02). |
+| IN-08 | 2026-11-10 | Pipeline stages and lost reasons are **settings** (`crm.pipeline_stages`, with the checks each stage requires; `crm.lost_reasons`), not separate tables. `crm.stage_required_fields` is merged into `crm.pipeline_stages`. Only the new-business pipeline exists; renewal and upsell pipelines arrive with retention (Phase 7). | One mechanism for every outstanding decision (ADR-11); a stage or reason still in use cannot be removed. |
+| IN-09 | 2026-11-10 | Until trials, quotations and payments exist, moving into those stages needs a written note. A household becomes `prospect` when an opportunity reaches Qualified; `customer` is still only set by payments (Phase 6). | No invented evidence; lifecycle stays truthful. |
+| IN-10 | 2026-11-10 | Lead intake matches existing households by phone or email (phone and WhatsApp numbers count as the same). Similar household names in the same country (trigram similarity ≥ 0.6) become duplicate candidates for a person to merge or dismiss. A merge moves contacts, students, opportunities, tasks, notes, tags, timeline and leads, archives the merged household and keeps a snapshot; undoing a merge is not automated. | Implements docs/06 §3 with a person deciding every merge. |
+| IN-11 | 2026-11-10 | Spreadsheet import is two steps (validate, then commit). Imports never record marketing consent (Q-CMP-10 safe default). Personal data is removed from the import report once it is committed or discarded. Only managers and admins can import. | Consent must have evidence; data minimisation. |
+| IN-12 | 2026-11-10 | Background work (event delivery, scheduled reminders) runs in a simple polling worker: `python -m mixt.cli worker`. The timeline updates when the worker runs, normally within seconds. Celery queues (ADR-06) are introduced when external channels start sending (Phase 3). | Nothing is lost if the worker is down: events wait in the database outbox. |
+| IN-13 | 2026-11-10 | Notes cannot be edited or deleted (corrections are new notes). Private notes are visible only to their author, also on the timeline; note text is never copied into the timeline. | Trustworthy record; privacy between colleagues. |
+| IN-14 | 2026-11-10 | Sales reps can enter leads and manage opportunities, tasks and notes. Importing, merging, reviewing out-of-market leads and creating campaigns or tags are manager/admin permissions. | Keeps bulk and destructive actions with managers; adjustable through roles (Q-TEAM-02). |
 
 ## D. Change history
 
@@ -107,3 +114,4 @@ Choices made while building, within the approved architecture. None of them chan
 | 2026-11-09 | 0.2 | **US-market audit:** every document was searched for any association of the US with a market (incl. "US", "United States", "America", "US$", "$" amounts, "+1" phone prefix). **No document assigned, targeted or assumed a US market**: the US appears only as an excluded country, and "American" only as a curriculum name. To prevent any future inference, explicit rules were added: currency, curriculum and phone prefix never decide a market (ADR-13); a database trigger blocks a US market (DB-01); automated tests are listed in [04 §18](04-pricing-engine.md#18-tests-phase-2-exit-criteria). | S2 |
 | 2026-11-09 | 0.2 | **Pricing figures unchanged.** The register was re-checked by script after the update: 13 books and 91 entries, identical to the brief. | S2 |
 | 2026-11-10 | 0.3 | Architecture approved (BD-032); ADR-01 to ADR-16 marked APPROVED. Phase 1a (backend foundation) implemented with tests; implementation notes IN-01 to IN-07 added. | S3 |
+| 2026-11-10 | 0.4 | Phase 1b (leads, pipeline, tasks, notes, tags, timeline, outbox, scheduled actions) implemented with tests; implementation notes IN-08 to IN-14; settings `crm.pipeline_stages` (now including stage checks) and `crm.lost_reasons` added to docs/13. | S3 |

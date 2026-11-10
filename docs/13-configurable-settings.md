@@ -60,8 +60,8 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 | `crm.student_birth_data` | global | `year_only` | safe_default | `full_date` | Q-CMP-04 | Owner |
 | `crm.lead_assignment` | global | `manual` | safe_default | rules (market, language, workload) | Q-TEAM-01 | SM |
 | `crm.unassigned_pool_visible_to_reps` | global | `true`: sales reps can see accounts with no owner yet | safe_default | `false` (only managers see the pool) | Q-TEAM-02 | SM |
-| `crm.pipeline_stages` | pipeline | proposed defaults in [06 §4](06-crm-structure.md#4-sales-pipeline-default-new_business-pipeline-proposal), editable | safe_default | edited stages | Q-SAL-01 | Admin |
-| `crm.stage_required_fields` | stage | Qualified = confirmed market + curriculum + one student with grade and subject (proposed) | safe_default | edited fields | Q-CRM-01, Q-SAL-03 | Admin |
+| `crm.pipeline_stages` | global | The 12 proposed stages from [06 §4](06-crm-structure.md#4-sales-pipeline-default-new_business-pipeline-proposal), each with the checks needed to enter it (`owner`, `market_confirmed`, `student_profile`, `note`, `lost_reason`, `nurture_until`). Qualified = owner + confirmed market + a linked student with curriculum, grade and a subject. Trial, quotation and payment stages need a note until those modules exist. A stage that still holds opportunities cannot be removed. | safe_default | edited stages and checks | Q-SAL-01, Q-CRM-01, Q-SAL-03 | Admin |
+| `crm.lost_reasons` | global | Generic proposed list: price, timing, chose another provider, no response, needs not covered, other. A reason still used by lost opportunities cannot be removed. | safe_default | edited list | Q-SAL-01 | Admin |
 
 ## 5. Channels and AI
 

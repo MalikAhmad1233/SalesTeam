@@ -37,6 +37,73 @@ class SettingDefinition:
     notes: str = field(default="")
 
 
+# Checks a stage can require. Implemented in mixt.modules.pipeline.stages (a test keeps them in sync).
+STAGE_CHECKS = ("owner", "market_confirmed", "student_profile", "note", "lost_reason", "nurture_until")
+
+PIPELINE_STAGES_SCHEMA: dict[str, Any] = {
+    "type": "array",
+    "minItems": 3,
+    "items": {
+        "type": "object",
+        "required": ["key", "name", "type", "requires"],
+        "additionalProperties": False,
+        "properties": {
+            "key": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$"},
+            "name": {"type": "string", "minLength": 1, "maxLength": 60},
+            "type": {"enum": ["open", "won", "lost"]},
+            "sla_hours": {"type": ["integer", "null"], "minimum": 1},
+            "requires": {"type": "array", "items": {"enum": list(STAGE_CHECKS)}, "uniqueItems": True},
+        },
+    },
+}
+
+_QUALIFIED = ["owner", "market_confirmed", "student_profile"]
+DEFAULT_PIPELINE_STAGES: list[dict[str, Any]] = [
+    {"key": "new", "name": "New", "type": "open", "sla_hours": None, "requires": []},
+    {"key": "contacted", "name": "Contacted", "type": "open", "sla_hours": None, "requires": ["owner"]},
+    {"key": "discovery", "name": "Discovery", "type": "open", "sla_hours": None, "requires": ["owner"]},
+    {"key": "qualified", "name": "Qualified", "type": "open", "sla_hours": None, "requires": _QUALIFIED},
+    {
+        "key": "trial_scheduled",
+        "name": "Trial scheduled",
+        "type": "open",
+        "sla_hours": None,
+        "requires": [*_QUALIFIED, "note"],
+    },
+    {
+        "key": "trial_completed",
+        "name": "Trial completed",
+        "type": "open",
+        "sla_hours": None,
+        "requires": [*_QUALIFIED, "note"],
+    },
+    {
+        "key": "quotation_sent",
+        "name": "Quotation sent",
+        "type": "open",
+        "sla_hours": None,
+        "requires": [*_QUALIFIED, "note"],
+    },
+    {"key": "negotiation", "name": "Negotiation", "type": "open", "sla_hours": None, "requires": [*_QUALIFIED, "note"]},
+    {
+        "key": "won_payment_pending",
+        "name": "Won: payment pending",
+        "type": "open",
+        "sla_hours": None,
+        "requires": [*_QUALIFIED, "note"],
+    },
+    {
+        "key": "won_paid",
+        "name": "Won: paid / onboarded",
+        "type": "won",
+        "sla_hours": None,
+        "requires": [*_QUALIFIED, "note"],
+    },
+    {"key": "lost", "name": "Lost", "type": "lost", "sla_hours": None, "requires": ["lost_reason"]},
+    {"key": "nurture", "name": "Nurture", "type": "open", "sla_hours": None, "requires": ["nurture_until", "note"]},
+]
+
+
 def _enum(*values: Any) -> dict[str, Any]:
     return {"enum": list(values)}
 
@@ -326,6 +393,44 @@ DEFINITIONS: tuple[SettingDefinition, ...] = (
         "manual",
         SALES,
         open_question="Q-TEAM-01",
+    ),
+    SettingDefinition(
+        "crm.pipeline_stages",
+        "crm",
+        "Stages of the new-business pipeline, in order, with the checks required to enter each one. Proposed "
+        "defaults from docs/06; stages for trials, quotations and payments need a note until those modules exist.",
+        PIPELINE_STAGES_SCHEMA,
+        DEFAULT_PIPELINE_STAGES,
+        ADMIN,
+        open_question="Q-SAL-01, Q-CRM-01",
+    ),
+    SettingDefinition(
+        "crm.lost_reasons",
+        "crm",
+        "Reasons a person can choose when an opportunity is lost (generic proposed list).",
+        {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": ["code", "name"],
+                "additionalProperties": False,
+                "properties": {
+                    "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$"},
+                    "name": {"type": "string", "minLength": 1, "maxLength": 80},
+                },
+            },
+        },
+        [
+            {"code": "price", "name": "Price"},
+            {"code": "timing", "name": "Timing / not now"},
+            {"code": "competitor", "name": "Chose another provider"},
+            {"code": "no_response", "name": "No response"},
+            {"code": "not_a_fit", "name": "Needs not covered"},
+            {"code": "other", "name": "Other"},
+        ],
+        ADMIN,
+        open_question="Q-SAL-01",
     ),
     SettingDefinition(
         "crm.unassigned_pool_visible_to_reps",

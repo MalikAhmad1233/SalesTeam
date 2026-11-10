@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, Response
@@ -516,3 +517,55 @@ def add_exam(
     db: Session = Depends(get_session),
 ) -> ExamOut:
     return ExamOut.model_validate(crm.add_student_exam(db, auth.actor, auth.access, student_id, body.model_dump()))
+
+
+class SchedulingPreferencesIn(BaseModel):
+    timezone: str
+    preferred_weekdays: list[int] | None = None
+    preferred_windows: list[dict[str, str]] | None = None
+    lessons_per_week: float | None = Field(default=None, ge=0, le=21)
+    preferred_session_minutes: int | None = Field(default=None, ge=15, le=240)
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class SchedulingPreferencesOut(BaseModel):
+    student_id: uuid.UUID
+    timezone: str
+    preferred_weekdays: list[int] | None
+    preferred_windows: list[dict[str, str]] | None
+    lessons_per_week: float | None
+    preferred_session_minutes: int | None
+    notes: str | None
+
+
+def _prefs_out(pref: Any) -> SchedulingPreferencesOut:
+    return SchedulingPreferencesOut(
+        student_id=pref.student_id,
+        timezone=pref.timezone,
+        preferred_weekdays=pref.preferred_weekdays,
+        preferred_windows=(pref.preferred_windows or {}).get("windows"),
+        lessons_per_week=float(pref.lessons_per_week) if pref.lessons_per_week is not None else None,
+        preferred_session_minutes=pref.preferred_session_minutes,
+        notes=pref.notes,
+    )
+
+
+@router.get("/students/{student_id}/scheduling-preferences", response_model=SchedulingPreferencesOut | None)
+def get_preferences(
+    student_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+) -> SchedulingPreferencesOut | None:
+    pref = crm.get_scheduling_preferences(db, auth.access, student_id)
+    return _prefs_out(pref) if pref else None
+
+
+@router.put("/students/{student_id}/scheduling-preferences", response_model=SchedulingPreferencesOut)
+def set_preferences(
+    student_id: uuid.UUID,
+    body: SchedulingPreferencesIn,
+    auth: AuthContext = Depends(require("crm.students.manage")),
+    db: Session = Depends(get_session),
+) -> SchedulingPreferencesOut:
+    data = body.model_dump()
+    if data["lessons_per_week"] is not None:
+        data["lessons_per_week"] = Decimal(str(data["lessons_per_week"]))
+    return _prefs_out(crm.set_scheduling_preferences(db, auth.actor, auth.access, student_id, data))

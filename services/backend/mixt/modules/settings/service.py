@@ -7,6 +7,7 @@ Changes that need dual approval are refused until the approvals module ships (Ph
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,15 @@ from mixt.modules.settings.models import SystemSetting
 from mixt.modules.settings.registry import BY_KEY, DEFINITIONS, SettingDefinition
 
 _DECISION_REF = re.compile(r"^BD-[0-9]{3}$")
+
+# Extra checks owned by other modules (e.g. the pipeline refuses to drop a stage that is in use).
+Validator = Callable[[Session, Any], None]
+_VALIDATORS: dict[str, Validator] = {}
+
+
+def register_validator(key: str, validator: Validator) -> None:
+    definition(key)
+    _VALIDATORS[key] = validator
 
 
 @dataclass(frozen=True)
@@ -115,6 +125,8 @@ def change(
         jsonschema.validate(value, d.schema)
     except jsonschema.ValidationError as exc:
         raise ValidationFailed("INVALID_SETTING_VALUE", f"Invalid value for '{key}': {exc.message}") from exc
+    if key in _VALIDATORS:
+        _VALIDATORS[key](db, value)
     if status not in ("safe_default", "confirmed"):
         raise ValidationFailed("INVALID_STATUS", "Status must be 'safe_default' or 'confirmed'.")
     if status == "confirmed" and not (decision_ref and _DECISION_REF.match(decision_ref)):

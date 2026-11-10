@@ -1,11 +1,12 @@
 # Mixt AI: AI Sales & CRM Platform for Mixt Academy
 
 > **Project status: Phase 1 (foundation and core CRM) in progress.** Architecture approved by Mixt on 2026-11-10 (BD-032).
-> **Built so far (increment 1a):** the backend foundation: secure sign-in with mandatory two-step verification, roles and
-> record-level access, a tamper-evident audit log, reference data (13 markets; the US blocked), the settings register with
-> "Outstanding decisions", and the core CRM (households, contacts, consents, students). 90 automated tests run against a real
-> PostgreSQL database. Details: [services/backend/README.md](services/backend/README.md).
-> **Not built yet:** leads and pipeline, the dashboard, pricing, messaging channels, AI agents and everything in later phases.
+> **Built so far (increments 1a and 1b):** the backend for secure sign-in with mandatory two-step verification,
+> roles and record-level access, a tamper-evident audit log, reference data (13 markets; the US blocked), the settings
+> register with "Outstanding decisions", the core CRM (households, contacts, consents, students), lead intake and
+> spreadsheet import, duplicate review and merge, the sales pipeline, tasks, notes, tags and the customer timeline.
+> 119 automated tests run against a real PostgreSQL database. Details: [services/backend/README.md](services/backend/README.md).
+> **Not built yet:** the dashboard (next), pricing, messaging channels, AI agents and everything in later phases.
 > A feature counts as implemented only when working code and passing tests exist for it.
 
 Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.
@@ -53,7 +54,7 @@ Claude API and OpenAI API behind interchangeable model adapters · Docker · Ale
 
 ```
 docs/                 architecture, decisions, open questions (start with docs/12-decision-log.md)
-services/backend/     FastAPI backend (Phase 1a implemented): see its README to run and test it
-infra/compose.yaml    local PostgreSQL and Redis for development
+services/backend/     FastAPI backend (Phase 1a and 1b implemented): see its README to run and test it
+infra/compose.yaml    local PostgreSQL, Redis, API and worker for development
 .github/workflows/    CI: lint, strict types, tests on PostgreSQL 16 and 17, dependency audit, Docker build
 ```

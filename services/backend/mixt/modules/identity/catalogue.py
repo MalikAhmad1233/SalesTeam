@@ -31,7 +31,33 @@ PERMISSIONS: dict[str, str] = {
     "crm.students.manage": "Create and update students and their academic profiles",
     "crm.students.learning_needs.read": "Read restricted learning-needs notes",
     "crm.students.learning_needs.write": "Write restricted learning-needs notes",
+    # Phase 1b (migration 0002)
+    "leads.read": "View leads for households you can see",
+    "leads.create": "Enter leads by hand",
+    "leads.import": "Import leads from a spreadsheet",
+    "leads.review": "Review out-of-market, spam and duplicate leads",
+    "leads.campaigns.manage": "Create campaigns for lead attribution",
+    "crm.opportunities.manage": "Create and update opportunities and move them through the pipeline",
+    "crm.accounts.merge": "Merge duplicate households",
+    "crm.tasks.manage": "Create and update tasks",
+    "crm.notes.write": "Add notes",
+    "crm.tags.manage": "Create tags",
+    "events.dead_letters.manage": "View and replay failed background work",
 }
+
+_PHASE_1B_ALL = [
+    "leads.read",
+    "leads.create",
+    "leads.import",
+    "leads.review",
+    "leads.campaigns.manage",
+    "crm.opportunities.manage",
+    "crm.accounts.merge",
+    "crm.tasks.manage",
+    "crm.notes.write",
+    "crm.tags.manage",
+]
+_REP_1B = ["leads.read", "leads.create", "crm.opportunities.manage", "crm.tasks.manage", "crm.notes.write"]
 
 _CRM_CORE = [
     "crm.accounts.read",
@@ -60,6 +86,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             *_CRM_CORE,
             "crm.accounts.read_all",
             "crm.accounts.assign_owner",
+            *_PHASE_1B_ALL,
+            "events.dead_letters.manage",
         ],
     ),
     "pricing_manager": (
@@ -80,17 +108,26 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.accounts.assign_owner",
             "crm.students.learning_needs.read",
             "crm.students.learning_needs.write",
+            *_PHASE_1B_ALL,
         ],
     ),
     "sales_rep": (
         "Sales Representative",
         "Own accounts and the unassigned pool",
-        ["reference.read", "settings.read", *_CRM_CORE],
+        ["reference.read", "settings.read", *_CRM_CORE, *_REP_1B],
     ),
     "finance": (
         "Finance",
         "Invoices and payments (from Phase 6), finance settings",
-        ["reference.read", "settings.read", "settings.change.finance", "crm.accounts.read", "crm.accounts.read_all"],
+        [
+            "reference.read",
+            "settings.read",
+            "settings.change.finance",
+            "crm.accounts.read",
+            "crm.accounts.read_all",
+            "crm.tasks.manage",
+            "crm.notes.write",
+        ],
     ),
     "tutor_coordinator": (
         "Tutor Coordinator",
@@ -103,6 +140,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.students.manage",
             "crm.students.learning_needs.read",
             "crm.students.learning_needs.write",
+            "crm.tasks.manage",
+            "crm.notes.write",
         ],
     ),
     "analyst": (

@@ -18,6 +18,7 @@ dependencies = [
   "phonenumbers>=8.13",
   "structlog>=24.4",
   "jsonschema>=4.23",
+  "python-multipart>=0.0.33",
 ]
 
 [dependency-groups]

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -31,11 +31,13 @@ from mixt.modules.crm.models import (
     Consent,
     Contact,
     ContactPoint,
+    SchedulingPreference,
     Student,
     StudentExam,
     StudentSubject,
 )
 from mixt.modules.crm.policies import account_visibility
+from mixt.modules.events import service as events
 from mixt.modules.identity import service as identity
 from mixt.modules.identity.access import Access
 from mixt.modules.reference import service as reference
@@ -176,6 +178,7 @@ def create_account(
     owner_user_id: uuid.UUID | None = None,
     owner_explicit: bool = False,
     is_vip: bool = False,
+    first_touch_lead_source_id: uuid.UUID | None = None,
 ) -> Account:
     access.require_somewhere("crm.accounts.create")
     if kind not in ("household", "institution"):
@@ -199,6 +202,7 @@ def create_account(
         owner_user_id=owner,
         is_vip=is_vip,
         lifecycle_stage=_residence_lifecycle(db, country, "lead"),
+        first_touch_lead_source_id=first_touch_lead_source_id,
         created_by=actor.principal_id,
     )
     db.add(account)
@@ -206,6 +210,15 @@ def create_account(
     db.refresh(account)
     audit.record(
         db, actor, "account_created", "account", account.id, audit.diff({}, _snapshot(account, ACCOUNT_FIELDS))
+    )
+    events.emit(
+        db,
+        actor,
+        "account.created",
+        "account",
+        account.id,
+        {"display_name": account.display_name, "lifecycle_stage": account.lifecycle_stage},
+        account.id,
     )
     return account
 
@@ -313,6 +326,15 @@ def confirm_market(
             **audit.diff(before, {"market_id": account.market_id, "lifecycle_stage": account.lifecycle_stage}),
             "note": note.strip(),
         },
+    )
+    events.emit(
+        db,
+        actor,
+        "account.market_confirmed",
+        "account",
+        account.id,
+        {"market_id": market.id, "market_name": market.name, "note": note.strip()},
+        account.id,
     )
     return account
 
@@ -581,6 +603,15 @@ def record_consent(
         consent.id,
         {"contact_id": str(contact.id), "purpose": purpose, "status": status, "source": source},
     )
+    events.emit(
+        db,
+        actor,
+        "consent.recorded",
+        "consent",
+        consent.id,
+        {"contact_id": contact.id, "purpose": purpose, "status": status, "source": source},
+        contact.account_id,
+    )
     return consent
 
 
@@ -760,6 +791,7 @@ def create_student(
             "learning_needs": "[restricted]" if student.learning_needs_ciphertext else None,
         },
     )
+    events.emit(db, actor, "student.created", "student", student.id, {"first_name": student.first_name}, account_id)
     return view_student(db, access, student.id)
 
 
@@ -903,3 +935,220 @@ def add_student_exam(
         {"exam_session": exam.exam_session, "exam_date": exam.exam_date, "source": source},
     )
     return exam
+
+
+# ------------------------------------------------------------------ scheduling preferences
+
+PREFERENCE_FIELDS = (
+    "timezone",
+    "preferred_weekdays",
+    "preferred_windows",
+    "lessons_per_week",
+    "preferred_session_minutes",
+    "notes",
+)
+
+
+def get_scheduling_preferences(db: Session, access: Access, student_id: uuid.UUID) -> SchedulingPreference | None:
+    _get_student(db, access, student_id)
+    return db.scalar(select(SchedulingPreference).where(SchedulingPreference.student_id == student_id))
+
+
+def set_scheduling_preferences(
+    db: Session, actor: Actor, access: Access, student_id: uuid.UUID, data: dict[str, Any]
+) -> SchedulingPreference:
+    access.require_somewhere("crm.students.manage")
+    student = _get_student(db, access, student_id)
+    tz = _tz(data.get("timezone"))
+    if tz is None:
+        raise ValidationFailed("TIMEZONE_REQUIRED", "Scheduling preferences need the student's time zone.")
+    weekdays = data.get("preferred_weekdays")
+    if weekdays is not None and (any(d not in range(1, 8) for d in weekdays) or len(set(weekdays)) != len(weekdays)):
+        raise ValidationFailed("INVALID_WEEKDAYS", "Weekdays are ISO numbers 1 (Monday) to 7 (Sunday), each once.")
+    windows = data.get("preferred_windows")
+    if windows is not None:
+        for window in windows:
+            start, end = str(window.get("start", "")), str(window.get("end", ""))
+            if not (len(start) == len(end) == 5 and start < end):
+                raise ValidationFailed("INVALID_WINDOW", 'Windows look like {"start": "16:00", "end": "19:00"}.')
+    pref = db.scalar(select(SchedulingPreference).where(SchedulingPreference.student_id == student.id))
+    before = _snapshot(pref, PREFERENCE_FIELDS) if pref else {}
+    if pref is None:
+        pref = SchedulingPreference(student_id=student.id, timezone=tz)
+        db.add(pref)
+    pref.timezone = tz
+    pref.preferred_weekdays = weekdays
+    pref.preferred_windows = {"windows": windows} if windows is not None else None
+    pref.lessons_per_week = data.get("lessons_per_week")
+    pref.preferred_session_minutes = data.get("preferred_session_minutes")
+    pref.notes = data.get("notes")
+    db.flush()
+    audit.record(
+        db,
+        actor,
+        "scheduling_preferences_set",
+        "student",
+        student.id,
+        audit.diff(before, _snapshot(pref, PREFERENCE_FIELDS)),
+    )
+    return pref
+
+
+# ------------------------------------------------------------------ interfaces for other modules
+# Functions without an Access argument are for trusted internal flows (lead intake, merges). They are
+# never exposed directly through the API.
+
+
+def visible_account_ids(db: Session, access: Access) -> Select[tuple[uuid.UUID]]:
+    """Sub-query of account ids the caller may see (for other modules' list queries)."""
+    query = select(Account.id).where(Account.status != "anonymised")
+    condition = account_visibility(db, access)
+    return query if condition is None else query.where(condition)
+
+
+def is_visible(db: Session, access: Access, account_id: uuid.UUID) -> bool:
+    if not access.has_somewhere("crm.accounts.read"):
+        return False
+    return db.scalar(visible_account_ids(db, access).where(Account.id == account_id)) is not None
+
+
+def account_for_system(db: Session, account_id: uuid.UUID) -> Account:
+    account = db.get(Account, account_id)
+    if account is None:
+        raise NotFound("ACCOUNT_NOT_FOUND", "Account not found.")
+    return account
+
+
+def accounts_matching_contact_points(db: Session, points: list[tuple[str, str]]) -> list[uuid.UUID]:
+    """Active households that already have one of these normalised (kind, value) contact points."""
+    if not points:
+        return []
+    kinds_for = {"phone": ("phone", "whatsapp"), "whatsapp": ("phone", "whatsapp"), "email": ("email",)}
+    conditions = [
+        (ContactPoint.value == value) & ContactPoint.kind.in_(kinds_for.get(kind, (kind,))) for kind, value in points
+    ]
+    rows = db.scalars(
+        select(Contact.account_id)
+        .join(ContactPoint, ContactPoint.contact_id == Contact.id)
+        .join(Account, Account.id == Contact.account_id)
+        .where(or_(*conditions), Account.status == "active")
+        .order_by(Account.created_at.desc())
+    )
+    seen: list[uuid.UUID] = []
+    for account_id in rows:
+        if account_id not in seen:
+            seen.append(account_id)
+    return seen
+
+
+def similar_accounts(
+    db: Session, account_id: uuid.UUID, threshold: float = 0.6, limit: int = 5
+) -> list[tuple[uuid.UUID, float]]:
+    """Households with a similar name in the same country of residence (trigram similarity)."""
+    account = account_for_system(db, account_id)
+    score = func.similarity(Account.display_name, account.display_name)
+    country_match = (
+        Account.country_of_residence.is_(None)
+        if account.country_of_residence is None
+        else Account.country_of_residence == account.country_of_residence
+    )
+    rows = db.execute(
+        select(Account.id, score)
+        .where(Account.id != account.id, Account.status == "active", country_match, score >= threshold)
+        .order_by(score.desc())
+        .limit(limit)
+    ).all()
+    return [(row[0], float(row[1])) for row in rows]
+
+
+def mark_prospect(db: Session, actor: Actor, account_id: uuid.UUID) -> None:
+    """An account with a qualified opportunity becomes a prospect (lead -> prospect only)."""
+    account = account_for_system(db, account_id)
+    if account.lifecycle_stage == "lead":
+        account.lifecycle_stage = "prospect"
+        db.flush()
+        audit.record(
+            db,
+            actor,
+            "account_lifecycle_changed",
+            "account",
+            account.id,
+            {"lifecycle_stage": {"from": "lead", "to": "prospect"}},
+        )
+
+
+def student_profile_problems(db: Session, account_id: uuid.UUID, student_ids: list[uuid.UUID]) -> list[str]:
+    """What is missing for a 'qualified' student profile. Empty list = complete."""
+    if not student_ids:
+        return ["link at least one student"]
+    problems: list[str] = []
+    for student in db.scalars(select(Student).where(Student.id.in_(student_ids))):
+        name = student.preferred_name or student.first_name
+        if student.account_id != account_id:
+            problems.append(f"student {name} belongs to another household")
+            continue
+        if student.curriculum_id is None:
+            problems.append(f"{name}: curriculum")
+        if not student.grade_text and student.grade_level_id is None:
+            problems.append(f"{name}: grade/year")
+        has_subject = db.scalar(select(StudentSubject.id).where(StudentSubject.student_id == student.id).limit(1))
+        if has_subject is None:
+            problems.append(f"{name}: at least one subject")
+    return problems
+
+
+def students_belong(db: Session, account_id: uuid.UUID, student_ids: list[uuid.UUID]) -> bool:
+    if not student_ids:
+        return True
+    count = db.scalar(
+        select(func.count())
+        .select_from(Student)
+        .where(Student.id.in_(student_ids), Student.account_id == account_id, Student.archived_at.is_(None))
+    )
+    return count == len(set(student_ids))
+
+
+def merge_core(db: Session, actor: Actor, survivor_id: uuid.UUID, merged_id: uuid.UUID) -> dict[str, Any]:
+    """Move contacts and students to the surviving household and archive the merged one.
+
+    Returns a snapshot of the merged household for the merge record. Callers (the lead/duplicate
+    workflow) move records owned by other modules and check permissions first.
+    """
+    survivor, merged = account_for_system(db, survivor_id), account_for_system(db, merged_id)
+    if survivor.id == merged.id:
+        raise ValidationFailed("MERGE_SAME_ACCOUNT", "Choose two different households.")
+    if merged.status != "active" or survivor.status != "active":
+        raise ValidationFailed("MERGE_INACTIVE_ACCOUNT", "Only active households can be merged.")
+    if survivor.market_id and merged.market_id and survivor.market_id != merged.market_id:
+        raise ValidationFailed(
+            "MERGE_MARKET_CONFLICT", "The households have different confirmed markets; resolve that first."
+        )
+    contacts = list(db.scalars(select(Contact).where(Contact.account_id == merged.id)))
+    students = list(db.scalars(select(Student).where(Student.account_id == merged.id)))
+    snapshot = {
+        "account": _snapshot(merged, ACCOUNT_FIELDS)
+        | {"account_number": merged.account_number, "market_id": merged.market_id},
+        "contact_ids": [c.id for c in contacts],
+        "student_ids": [s.id for s in students],
+    }
+    survivor_has_primary = db.scalar(
+        select(Contact.id).where(Contact.account_id == survivor.id, Contact.is_primary, Contact.archived_at.is_(None))
+    )
+    for contact in contacts:
+        if survivor_has_primary is not None:
+            contact.is_primary = False
+        contact.account_id = survivor.id
+    for student in students:
+        student.account_id = survivor.id
+    if survivor.market_id is None and merged.market_id is not None:
+        survivor.market_id = merged.market_id
+        survivor.market_confirmed_by = merged.market_confirmed_by
+        survivor.market_confirmed_at = merged.market_confirmed_at
+        survivor.market_confirmation_note = merged.market_confirmation_note
+    if survivor.owner_user_id is None and merged.owner_user_id is not None:
+        survivor.owner_user_id = merged.owner_user_id
+    merged.status = "archived"
+    merged.archived_at = now_utc()
+    merged.merged_into_id = survivor.id
+    db.flush()
+    return audit.jsonable(snapshot)  # type: ignore[no-any-return]

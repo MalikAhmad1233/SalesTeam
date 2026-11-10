@@ -40,6 +40,9 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
+jsonable = _jsonable  # public alias for other modules
+
+
 def diff(before: dict[str, Any], after: dict[str, Any], sensitive: frozenset[str] = frozenset()) -> dict[str, Any]:
     """Return {field: {"from": old, "to": new}} for changed fields; sensitive values are masked."""
     changes: dict[str, Any] = {}

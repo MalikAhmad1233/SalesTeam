@@ -181,7 +181,7 @@ def test_registry_matches_settings_document() -> None:
     documented = set(re.findall(r"`([a-z_]+(?:\.[a-z_<>]+)+)`", doc))
     documented = {k for k in documented if "." in k and not k.startswith(("pricing.tier.", "change_type"))}
     in_code = {d.key for d in DEFINITIONS}
-    later = {"crm.pipeline_stages", "crm.stage_required_fields"}  # arrive with the pipeline (Phase 1b)
+    later: set[str] = set()  # settings documented but scheduled for a later increment
     assert in_code - documented == set(), "settings missing from docs/13"
     missing = {
         k

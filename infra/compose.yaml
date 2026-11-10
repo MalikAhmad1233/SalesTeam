@@ -26,5 +26,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  worker:
+    # Delivers domain events (customer timeline) and runs scheduled reminders.
+    build: ../services/backend
+    env_file: ../services/backend/.env
+    environment:
+      MIXT_DATABASE_URL: postgresql+psycopg://mixt:mixt-local-only@db:5432/mixt_dev
+    command: ["python", "-m", "mixt.cli", "worker", "--interval", "5"]
+    depends_on:
+      db:
+        condition: service_healthy
 volumes:
   mixt-db:
