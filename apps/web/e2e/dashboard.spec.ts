@@ -10,9 +10,34 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
   const shot = async (name: string) => {
     if (shotsDir) await page.screenshot({ path: `${shotsDir}/${name}.png`, fullPage: true });
   };
+  // Any Content-Security-Policy violation anywhere in the journey fails the test.
+  const cspViolations: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && /Content Security Policy|Content-Security-Policy/i.test(message.text())) {
+      cspViolations.push(message.text());
+    }
+  });
+
   await test.step("protected pages send you to sign-in", async () => {
     await page.goto("/overview");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  await test.step("pages carry a nonce-based Content-Security-Policy", async () => {
+    const policy = async () => (await page.goto("/login"))?.headers()["content-security-policy"] ?? "";
+    const first = await policy();
+    const second = await policy();
+    const scriptSrc = first.split(";").find((d) => d.trim().startsWith("script-src")) ?? "";
+    expect(scriptSrc).toMatch(/'nonce-[A-Za-z0-9+/=]+'/);
+    expect(scriptSrc).toContain("'strict-dynamic'");
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    expect(scriptSrc).not.toContain("'unsafe-eval'");
+    expect(first).toContain("frame-ancestors 'none'");
+    expect(first).toContain("object-src 'none'");
+    expect(first.match(/nonce-([^']+)/)?.[1]).not.toEqual(second.match(/nonce-([^']+)/)?.[1]); // fresh per request
+    // Single sign-on is off until Mixt chooses a provider (auth.sso, Q-TECH-01): no button.
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Sign in with/ })).toHaveCount(0);
   });
 
   await test.step("sign in and set up two-step verification", async () => {
@@ -73,9 +98,11 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await page.getByLabel("New note").fill("Prefers WhatsApp after 5pm");
     await page.getByRole("button", { name: "Add note" }).click();
     await expect(page.getByText("Prefers WhatsApp after 5pm")).toBeVisible();
-    expect(runWorkerOnce()).toContain("events delivered=");
-    await page.reload();
-    await expect(page.getByText("Household created")).toBeVisible();
+    runWorkerOnce(); // locally; a deployment's own worker delivers the events within seconds
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByText("Household created")).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
     await expect(page.getByText("Pricing market confirmed: United Arab Emirates")).toBeVisible();
     await shot("03-household");
   });
@@ -122,4 +149,6 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await page.goto("/customers");
     await expect(page).toHaveURL(/\/login$/);
   });
+
+  expect(cspViolations).toEqual([]);
 });

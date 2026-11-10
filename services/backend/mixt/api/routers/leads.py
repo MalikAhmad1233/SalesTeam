@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from mixt.api import throttle
 from mixt.api.deps import AuthContext, require
 from mixt.core.db import get_session
 from mixt.core.errors import ValidationFailed
@@ -229,14 +230,17 @@ def review_lead(
 
 
 @router.post("/leads/imports", response_model=ImportOut, status_code=201)
-async def upload_import(
+def upload_import(
     file: UploadFile = File(...),
     default_owner_user_id: uuid.UUID | None = Form(default=None),
     campaign_id: uuid.UUID | None = Form(default=None),
     auth: AuthContext = Depends(require("leads.import")),
     db: Session = Depends(get_session),
 ) -> ImportOut:
-    content = await file.read(importer.MAX_BYTES + 1)
+    # A plain (threaded) handler: the import does synchronous database work, which must not block
+    # the event loop that serves everyone else's requests.
+    throttle.enforce("import_per_user", str(auth.user.id))
+    content = file.file.read(importer.MAX_BYTES + 1)
     if not content:
         raise ValidationFailed("FILE_EMPTY", "The uploaded file is empty.")
     batch = leads.validate_import(

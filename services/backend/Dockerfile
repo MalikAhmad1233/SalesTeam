@@ -1,4 +1,5 @@
-# Mixt AI backend image. Build from services/backend: docker build -t mixt-backend .
+# Mixt AI backend image (API, worker, migrate and restore-check commands).
+# Build from services/backend: docker build -t mixt-backend .
 FROM python:3.13-slim AS build
 COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -18,5 +19,9 @@ COPY --from=build /opt/venv /opt/venv
 COPY --from=build /app /app
 USER mixt
 EXPOSE 8000
-# Migrations run as a separate step before rollout: `alembic upgrade head`.
-CMD ["uvicorn", "mixt.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+  CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).status == 200 else 1)"]
+# Migrations run as a separate step before rollout: `python -m mixt.cli migrate` (see infra/staging).
+# Client addresses come from X-Forwarded-For only via MIXT_TRUSTED_PROXIES (mixt.api.net), so
+# uvicorn's own proxy-header handling is switched off.
+CMD ["uvicorn", "mixt.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--no-server-header"]

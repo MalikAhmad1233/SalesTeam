@@ -1,0 +1,203 @@
+# Mixt AI staging stack (Phase 1d). Synthetic data only until Q-CMP-01/Q-CMP-02 are answered.
+#
+#   ./generate-env.sh staging.example.com ops@example.com   # once: writes .env with fresh secrets
+#   docker compose up -d --build --wait
+#   docker compose exec api python -m mixt.cli create-owner --email you@example.com --name "Your Name"
+#
+# See docs/14-operations-runbook.md for deployment, backups, restore checks and key rotation.
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp"]
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+x-backend-env: &backend-env
+  MIXT_ENV: staging
+  MIXT_DATABASE_URL: postgresql+psycopg://mixt_app:${MIXT_DB_APP_PASSWORD:?}@db:5432/mixt
+  MIXT_REDIS_URL: redis://:${MIXT_REDIS_PASSWORD:?}@redis:6379/0
+  MIXT_ENCRYPTION_KEYS: ${MIXT_ENCRYPTION_KEYS:?}
+  MIXT_ACTIVE_ENCRYPTION_KEY_ID: ${MIXT_ACTIVE_ENCRYPTION_KEY_ID:?}
+  MIXT_COOKIE_SECURE: "true"
+  MIXT_PUBLIC_BASE_URL: https://${MIXT_DOMAIN:?}
+  MIXT_TRUSTED_PROXIES: '["172.28.10.2/32"]'
+  MIXT_LOG_JSON: "true"
+  MIXT_SSO_GOOGLE_CLIENT_ID: ${MIXT_SSO_GOOGLE_CLIENT_ID:-}
+  MIXT_SSO_GOOGLE_CLIENT_SECRET: ${MIXT_SSO_GOOGLE_CLIENT_SECRET:-}
+  MIXT_SSO_MICROSOFT_CLIENT_ID: ${MIXT_SSO_MICROSOFT_CLIENT_ID:-}
+  MIXT_SSO_MICROSOFT_CLIENT_SECRET: ${MIXT_SSO_MICROSOFT_CLIENT_SECRET:-}
+  MIXT_SSO_MICROSOFT_TENANT_ID: ${MIXT_SSO_MICROSOFT_TENANT_ID:-}
+
+services:
+  caddy:
+    <<: *hardening
+    image: caddy:2.10-alpine
+    read_only: false # Caddy keeps certificates in /data
+    cap_add: [NET_BIND_SERVICE]
+    ports: ["80:80", "443:443"]
+    environment:
+      MIXT_DOMAIN: ${MIXT_DOMAIN:?}
+      MIXT_TLS: ${MIXT_TLS:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      frontend: { ipv4_address: 172.28.10.2 }
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_healthy }
+
+  web:
+    <<: *hardening
+    build: ../../apps/web
+    image: ${MIXT_IMAGE_PREFIX:-mixt}-web:${MIXT_IMAGE_TAG:-local}
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    networks: [frontend]
+
+  api:
+    <<: *hardening
+    build: ../../services/backend
+    image: ${MIXT_IMAGE_PREFIX:-mixt}-backend:${MIXT_IMAGE_TAG:-local}
+    command: ["uvicorn", "mixt.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${MIXT_API_WORKERS:-2}",
+              "--no-proxy-headers", "--no-server-header"]
+    environment: *backend-env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+    networks: [frontend, backend]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *hardening
+    image: ${MIXT_IMAGE_PREFIX:-mixt}-backend:${MIXT_IMAGE_TAG:-local}
+    command: ["python", "-m", "mixt.cli", "worker", "--interval", "${MIXT_WORKER_INTERVAL:-5}",
+              "--heartbeat-file", "/tmp/worker-heartbeat"]
+    environment: *backend-env
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/worker-heartbeat') < 60 else 1)"]
+      interval: 15s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+    networks: [backend]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      api: { condition: service_healthy }
+
+  migrate:
+    # One-shot: upgrades the schema as the owner role, then re-applies the app/read-only grants.
+    # Deliberately has no encryption keys: it never reads or writes customer data.
+    image: ${MIXT_IMAGE_PREFIX:-mixt}-backend:${MIXT_IMAGE_TAG:-local}
+    build: ../../services/backend
+    command: ["python", "-m", "mixt.cli", "migrate", "--app-role", "mixt_app", "--readonly-role", "mixt_readonly"]
+    environment:
+      MIXT_MIGRATION_DATABASE_URL: postgresql+psycopg://mixt_owner:${MIXT_DB_OWNER_PASSWORD:?}@db:5432/mixt
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    networks: [backend]
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${MIXT_DB_SUPERUSER_PASSWORD:?}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --data-checksums"
+      MIXT_DB_OWNER_PASSWORD: ${MIXT_DB_OWNER_PASSWORD:?}
+      MIXT_DB_APP_PASSWORD: ${MIXT_DB_APP_PASSWORD:?}
+      MIXT_DB_READONLY_PASSWORD: ${MIXT_DB_READONLY_PASSWORD:?}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mixt"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [backend]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # Rate-limit counters only: nothing is persisted.
+    command: ["redis-server", "--requirepass", "${MIXT_REDIS_PASSWORD:?}", "--save", "", "--appendonly", "no",
+              "--maxmemory", "128mb", "--maxmemory-policy", "volatile-ttl"]
+    user: redis # start unprivileged (the image would otherwise switch user, which needs capabilities)
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${MIXT_REDIS_PASSWORD:?}
+    networks: [backend]
+
+  backup:
+    build: ../backup
+    image: ${MIXT_IMAGE_PREFIX:-mixt}-backup:${MIXT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    environment:
+      PGHOST: db
+      PGDATABASE: mixt
+      PGUSER: mixt_readonly
+      PGPASSWORD: ${MIXT_DB_READONLY_PASSWORD:?}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-21600}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_UPLOAD_COMMAND: ${BACKUP_UPLOAD_COMMAND:-}
+    volumes: ["backups:/backups"]
+    networks: [backend]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  # ---- restore check (profile "restore-check"): a separate, empty PostgreSQL to restore into
+  restore-db:
+    profiles: ["restore-check"]
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_PASSWORD: restore-check-only
+      POSTGRES_DB: restore_check
+    tmpfs: ["/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d restore_check"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [backend]
+
+networks:
+  frontend:
+    # Caddy has a fixed address (the only proxy the API trusts); other containers get .128 and up.
+    ipam:
+      config: [{ subnet: 172.28.10.0/24, ip_range: 172.28.10.128/25 }]
+  backend:
+    internal: true
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+  backups:

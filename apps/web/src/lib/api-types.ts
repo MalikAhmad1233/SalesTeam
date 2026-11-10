@@ -157,6 +157,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/sso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sso Info */
+        get: operations["sso_info_api_v1_auth_sso_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sso/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sso Callback */
+        get: operations["sso_callback_api_v1_auth_sso_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sso/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sso Start */
+        get: operations["sso_start_api_v1_auth_sso_start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/crm/accounts": {
         parameters: {
             query?: never;
@@ -2244,6 +2295,15 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** SsoInfoOut */
+        SsoInfoOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Label */
+            label: string | null;
+            /** Provider */
+            provider: ("google" | "microsoft") | null;
+        };
         /** StageOut */
         StageOut: {
             /** Key */
@@ -2822,6 +2882,86 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sso_info_api_v1_auth_sso_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SsoInfoOut"];
+                };
+            };
+        };
+    };
+    sso_callback_api_v1_auth_sso_callback_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                code?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sso_start_api_v1_auth_sso_start_get: {
+        parameters: {
+            query?: {
+                next?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3892,9 +4032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": unknown;
                 };
             };
         };

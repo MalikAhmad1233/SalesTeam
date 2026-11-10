@@ -1,0 +1,42 @@
+# TLS front door for staging. MIXT_DOMAIN is the public host name; MIXT_TLS is either an email
+# address (real certificate from Let's Encrypt) or "internal" (Caddy's own CA: CI and local trials).
+{
+	admin off
+}
+
+{$MIXT_DOMAIN} {
+	tls {$MIXT_TLS}
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-X-Powered-By
+	}
+
+	# Lead imports may be up to 2 MB of CSV; everything else is small JSON.
+	@import path /api/v1/leads/imports
+	request_body @import {
+		max_size 3MB
+	}
+	@other not path /api/v1/leads/imports
+	request_body @other {
+		max_size 256KB
+	}
+
+	# The API sets its own security headers. Caddy replaces any client-supplied X-Forwarded-For
+	# with the real client address; the API trusts only this proxy (MIXT_TRUSTED_PROXIES).
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Plain HTTP only redirects to HTTPS (Caddy does this automatically for {$MIXT_DOMAIN}).

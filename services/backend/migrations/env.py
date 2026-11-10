@@ -1,4 +1,9 @@
-"""Alembic environment. The database URL comes from MIXT_DATABASE_URL (never from alembic.ini)."""
+"""Alembic environment. The database URL never comes from alembic.ini.
+
+Migrations run as the migration owner: MIXT_MIGRATION_DATABASE_URL, falling back to MIXT_DATABASE_URL
+for local development where one role does everything. In staging and production use
+``python -m mixt.cli migrate``, which also takes a lock and re-applies the application role's grants.
+"""
 
 from __future__ import annotations
 
@@ -18,9 +23,13 @@ target_metadata = Base.metadata
 
 
 def _url() -> str:
-    url = config.attributes.get("database_url") or os.environ.get("MIXT_DATABASE_URL")
+    url = (
+        config.attributes.get("database_url")
+        or os.environ.get("MIXT_MIGRATION_DATABASE_URL")
+        or os.environ.get("MIXT_DATABASE_URL")
+    )
     if not url:
-        raise RuntimeError("Set MIXT_DATABASE_URL to run migrations")
+        raise RuntimeError("Set MIXT_MIGRATION_DATABASE_URL (or MIXT_DATABASE_URL locally) to run migrations")
     return str(url)
 
 

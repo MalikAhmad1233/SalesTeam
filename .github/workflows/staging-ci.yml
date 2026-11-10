@@ -1,0 +1,75 @@
+name: staging-ci
+
+# Boots the complete staging stack (TLS proxy, API, worker, dashboard, PostgreSQL with separate
+# roles, Redis, encrypted backups) from the real Dockerfiles, then checks it from the outside:
+# the browser journey over HTTPS, the security smoke test, a backup and a restore check.
+on:
+  push:
+    paths: ["infra/**", "services/backend/**", "apps/web/**", ".github/workflows/staging-ci.yml"]
+  pull_request:
+    paths: ["infra/**", "services/backend/**", "apps/web/**", ".github/workflows/staging-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      OWNER_EMAIL: e2e.owner@example.com
+      OWNER_PASSWORD: E2e-owner-passphrase-2026
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate throwaway secrets
+        working-directory: infra/staging
+        run: ./generate-env.sh localhost internal
+      - name: Build images (real Dockerfiles)
+        working-directory: infra/staging
+        run: docker compose build
+      - name: Start the stack and wait for health checks
+        working-directory: infra/staging
+        run: docker compose up -d --wait
+      - name: Create the first Owner
+        working-directory: infra/staging
+        run: >-
+          docker compose exec -T -e MIXT_OWNER_PASSWORD="$OWNER_PASSWORD" api
+          python -m mixt.cli create-owner --email "$OWNER_EMAIL" --name "E2E Owner"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install browser test tools
+        working-directory: apps/web
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Browser journey against staging over HTTPS
+        working-directory: apps/web
+        env:
+          E2E_BASE_URL: https://localhost
+        run: npx playwright test --trace off
+      - name: Security smoke test
+        working-directory: infra/staging
+        run: ./smoke.sh "$OWNER_EMAIL"
+      - name: Encrypted backup
+        working-directory: infra/staging
+        run: docker compose exec -T backup backup.sh once
+      - name: Restore check (separate database, full verification)
+        working-directory: infra/staging
+        run: ./restore-check.sh | tee restore-report.json
+      - name: Collect logs
+        if: failure()
+        working-directory: infra/staging
+        run: docker compose logs --no-color > staging-logs.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: staging-logs
+          path: infra/staging/staging-logs.txt
+          retention-days: 7
+      - name: Tear down
+        if: always()
+        working-directory: infra/staging
+        run: docker compose --profile restore-check down -v

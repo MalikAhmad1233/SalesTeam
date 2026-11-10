@@ -147,21 +147,29 @@ def _seed_consent(db: Session) -> None:
     db.flush()
 
 
-@pytest.mark.parametrize(
-    "sql",
-    [
-        "UPDATE audit_log SET action = 'x'",
-        "DELETE FROM audit_log",
-        "TRUNCATE audit_log",
-        "UPDATE consents SET status = 'withdrawn'",
-        "DELETE FROM consents",
-        "TRUNCATE consents CASCADE",
-    ],
-)
-def test_append_only_tables(db: Session, sql: str) -> None:
+APPEND_ONLY_VIOLATIONS = [
+    "UPDATE audit_log SET action = 'x'",
+    "DELETE FROM audit_log",
+    "TRUNCATE audit_log",
+    "UPDATE consents SET status = 'withdrawn'",
+    "DELETE FROM consents",
+    "TRUNCATE consents CASCADE",
+]
+
+
+@pytest.mark.parametrize("sql", APPEND_ONLY_VIOLATIONS)
+def test_append_only_tables_app_role_lacks_privilege(db: Session, sql: str) -> None:
     audit.record(db, SYSTEM_ACTOR, "test_event", "test", "1", {"a": 1})
     _seed_consent(db)
-    _expect_db_error(db, sql, "append-only")
+    _expect_db_error(db, sql, "permission denied")
+
+
+@pytest.mark.parametrize("sql", APPEND_ONLY_VIOLATIONS)
+def test_append_only_tables_stop_even_the_owner(owner_db: Session, sql: str) -> None:
+    # Defence in depth: the schema owner has the privilege, the triggers still refuse.
+    audit.record(owner_db, SYSTEM_ACTOR, "test_event", "test", "1", {"a": 1})
+    _seed_consent(owner_db)
+    _expect_db_error(owner_db, sql, "append-only")
 
 
 def test_audit_chain_verifies(db: Session) -> None:
@@ -179,7 +187,8 @@ def _tamper(db: Session, sql: str) -> None:
     db.execute(text("SET LOCAL session_replication_role = origin"))
 
 
-def test_audit_chain_detects_edits(db: Session) -> None:
+def test_audit_chain_detects_edits(owner_db: Session) -> None:
+    db = owner_db
     for i in range(3):
         audit.record(db, SYSTEM_ACTOR, "test_event", "test", str(i), {"i": i})
     db.flush()
@@ -190,7 +199,8 @@ def test_audit_chain_detects_edits(db: Session) -> None:
     assert result.reason == "row content does not match its hash"
 
 
-def test_audit_chain_detects_removed_rows(db: Session) -> None:
+def test_audit_chain_detects_removed_rows(owner_db: Session) -> None:
+    db = owner_db
     for i in range(3):
         audit.record(db, SYSTEM_ACTOR, "test_event", "test", str(i), {"i": i})
     db.flush()

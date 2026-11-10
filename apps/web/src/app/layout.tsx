@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 
 import "./globals.css";
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Render every page per request so it carries that request's CSP nonce (src/proxy.ts).
+  await connection();
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">

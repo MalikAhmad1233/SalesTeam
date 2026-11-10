@@ -195,6 +195,66 @@ def authenticate(db: Session, email: str, password: str, ip: str | None, user_ag
     return LoginOutcome(ok=True, issued=issued, user=user, mfa_state=state)
 
 
+@dataclass(frozen=True)
+class ExternalAccount:
+    """What another module (single sign-on) may know about a staff account."""
+
+    user_id: uuid.UUID
+    email: str
+    active: bool
+
+
+def find_account_by_email(db: Session, email: str) -> ExternalAccount | None:
+    try:
+        normalized = normalize_email(email)
+    except ValidationFailed:
+        return None
+    user = db.scalar(select(User).where(User.email == normalized))
+    return ExternalAccount(user.id, user.email, user.status == "active") if user else None
+
+
+def find_account(db: Session, user_id: uuid.UUID) -> ExternalAccount | None:
+    user = db.get(User, user_id)
+    return ExternalAccount(user.id, user.email, user.status == "active") if user else None
+
+
+def start_external_session(
+    db: Session,
+    user_id: uuid.UUID,
+    method: str,
+    mfa_satisfied: bool,
+    ip: str | None,
+    user_agent: str | None,
+) -> LoginOutcome:
+    """Sign-in vouched for by an identity provider (single sign-on).
+
+    The provider replaces the password check only. Two-step verification still applies unless
+    ``mfa_satisfied`` (the provider reported a multi-factor sign-in and Mixt chose to accept it).
+    Suspended or deactivated accounts cannot sign in this way either.
+    """
+    user = db.get(User, user_id)
+    if user is None or user.status != "active":
+        return LoginOutcome(ok=False)
+    now = now_utc()
+    user.failed_login_count = 0
+    user.last_login_at = now
+    factor = _confirmed_factor(db, user.id)
+    if mfa_satisfied:
+        state: MfaState = "verified"
+    else:
+        state = "required" if factor else ("enrollment_required" if user.mfa_required else "verified")
+    issued = _issue_session(db, user, mfa_verified=(state == "verified"), ip=ip, user_agent=user_agent)
+    audit.record(
+        db,
+        user_actor(user, ip, user_agent),
+        "login_succeeded",
+        "user",
+        user.id,
+        {"mfa_state": state, "method": method, "mfa_by_provider": mfa_satisfied},
+    )
+    return LoginOutcome(ok=True, issued=issued, user=user, mfa_state=state)
+
+
 def mfa_state_for(db: Session, user: User, row: UserSession) -> MfaState:
     if row.mfa_verified:
         return "verified"

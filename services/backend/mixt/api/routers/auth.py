@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from mixt.api import throttle
 from mixt.api.deps import (
     CSRF_COOKIE,
     SESSION_COOKIE,
@@ -67,7 +68,7 @@ class TotpSetupOut(BaseModel):
     provisioning_uri: str
 
 
-def _set_cookies(response: Response, issued: IssuedSession) -> None:
+def set_session_cookies(response: Response, issued: IssuedSession) -> None:
     config = get_config()
     max_age = config.session_absolute_hours * 3600
     response.set_cookie(
@@ -98,15 +99,16 @@ def _clear_cookies(response: Response) -> None:
 
 @router.post("/login", response_model=SessionOut)
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_session)) -> SessionOut:
-    outcome = identity.authenticate(
-        db, body.email, body.password, client_ip(request), request.headers.get("user-agent")
-    )
+    ip = client_ip(request)
+    throttle.enforce("login_per_ip", ip)
+    throttle.enforce("login_per_account", body.email.strip().lower())
+    outcome = identity.authenticate(db, body.email, body.password, ip, request.headers.get("user-agent"))
     if not outcome.ok or outcome.issued is None or outcome.user is None or outcome.mfa_state is None:
         db.commit()  # keep failed-attempt counters and audit entries
         raise AuthenticationRequired(
             "INVALID_CREDENTIALS", "Email or password is incorrect, or the account is temporarily locked."
         )
-    _set_cookies(response, outcome.issued)
+    set_session_cookies(response, outcome.issued)
     return SessionOut(
         mfa_state=outcome.mfa_state,
         must_change_password=outcome.user.must_change_password,
@@ -144,7 +146,7 @@ def _finish_mfa(db: Session, response: Response, auth: AuthContext, issued: Issu
     if issued is None:
         db.commit()  # keep failed-attempt counters and audit entries
         raise AuthenticationRequired("INVALID_MFA_CODE", "That code is not valid. Use the current code from your app.")
-    _set_cookies(response, issued)
+    set_session_cookies(response, issued)
     return SessionOut(
         mfa_state="verified", must_change_password=auth.user.must_change_password, csrf_token=issued.csrf_token
     )
@@ -154,6 +156,7 @@ def _finish_mfa(db: Session, response: Response, auth: AuthContext, issued: Issu
 def totp_confirm(
     body: CodeIn, response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)
 ) -> SessionOut:
+    throttle.enforce("mfa_per_session", str(auth.session.id))
     issued = identity.confirm_totp_enrollment(db, auth.actor, auth.user, auth.session, body.code)
     return _finish_mfa(db, response, auth, issued)
 
@@ -162,6 +165,7 @@ def totp_confirm(
 def mfa_verify(
     body: CodeIn, response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)
 ) -> SessionOut:
+    throttle.enforce("mfa_per_session", str(auth.session.id))
     issued = identity.verify_mfa(db, auth.actor, auth.user, auth.session, body.code)
     return _finish_mfa(db, response, auth, issued)
 
@@ -170,4 +174,5 @@ def mfa_verify(
 def change_password(
     body: PasswordChangeIn, auth: AuthContext = Depends(mfa_auth), db: Session = Depends(get_session)
 ) -> None:
+    throttle.enforce("password_per_user", str(auth.user.id))
     identity.change_password(db, auth.actor, auth.user, auth.session, body.current_password, body.new_password)

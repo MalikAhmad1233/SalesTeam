@@ -1,8 +1,12 @@
 """Test fixtures. Tests run against a real PostgreSQL database (never mocks).
 
-Set MIXT_TEST_DATABASE_URL to point at an empty test database; the schema is rebuilt with the
-real Alembic migrations at the start of the run. Each test runs inside a transaction that is
-rolled back afterwards.
+Set MIXT_TEST_DATABASE_URL to point at an empty test database (as a role that can create roles,
+e.g. the server's superuser); the schema is rebuilt with the real Alembic migrations at the start of
+the run. Each test runs inside a transaction that is rolled back afterwards.
+
+Tests act as the least-privileged **application role** (``mixt_app_test``), exactly like the API in
+staging and production: data access only, no DDL, no TRUNCATE, append-only tables insert-only.
+Only tests that must simulate a database administrator use ``owner_db``.
 """
 
 from __future__ import annotations
@@ -15,9 +19,15 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import make_url
+
 TEST_DATABASE_URL = os.environ.get("MIXT_TEST_DATABASE_URL", "postgresql+psycopg://postgres@localhost:5433/mixt_test")
+APP_ROLE, APP_ROLE_PASSWORD, READONLY_ROLE = "mixt_app_test", "mixt-app-test-only", "mixt_readonly_test"
+APP_DATABASE_URL = (
+    make_url(TEST_DATABASE_URL).set(username=APP_ROLE, password=APP_ROLE_PASSWORD).render_as_string(hide_password=False)
+)
 os.environ["MIXT_ENV"] = "test"
-os.environ["MIXT_DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["MIXT_DATABASE_URL"] = APP_DATABASE_URL
 os.environ["MIXT_ENCRYPTION_KEYS"] = json.dumps(
     {"test-k1": base64.b64encode(b"\x01" * 32).decode(), "test-k2": base64.b64encode(b"\x02" * 32).decode()}
 )
@@ -33,7 +43,8 @@ from sqlalchemy import Engine, create_engine, select, text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from mixt.api.app import create_app  # noqa: E402
-from mixt.core import crypto  # noqa: E402
+from mixt.core import crypto, db_roles, ratelimit, schema  # noqa: E402
+from mixt.core.config import get_config  # noqa: E402
 from mixt.core.context import Actor  # noqa: E402
 from mixt.core.db import get_session  # noqa: E402
 from mixt.modules.identity import mfa, passwords  # noqa: E402
@@ -53,10 +64,7 @@ DEFAULT_PASSWORD = "Correct-Horse-Battery-42"
 
 
 def alembic_config(url: str) -> Config:
-    cfg = Config(os.path.join(BACKEND_DIR, "alembic.ini"))
-    cfg.set_main_option("script_location", os.path.join(BACKEND_DIR, "migrations"))
-    cfg.attributes["database_url"] = url
-    return cfg
+    return schema.alembic_config(url)
 
 
 def reset_database(url: str) -> None:
@@ -67,18 +75,36 @@ def reset_database(url: str) -> None:
     engine.dispose()
 
 
+def ensure_test_roles(conn: Any) -> None:
+    for role, password in ((APP_ROLE, APP_ROLE_PASSWORD), (READONLY_ROLE, None)):
+        if not db_roles.role_exists(conn, role):
+            login = f"LOGIN PASSWORD '{password}'" if password else "NOLOGIN"
+            conn.execute(text(f"CREATE ROLE {role} {login}"))
+
+
 @pytest.fixture(scope="session")
-def engine() -> Iterator[Engine]:
+def owner_engine() -> Iterator[Engine]:
+    """The migration owner / administrator. Only for tests that need it."""
     reset_database(TEST_DATABASE_URL)
     command.upgrade(alembic_config(TEST_DATABASE_URL), "head")
     eng = create_engine(TEST_DATABASE_URL)
+    with eng.begin() as conn:
+        ensure_test_roles(conn)
+        db_roles.apply_grants(conn, APP_ROLE, READONLY_ROLE)
     yield eng
     eng.dispose()
 
 
-@pytest.fixture
-def db(engine: Engine) -> Iterator[Session]:
-    connection = engine.connect()
+@pytest.fixture(scope="session")
+def engine(owner_engine: Engine) -> Iterator[Engine]:
+    """The application role: what the API and worker use."""
+    eng = create_engine(APP_DATABASE_URL)
+    yield eng
+    eng.dispose()
+
+
+def _rolled_back_session(eng: Engine) -> Iterator[Session]:
+    connection = eng.connect()
     outer = connection.begin()
     session = Session(bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False)
     try:
@@ -87,6 +113,16 @@ def db(engine: Engine) -> Iterator[Session]:
         session.close()
         outer.rollback()
         connection.close()
+
+
+@pytest.fixture
+def db(engine: Engine) -> Iterator[Session]:
+    yield from _rolled_back_session(engine)
+
+
+@pytest.fixture
+def owner_db(owner_engine: Engine) -> Iterator[Session]:
+    yield from _rolled_back_session(owner_engine)
 
 
 @pytest.fixture
@@ -255,3 +291,25 @@ def app_factory(db: Session) -> Any:
         return TestClient(application, base_url="https://testserver")
 
     return _make
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits() -> Iterator[None]:
+    """Rate-limit counters never leak from one test into another."""
+    ratelimit.reset_memory_limiters()
+    yield
+    ratelimit.reset_memory_limiters()
+
+
+@pytest.fixture
+def config_env(monkeypatch: pytest.MonkeyPatch) -> Any:
+    """Change deployment configuration (MIXT_* variables) for one test."""
+
+    def _set(**values: str) -> None:
+        for key, value in values.items():
+            monkeypatch.setenv(f"MIXT_{key.upper()}", value)
+        get_config.cache_clear()
+
+    yield _set
+    monkeypatch.undo()
+    get_config.cache_clear()

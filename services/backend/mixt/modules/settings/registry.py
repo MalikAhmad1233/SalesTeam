@@ -667,6 +667,16 @@ DEFINITIONS: tuple[SettingDefinition, ...] = (
         open_question="Q-TECH-01",
     ),
     SettingDefinition(
+        "auth.sso_satisfies_mfa",
+        "platform",
+        "Whether a single sign-on that the provider reports as multi-factor ('amr' contains 'mfa') replaces "
+        "Mixt's own two-step code. false = staff still enter their authenticator code after single sign-on.",
+        _BOOL,
+        False,
+        OWNER,
+        open_question="Q-TECH-01",
+    ),
+    SettingDefinition(
         "infra.region",
         "platform",
         "Hosting region for real customer data. Unset = production with real data is blocked.",

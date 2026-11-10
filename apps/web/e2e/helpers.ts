@@ -19,7 +19,8 @@ export function totp(secretBase32: string, offsetSteps = 0): string {
   return code.toString().padStart(6, "0");
 }
 
-/** Run the background worker once (delivers events to the timeline). */
+/** Run the background worker once (delivers events to the timeline). A deployment has its own worker. */
 export function runWorkerOnce(): string {
+  if (process.env.E2E_BASE_URL) return "";
   return execSync("uv run python -m mixt.cli dispatch-once", { cwd: E2E.backendDir, env: process.env }).toString();
 }

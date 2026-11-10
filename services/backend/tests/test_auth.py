@@ -169,4 +169,4 @@ def test_problem_json_and_security_headers(client: TestClient) -> None:
 
 def test_health(client: TestClient) -> None:
     assert client.get("/api/v1/health").json() == {"status": "ok"}
-    assert client.get("/api/v1/health/ready").json() == {"status": "ready"}
+    assert client.get("/api/v1/health/ready").json() == {"status": "ready", "database": "ok", "schema": "ok"}

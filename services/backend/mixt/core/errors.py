@@ -57,3 +57,12 @@ class PreconditionRequired(DomainError):
 class Locked(DomainError):
     status = 423
     title = "Locked"
+
+
+class RateLimited(DomainError):
+    status = 429
+    title = "Too many requests"
+
+    def __init__(self, code: str, detail: str, retry_after_seconds: int, **extra: Any) -> None:
+        super().__init__(code, detail, retry_after_seconds=retry_after_seconds, **extra)
+        self.headers = {"Retry-After": str(retry_after_seconds)}

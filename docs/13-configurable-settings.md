@@ -100,6 +100,7 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 | Setting | Scope | Value now | Status | Other options | Question | Changed by |
 |---------|-------|-----------|--------|---------------|----------|-----------|
 | `auth.sso` | global | `off`: local accounts with mandatory MFA | safe_default | `google`, `microsoft` | Q-TECH-01 | Owner |
+| `auth.sso_satisfies_mfa` | global | `false`: after single sign-on, staff still enter their authenticator code | safe_default | `true` (only when the provider reports multi-factor sign-in) | Q-TECH-01 | Owner |
 | `infra.region` | deployment | unset: **production deployment with real customer data is blocked** | safe_default | region(s) | Q-CMP-02 | Owner |
 | `privacy.retention` | global / data type | unset: nothing deleted automatically; erasure only via data-subject requests | safe_default | days + delete/anonymise | Q-CMP-07 | Owner |
 | `notifications.internal_channel` | global | dashboard + email | safe_default | Slack, Teams | Q-TEAM-04 | Admin |

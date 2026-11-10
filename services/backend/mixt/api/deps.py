@@ -9,13 +9,15 @@ Order of checks for a protected request:
 
 from __future__ import annotations
 
-import ipaddress
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from fastapi import Depends, Header, Request
 from sqlalchemy.orm import Session
 
+from mixt.api import throttle
+from mixt.api.net import resolve_client_ip
+from mixt.core.config import get_config
 from mixt.core.context import Actor
 from mixt.core.db import get_session
 from mixt.core.errors import AuthenticationRequired, PermissionDenied, PreconditionRequired
@@ -38,20 +40,15 @@ class AuthContext:
 
 
 def client_ip(request: Request) -> str | None:
-    """The peer address, only if it is a valid IP (test clients and some proxies report names)."""
-    host = request.client.host if request.client else None
-    if not host:
-        return None
-    try:
-        return str(ipaddress.ip_address(host))
-    except ValueError:
-        return None
+    """The client's address (behind trusted proxies only), if it is a valid IP."""
+    return resolve_client_ip(request, get_config().trusted_proxies)
 
 
 def _base_auth(request: Request, db: Session) -> AuthContext:
     resolved = identity.resolve_session(db, request.cookies.get(SESSION_COOKIE))
     if resolved is None:
         raise AuthenticationRequired("NOT_AUTHENTICATED", "Sign in to continue.")
+    throttle.enforce("api_per_user", str(resolved.user.id))
     if request.method not in _SAFE_METHODS and not identity.csrf_matches(
         resolved.session, request.headers.get(CSRF_HEADER)
     ):
