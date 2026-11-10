@@ -86,7 +86,7 @@ Proposed 2026-11-09; **APPROVED 2026-11-10** (BD-032). ADR-01 to ADR-10 are desc
 
 ## C. Implementation notes
 
-Choices made while building (Phase 1a: IN-01 to IN-07; Phase 1b: IN-08 to IN-14), within the approved architecture. None of them changes a business decision.
+Choices made while building (Phase 1a: IN-01 to IN-07; Phase 1b: IN-08 to IN-14; Phase 1c: IN-15 to IN-19), within the approved architecture. None of them changes a business decision.
 
 | ID | Date | Note | Why |
 |----|------|------|-----|
@@ -104,6 +104,11 @@ Choices made while building (Phase 1a: IN-01 to IN-07; Phase 1b: IN-08 to IN-14)
 | IN-12 | 2026-11-10 | Background work (event delivery, scheduled reminders) runs in a simple polling worker: `python -m mixt.cli worker`. The timeline updates when the worker runs, normally within seconds. Celery queues (ADR-06) are introduced when external channels start sending (Phase 3). | Nothing is lost if the worker is down: events wait in the database outbox. |
 | IN-13 | 2026-11-10 | Notes cannot be edited or deleted (corrections are new notes). Private notes are visible only to their author, also on the timeline; note text is never copied into the timeline. | Trustworthy record; privacy between colleagues. |
 | IN-14 | 2026-11-10 | Sales reps can enter leads and manage opportunities, tasks and notes. Importing, merging, reviewing out-of-market leads and creating campaigns or tags are manager/admin permissions. | Keeps bulk and destructive actions with managers; adjustable through roles (Q-TEAM-02). |
+| IN-15 | 2026-11-10 | The dashboard calls the API on the same origin: Next.js proxies `/api/v1/*` to FastAPI, so the session cookie stays HttpOnly and there are no cross-origin requests. Security headers and a Content-Security-Policy are set by Next.js; the policy still allows inline scripts (needed by Next.js), and a nonce-based policy is planned for 1d. | Simplest secure set-up for cookie sessions. |
+| IN-16 | 2026-11-10 | The dashboard's API types are generated from the backend's OpenAPI schema; CI fails if they are out of date. | Front end and back end cannot drift apart silently. |
+| IN-17 | 2026-11-10 | Modules from later phases are visible in the navigation, greyed out, with the phase they arrive in. | Shows the plan honestly; nothing pretends to work. |
+| IN-18 | 2026-11-10 | Brand colours are the placeholder tokens from docs/09 (Q-BRD-01). The Inter font is used only if installed on the device; no font is downloaded from external services. | No guessed branding; no third-party requests from the dashboard. |
+| IN-19 | 2026-11-10 | Browser end-to-end tests run the real backend, database and dashboard; the background worker is run once inside the test where the timeline is checked. | Tests the actual system, not mocks. |
 
 ## D. Change history
 
@@ -115,3 +120,4 @@ Choices made while building (Phase 1a: IN-01 to IN-07; Phase 1b: IN-08 to IN-14)
 | 2026-11-09 | 0.2 | **Pricing figures unchanged.** The register was re-checked by script after the update: 13 books and 91 entries, identical to the brief. | S2 |
 | 2026-11-10 | 0.3 | Architecture approved (BD-032); ADR-01 to ADR-16 marked APPROVED. Phase 1a (backend foundation) implemented with tests; implementation notes IN-01 to IN-07 added. | S3 |
 | 2026-11-10 | 0.4 | Phase 1b (leads, pipeline, tasks, notes, tags, timeline, outbox, scheduled actions) implemented with tests; implementation notes IN-08 to IN-14; settings `crm.pipeline_stages` (now including stage checks) and `crm.lost_reasons` added to docs/13. | S3 |
+| 2026-11-10 | 0.5 | Phase 1c (dashboard) implemented: sign-in and two-step screens, Overview, Leads and import, Customers and household page, Duplicates, Pipeline, Tasks, Team, Settings with Outstanding decisions; browser end-to-end test; implementation notes IN-15 to IN-19. | S3 |

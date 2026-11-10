@@ -40,7 +40,7 @@ class PasswordChangeIn(BaseModel):
     new_password: str = Field(max_length=256)
 
 
-class RoleOut(BaseModel):
+class MeRoleOut(BaseModel):
     role: str
     market_id: uuid.UUID | None
 
@@ -52,7 +52,7 @@ class MeOut(BaseModel):
     timezone: str
     mfa_state: Literal["verified", "required", "enrollment_required"]
     must_change_password: bool
-    roles: list[RoleOut]
+    roles: list[MeRoleOut]
     permissions: list[str]
 
 
@@ -129,7 +129,7 @@ def me(auth: AuthContext = Depends(session_auth), db: Session = Depends(get_sess
         timezone=auth.user.timezone,
         mfa_state=identity.mfa_state_for(db, auth.user, auth.session),
         must_change_password=auth.user.must_change_password,
-        roles=[RoleOut(role=r, market_id=m) for r, m in identity.roles_of(db, auth.user.principal_id)],
+        roles=[MeRoleOut(role=r, market_id=m) for r, m in identity.roles_of(db, auth.user.principal_id)],
         permissions=sorted(auth.access.grants),
     )
 

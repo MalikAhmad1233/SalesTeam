@@ -1,6 +1,6 @@
 # 10: Implementation Roadmap
 
-Status: **APPROVED 2026-11-10** (BD-032) · **Phase 0 complete; Phase 1 in progress (1a and 1b done 2026-11-10).**
+Status: **APPROVED 2026-11-10** (BD-032) · **Phase 0 complete; Phase 1 in progress (1a, 1b and 1c done 2026-11-10).**
 
 ## Approach
 
@@ -52,8 +52,8 @@ Delivered in four increments, each tested and pushed:
 |-----------|-------|--------|
 | **1a** Backend foundation | Project set-up, CI, core utilities, migrations, sign-in with MFA, sessions, CSRF, roles with market scope, record-level access, hash-chained audit log, reference data (US blocked), settings register with Outstanding decisions, CRM households/contacts/contact points/consents/students/subjects/exams | **Done 2026-11-10**: 90 automated tests, 91.6% coverage; details in [services/backend/README.md](../services/backend/README.md) |
 | **1b** Leads and pipeline | Lead intake (manual entry and two-step CSV import), duplicate review and merge, configurable pipeline stages with required checks, opportunities, tasks, notes, tags, customer timeline, outbox and scheduled-action worker, scheduling preferences API | **Done 2026-11-10**: 119 automated tests in total, 93% coverage; implementation notes IN-08 to IN-14 |
-| **1c** Dashboard | Next.js shell, design system, sign-in and MFA screens, Leads, Customers (360 v1), Pipeline, Tasks, Team, Settings incl. Outstanding decisions | Next |
-| **1d** Hardening | Rate limiting (Redis), SSO option, staging deployment, separate migration and application database roles, backups and restore check | Planned |
+| **1c** Dashboard | Next.js shell, design system, sign-in and MFA screens, Leads, Customers (360 v1), Pipeline, Tasks, Team, Settings incl. Outstanding decisions | **Done 2026-11-10**: production build, browser end-to-end test against the real stack, typed API client checked in CI; implementation notes IN-15 to IN-19; details in [apps/web/README.md](../apps/web/README.md) |
+| **1d** Hardening | Rate limiting (Redis), SSO option, nonce-based Content-Security-Policy, staging deployment, separate migration and application database roles, backups and restore check | Next |
 
 Original Phase 1 scope:
 

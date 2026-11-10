@@ -53,6 +53,7 @@ class CodeNameOut(_Out):
 
 
 class CurriculumOut(BaseModel):
+    id: uuid.UUID | None = None
     code: str
     name: str
     decision_ref: str
@@ -116,6 +117,7 @@ def curricula(
 ) -> list[CurriculumOut]:
     return [
         CurriculumOut(
+            id=c.id,
             code=c.code,
             name=c.name,
             decision_ref=c.decision_ref,
@@ -133,4 +135,6 @@ def add_curriculum(
     db: Session = Depends(get_session),
 ) -> CurriculumOut:
     c = reference.add_curriculum(db, auth.actor, auth.access, body.code, body.name, body.decision_ref)
-    return CurriculumOut(code=c.code, name=c.name, decision_ref=c.decision_ref, exam_boards=[], qualifications=[])
+    return CurriculumOut(
+        id=c.id, code=c.code, name=c.name, decision_ref=c.decision_ref, exam_boards=[], qualifications=[]
+    )

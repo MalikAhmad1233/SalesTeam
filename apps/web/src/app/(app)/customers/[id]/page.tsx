@@ -1,0 +1,428 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
+
+import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Loading, Modal, PageHeader, Select, Textarea } from "@/components/ui";
+import { api, qs, type Schemas } from "@/lib/api";
+import { formatDateTime, formatMoney, humanize, localTimeIn } from "@/lib/format";
+import { useCurrencies, useCurricula, useMarkets, useStages, useUserNames } from "@/lib/queries";
+import { can, useMe } from "@/lib/session";
+
+export default function CustomerPage() {
+  const { id } = useParams<{ id: string }>();
+  const { data: me } = useMe();
+  const ownerName = useUserNames(me);
+  const markets = useMarkets();
+  const account = useQuery({ queryKey: ["account", id], queryFn: () => api<Schemas["AccountOut"]>(`/crm/accounts/${id}`) });
+  const [confirming, setConfirming] = useState(false);
+
+  if (account.isLoading) return <Loading />;
+  if (account.error || !account.data) return <ErrorNote error={account.error ?? new Error("not found")} />;
+  const a = account.data;
+  const market = markets.data?.find((m) => m.id === a.market_id);
+  const localTime = localTimeIn(a.timezone);
+
+  return (
+    <>
+      <PageHeader
+        title={a.display_name}
+        description={`${a.account_number} · Owner: ${ownerName(a.owner_user_id)}${a.country_of_residence ? ` · Lives in ${a.country_of_residence}` : ""}${localTime ? ` · Local time ${localTime}` : ""}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={a.lifecycle_stage === "out_of_market" ? "warning" : "accent"}>{humanize(a.lifecycle_stage)}</Badge>
+            {market ? (
+              <Badge tone="success">Pricing market: {market.name}</Badge>
+            ) : (
+              <Badge tone="warning">Pricing market not confirmed</Badge>
+            )}
+            {can(me, "crm.market.confirm") ? (
+              <Button variant="secondary" onClick={() => setConfirming(true)}>
+                {market ? "Change market" : "Confirm market"}
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
+      {a.lifecycle_stage === "out_of_market" ? (
+        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-warning">
+          This household lives outside Mixt&apos;s 13 markets. No sales outreach or pricing; a manager decides what happens next.
+        </p>
+      ) : null}
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          <Contacts accountId={id} />
+          <Students accountId={id} />
+          <Opportunities accountId={id} />
+          <Notes accountId={id} />
+        </div>
+        <div className="space-y-6">
+          <Tasks accountId={id} />
+          <Tags accountId={id} />
+          <Timeline accountId={id} timezone={me?.timezone} />
+        </div>
+      </div>
+      <Modal open={confirming} title="Confirm pricing market" onClose={() => setConfirming(false)}>
+        <ConfirmMarket account={a} onDone={() => setConfirming(false)} />
+      </Modal>
+    </>
+  );
+}
+
+function ConfirmMarket({ account, onDone }: { account: Schemas["AccountOut"]; onDone: () => void }) {
+  const queryClient = useQueryClient();
+  const markets = useMarkets();
+  const [marketId, setMarketId] = useState(account.market_id ?? "");
+  const [note, setNote] = useState("");
+  const mutation = useMutation({
+    mutationFn: () =>
+      api(`/crm/accounts/${account.id}/market-confirmation`, { json: { market_id: marketId, note }, version: account.version }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["account", account.id] });
+      onDone();
+    },
+  });
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    mutation.mutate();
+  }
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <p className="text-sm text-muted">
+        Confirm from what the family told you (for example where they live). Currency, phone number and curriculum never decide the market.
+      </p>
+      <Field label="Market">
+        {(id) => (
+          <Select id={id} required value={marketId} onChange={(e) => setMarketId(e.target.value)}>
+            <option value="">Choose…</option>
+            {(markets.data ?? []).filter((m) => m.status === "active").map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+      <Field label="How was it confirmed?">
+        {(id) => <Input id={id} required minLength={5} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Parent said they live in Dubai" />}
+      </Field>
+      <ErrorNote error={mutation.error} />
+      <Button type="submit" disabled={mutation.isPending}>Confirm</Button>
+    </form>
+  );
+}
+
+function ContactDetails({ contactId }: { contactId: string }) {
+  const points = useQuery({
+    queryKey: ["contact-points", contactId],
+    queryFn: () => api<Schemas["ContactPointOut"][]>(`/crm/contacts/${contactId}/contact-points`),
+  });
+  const consents = useQuery({ queryKey: ["consents", contactId], queryFn: () => api<Schemas["ConsentsOut"]>(`/crm/contacts/${contactId}/consents`) });
+  return (
+    <div className="mt-1 space-y-1 text-sm">
+      {(points.data ?? []).map((p) => (
+        <p key={p.id} className="text-muted">
+          {humanize(p.kind)}: <span className="text-ink">{p.value}</span>
+        </p>
+      ))}
+      <div className="flex flex-wrap gap-1">
+        {(consents.data?.current ?? []).length === 0 ? (
+          <span className="text-xs text-muted">No consent recorded</span>
+        ) : (
+          consents.data?.current.map((c) => (
+            <Badge key={c.id} tone={c.status === "granted" ? "success" : "danger"}>
+              {humanize(c.purpose)}: {c.status}
+            </Badge>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Contacts({ accountId }: { accountId: string }) {
+  const contacts = useQuery({ queryKey: ["contacts", accountId], queryFn: () => api<Schemas["ContactOut"][]>(`/crm/accounts/${accountId}/contacts`) });
+  return (
+    <Card title="Contacts">
+      {(contacts.data ?? []).length === 0 ? <Empty>No contacts.</Empty> : null}
+      <ul className="divide-y divide-border">
+        {(contacts.data ?? []).map((c) => (
+          <li key={c.id} className="py-2">
+            <p className="font-medium">
+              {[c.first_name, c.last_name].filter(Boolean).join(" ") || c.preferred_name}{" "}
+              <span className="text-xs font-normal text-muted">({humanize(c.role)})</span>{" "}
+              {c.is_primary ? <Badge tone="primary">Primary</Badge> : null}
+            </p>
+            <ContactDetails contactId={c.id} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function Students({ accountId }: { accountId: string }) {
+  const queryClient = useQueryClient();
+  const { data: me } = useMe();
+  const curricula = useCurricula();
+  const students = useQuery({ queryKey: ["students", accountId], queryFn: () => api<Schemas["StudentOut"][]>(`/crm/accounts/${accountId}/students`) });
+  const [form, setForm] = useState({ first_name: "", curriculum_code: "", grade_text: "" });
+  const [subject, setSubject] = useState<Record<string, string>>({});
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["students", accountId] });
+  const add = useMutation({
+    mutationFn: () =>
+      api(`/crm/accounts/${accountId}/students`, {
+        json: Object.fromEntries(Object.entries(form).filter(([, v]) => v !== "")),
+      }),
+    onSuccess: async () => {
+      setForm({ first_name: "", curriculum_code: "", grade_text: "" });
+      await refresh();
+    },
+  });
+  const addSubject = useMutation({
+    mutationFn: (studentId: string) => api(`/crm/students/${studentId}/subjects`, { json: { subject_name: subject[studentId] } }),
+    onSuccess: async () => {
+      setSubject({});
+      await refresh();
+    },
+  });
+  const curriculumName = (curriculumId: string | null) => curricula.data?.find((c) => c.id === curriculumId)?.name ?? "Curriculum not set";
+  return (
+    <Card title="Students">
+      {(students.data ?? []).length === 0 ? <Empty>No students yet.</Empty> : null}
+      <ul className="divide-y divide-border">
+        {(students.data ?? []).map((s) => (
+          <li key={s.id} className="py-2 text-sm">
+            <p className="font-medium">
+              {s.preferred_name || s.first_name} {s.last_name ?? ""}{" "}
+              <span className="font-normal text-muted">
+                · {curriculumName(s.curriculum_id)} · {s.grade_text ?? "Grade not set"}
+              </span>
+            </p>
+            <p className="text-muted">
+              Subjects: {s.subjects.length ? s.subjects.map((x) => x.subject_name).join(", ") : "none yet"}
+              {s.learning_needs_restricted ? " · Learning-needs note (restricted)" : ""}
+            </p>
+            {can(me, "crm.students.manage") ? (
+              <div className="mt-1 flex gap-2">
+                <Input
+                  className="min-w-0 flex-1"
+                  aria-label={`Add subject for ${s.first_name}`}
+                  placeholder="Add subject"
+                  value={subject[s.id] ?? ""}
+                  onChange={(e) => setSubject({ ...subject, [s.id]: e.target.value })}
+                />
+                <Button variant="secondary" disabled={!subject[s.id]} onClick={() => addSubject.mutate(s.id)}>
+                  Add
+                </Button>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <ErrorNote error={add.error ?? addSubject.error} />
+      {can(me, "crm.students.manage") ? (
+        <form
+          className="mt-3 grid gap-2 sm:grid-cols-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            add.mutate();
+          }}
+        >
+          <Input aria-label="Student first name" placeholder="First name" required value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+          <Select aria-label="Curriculum" value={form.curriculum_code} onChange={(e) => setForm({ ...form, curriculum_code: e.target.value })}>
+            <option value="">Curriculum…</option>
+            {(curricula.data ?? []).map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+          <Input aria-label="Grade" placeholder="Grade / year" value={form.grade_text} onChange={(e) => setForm({ ...form, grade_text: e.target.value })} />
+          <Button type="submit" variant="secondary">Add student</Button>
+        </form>
+      ) : null}
+    </Card>
+  );
+}
+
+function Opportunities({ accountId }: { accountId: string }) {
+  const stages = useStages();
+  const currencies = useCurrencies();
+  const opportunities = useQuery({
+    queryKey: ["opportunities", "account", accountId],
+    queryFn: () => api<Schemas["OpportunityOut"][]>(`/pipeline/opportunities${qs({ account_id: accountId })}`),
+  });
+  const minorUnits = (code: string) => currencies.data?.find((c) => c.code === code)?.minor_units ?? 2;
+  return (
+    <Card title="Opportunities" actions={<Link href="/pipeline" className="text-sm text-accent">Pipeline</Link>}>
+      {(opportunities.data ?? []).length === 0 ? <Empty>No opportunities.</Empty> : null}
+      <ul className="divide-y divide-border text-sm">
+        {(opportunities.data ?? []).map((o) => (
+          <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <span>{o.title}</span>
+            <span className="flex items-center gap-2">
+              {o.budget_amount_minor !== null && o.budget_currency ? (
+                <span className="tabular text-muted">Budget {formatMoney(o.budget_amount_minor, o.budget_currency, minorUnits(o.budget_currency))}</span>
+              ) : null}
+              <Badge tone={o.stage_type === "lost" ? "danger" : o.stage_type === "won" ? "success" : "accent"}>
+                {stages.data?.find((s) => s.key === o.stage_key)?.name ?? o.stage_key}
+              </Badge>
+              {o.sla_breached ? <Badge tone="warning">Past SLA</Badge> : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function Notes({ accountId }: { accountId: string }) {
+  const queryClient = useQueryClient();
+  const { data: me } = useMe();
+  const notes = useQuery({ queryKey: ["notes", accountId], queryFn: () => api<Schemas["NoteOut"][]>(`/crm/accounts/${accountId}/notes`) });
+  const [body, setBody] = useState("");
+  const [visibility, setVisibility] = useState<"team" | "private">("team");
+  const add = useMutation({
+    mutationFn: () => api(`/crm/accounts/${accountId}/notes`, { json: { body, visibility } }),
+    onSuccess: async () => {
+      setBody("");
+      await queryClient.invalidateQueries({ queryKey: ["notes", accountId] });
+    },
+  });
+  return (
+    <Card title="Notes">
+      {can(me, "crm.notes.write") ? (
+        <form
+          className="mb-3 space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            add.mutate();
+          }}
+        >
+          <Textarea aria-label="New note" placeholder="Add a note (notes cannot be edited later)" value={body} onChange={(e) => setBody(e.target.value)} />
+          <div className="flex items-center gap-2">
+            <Select aria-label="Note visibility" value={visibility} onChange={(e) => setVisibility(e.target.value as "team" | "private")}>
+              <option value="team">Visible to the team</option>
+              <option value="private">Private (only me)</option>
+            </Select>
+            <Button type="submit" disabled={!body.trim() || add.isPending}>Add note</Button>
+          </div>
+          <ErrorNote error={add.error} />
+        </form>
+      ) : null}
+      {(notes.data ?? []).length === 0 ? <Empty>No notes.</Empty> : null}
+      <ul className="space-y-3">
+        {(notes.data ?? []).map((n) => (
+          <li key={n.id} className="rounded-md bg-surface p-3 text-sm">
+            <p className="whitespace-pre-wrap">{n.body}</p>
+            <p className="mt-1 text-xs text-muted">
+              {formatDateTime(n.created_at, me?.timezone)} {n.visibility === "private" ? "· Private" : ""}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function Tasks({ accountId }: { accountId: string }) {
+  const queryClient = useQueryClient();
+  const { data: me } = useMe();
+  const tasks = useQuery({
+    queryKey: ["tasks", "account", accountId],
+    queryFn: () => api<Schemas["TaskOut"][]>(`/tasks${qs({ assignee: "any", status: "open", account_id: accountId })}`),
+    enabled: can(me, "crm.tasks.manage"),
+  });
+  const [title, setTitle] = useState("");
+  const add = useMutation({
+    mutationFn: () => api("/tasks", { json: { title, account_id: accountId } }),
+    onSuccess: async () => {
+      setTitle("");
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+  if (!can(me, "crm.tasks.manage")) return null;
+  return (
+    <Card title="Open tasks">
+      <form
+        className="mb-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add.mutate();
+        }}
+      >
+        <Input aria-label="New task" placeholder="New task" className="min-w-0 flex-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Button type="submit" variant="secondary" disabled={!title.trim()}>Add</Button>
+      </form>
+      <ErrorNote error={add.error} />
+      {(tasks.data ?? []).length === 0 ? <Empty>No open tasks.</Empty> : null}
+      <ul className="space-y-1 text-sm">
+        {(tasks.data ?? []).map((t) => (
+          <li key={t.id} className="flex justify-between gap-2">
+            <span>{t.title}</span>
+            <span className="text-xs text-muted">{t.due_at ? formatDateTime(t.due_at, me?.timezone) : "No due date"}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function Tags({ accountId }: { accountId: string }) {
+  const queryClient = useQueryClient();
+  const { data: me } = useMe();
+  const all = useQuery({ queryKey: ["tags"], queryFn: () => api<Schemas["TagOut"][]>("/crm/tags") });
+  const mine = useQuery({ queryKey: ["tags", accountId], queryFn: () => api<Schemas["TagOut"][]>(`/crm/accounts/${accountId}/tags`) });
+  const [choice, setChoice] = useState("");
+  const apply = useMutation({
+    mutationFn: () => api(`/crm/accounts/${accountId}/tags/${choice}`, { method: "PUT" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tags", accountId] }),
+  });
+  return (
+    <Card title="Tags">
+      <div className="mb-2 flex flex-wrap gap-1">
+        {(mine.data ?? []).length === 0 ? <span className="text-sm text-muted">No tags</span> : null}
+        {(mine.data ?? []).map((t) => (
+          <Badge key={t.id} tone="primary">{t.name}</Badge>
+        ))}
+      </div>
+      {can(me, "crm.accounts.update") && (all.data ?? []).length > 0 ? (
+        <div className="flex gap-2">
+          <Select aria-label="Tag" value={choice} onChange={(e) => setChoice(e.target.value)}>
+            <option value="">Add tag…</option>
+            {(all.data ?? []).map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </Select>
+          <Button variant="secondary" disabled={!choice} onClick={() => apply.mutate()}>Apply</Button>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function Timeline({ accountId, timezone }: { accountId: string; timezone?: string }) {
+  const timeline = useQuery({
+    queryKey: ["timeline", accountId],
+    queryFn: () => api<Schemas["ActivityOut"][]>(`/crm/accounts/${accountId}/timeline`),
+    refetchInterval: 15_000,
+  });
+  return (
+    <Card title="Timeline">
+      <p className="mb-2 text-xs text-muted">Updated by the background worker, usually within seconds.</p>
+      {(timeline.data ?? []).length === 0 ? <Empty>Nothing yet.</Empty> : null}
+      <ol className="space-y-3">
+        {(timeline.data ?? []).map((a) => (
+          <li key={a.id} className="border-l-2 border-primary-soft pl-3 text-sm">
+            <p className="font-medium">{a.title}</p>
+            {a.body ? <p className="text-muted">{a.body}</p> : null}
+            <p className="text-xs text-muted">{formatDateTime(a.occurred_at, timezone)}</p>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
