@@ -1,6 +1,6 @@
 # 03: AI Agent Architecture
 
-Status: **PROPOSAL, awaiting approval** · No agent is implemented.
+Status: **APPROVED 2026-11-10** (BD-032) · No agent is implemented.
 
 ## 1. Design approach
 

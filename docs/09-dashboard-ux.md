@@ -1,6 +1,6 @@
 # 09: Dashboard and UX Direction
 
-Status: **PROPOSAL, awaiting approval** · Visual design is provisional until Mixt's brand assets are received (Q-BRD-01).
+Status: **APPROVED 2026-11-10** (BD-032) · Visual design is provisional until Mixt's brand assets are received (Q-BRD-01).
 
 ## 1. Design principles
 

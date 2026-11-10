@@ -1,6 +1,6 @@
 # 10: Implementation Roadmap
 
-Status: **PROPOSAL, awaiting approval** · Work beyond Phase 0 starts only after Mixt approves the architecture.
+Status: **APPROVED 2026-11-10** (BD-032) · **Phase 0 complete; Phase 1 in progress (1a done 2026-11-10).**
 
 ## Approach
 
@@ -30,7 +30,7 @@ Phases 2 and 3 can run in parallel after Phase 1. Phases 5 and 6 can run in para
 
 ---
 
-## Phase 0: Discovery and business-data confirmation (current)
+## Phase 0: Discovery and business-data confirmation: **complete (2026-11-10)**
 
 | Deliverables | Status |
 |--------------|--------|
@@ -42,9 +42,21 @@ Phases 2 and 3 can run in parallel after Phase 1. Phases 5 and 6 can run in para
 | External accounts started (Meta verification, WhatsApp numbers, email platform access, payment provider, cloud account, LLM provider terms) | Waiting for Mixt |
 | Legal review kick-off (hosting region, consent wording, children's data, AI disclosure) | Waiting for Mixt |
 
-**Exit criteria:** architecture **explicitly approved** by Mixt (BD-031). Open business questions do **not** hold up the start of Phase 1: each has a safe default setting. Before Phase 1 is used with real customer data: hosting region (Q-CMP-02), legal/privacy sign-off (Q-CMP-01) and production cloud account (Q-TECH-04).
+**Exit criteria:** architecture **explicitly approved** by Mixt (BD-031): **met on 2026-11-10 (BD-032)**. Open business questions do **not** hold up the start of Phase 1: each has a safe default setting. Before Phase 1 is used with real customer data: hosting region (Q-CMP-02), legal/privacy sign-off (Q-CMP-01) and production cloud account (Q-TECH-04).
 
-## Phase 1: Foundation and core CRM (L)
+## Phase 1: Foundation and core CRM (L): **in progress**
+
+Delivered in four increments, each tested and pushed:
+
+| Increment | Scope | Status |
+|-----------|-------|--------|
+| **1a** Backend foundation | Project set-up, CI, core utilities, migrations, sign-in with MFA, sessions, CSRF, roles with market scope, record-level access, hash-chained audit log, reference data (US blocked), settings register with Outstanding decisions, CRM households/contacts/contact points/consents/students/subjects/exams | **Done 2026-11-10**: 90 automated tests, 91.6% coverage; details in [services/backend/README.md](../services/backend/README.md) |
+| **1b** Leads and pipeline | Lead intake (manual + CSV import with consent evidence), duplicate review and merge, pipelines and stages with required fields, opportunities, tasks and follow-ups, notes and tags, customer timeline, outbox and scheduled-action dispatcher, scheduling preferences API | Next |
+| **1c** Dashboard | Next.js shell, design system, sign-in and MFA screens, Leads, Customers (360 v1), Pipeline, Tasks, Team, Settings incl. Outstanding decisions | Planned |
+| **1d** Hardening | Rate limiting (Redis), SSO option, staging deployment, separate migration and application database roles, backups and restore check | Planned |
+
+Original Phase 1 scope:
+
 
 - Monorepo scaffolding; Docker compose; CI (lint, types, tests, migrations, import boundaries, secret/dependency scanning).
 - Core platform: config, structured logging, tracing, error tracking, money and time-zone utilities, outbox + event dispatcher, scheduled actions, dead-letter handling.

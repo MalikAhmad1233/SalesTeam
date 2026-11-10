@@ -1,6 +1,6 @@
 # 06: CRM Structure
 
-Status: **PROPOSAL, awaiting approval** · Table definitions: [02-database-schema](02-database-schema.md)
+Status: **APPROVED 2026-11-10** (BD-032) · Table definitions: [02-database-schema](02-database-schema.md)
 
 ## 1. Core model: household → people → students
 

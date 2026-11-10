@@ -1,6 +1,6 @@
 # 07: External Integrations and API Requirements
 
-Status: **PROPOSAL, awaiting approval** · No integration is implemented.
+Status: **APPROVED 2026-11-10** (BD-032) · No integration is implemented.
 
 > Provider rules, permissions and prices change. Every point below will be checked against the provider's current official documentation when each integration is built, and Mixt's accounts must be set up by Mixt (we cannot create them on Mixt's behalf).
 

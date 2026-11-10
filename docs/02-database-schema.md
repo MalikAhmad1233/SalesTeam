@@ -1,6 +1,6 @@
 # 02: Database Schema Design
 
-Status: **PROPOSAL, awaiting approval** · Database: PostgreSQL 17+ · Nothing here has been created yet.
+Status: **APPROVED 2026-11-10** (BD-032) · Database: PostgreSQL 17+ (CI also tests 16) · **Phase 1a tables exist** in migration `services/backend/migrations/versions/0001_foundation.py`: identity, reference data, settings values, audit log, and CRM accounts, contacts, contact points, consents, students, subjects, exams, scheduling preferences. Where this document and the migration differ, the migration is authoritative. All other tables are not created yet.
 
 The DDL below is **illustrative**: it is meant to be read and reviewed. The authoritative schema will be Alembic migrations written in Phase 1, with tests.
 

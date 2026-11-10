@@ -1,11 +1,14 @@
 # Mixt AI: AI Sales & CRM Platform for Mixt Academy
 
-> **Project status: Phase 0, product discovery and business-data collection** · Documentation v0.2 (2026-11-09): first round of Mixt confirmations applied.
-> This repository contains **design documents only**. **No application code has been written.**
-> Nothing described here is implemented. A feature counts as implemented only when working code and passing tests exist for it.
-> Full implementation starts **only after the architecture is approved** by Mixt Academy.
+> **Project status: Phase 1 (foundation and core CRM) in progress.** Architecture approved by Mixt on 2026-11-10 (BD-032).
+> **Built so far (increment 1a):** the backend foundation: secure sign-in with mandatory two-step verification, roles and
+> record-level access, a tamper-evident audit log, reference data (13 markets; the US blocked), the settings register with
+> "Outstanding decisions", and the core CRM (households, contacts, consents, students). 90 automated tests run against a real
+> PostgreSQL database. Details: [services/backend/README.md](services/backend/README.md).
+> **Not built yet:** leads and pipeline, the dashboard, pricing, messaging channels, AI agents and everything in later phases.
+> A feature counts as implemented only when working code and passing tests exist for it.
 
-Mixt AI is a planned AI sales system for Mixt Academy, an international online 1:1 tutoring company.
+Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.
 It will cover the whole customer journey: lead capture, qualification, AI-assisted sales conversations,
 tutor matching, trials, pricing, quotations, payments, enrolment, retention, renewals and referrals.
 All of it runs on **one central CRM database**, with **people in control** of every important action.
@@ -41,7 +44,16 @@ All of it runs on **one central CRM database**, with **people in control** of ev
 7. **No feature is described as implemented unless working code and tests exist.**
 8. **Open business decisions never block the architecture and are never guessed.** Each has a safe default setting until Mixt answers it (see [13](docs/13-configurable-settings.md)). Confirmed curricula are Irish, SABIS, American and British; IB is not included unless separately approved.
 
-## Proposed technology (subject to approval)
+## Technology (approved)
 
-Next.js + React + TypeScript + Tailwind CSS · Python + FastAPI · PostgreSQL (+ pgvector) · Redis + Celery workers ·
+Next.js + React + TypeScript + Tailwind CSS · Python + FastAPI · PostgreSQL 17 (CI also on 16) (+ pgvector later) · Redis + Celery workers ·
 Claude API and OpenAI API behind interchangeable model adapters · Docker · Alembic migrations · GitHub Actions CI.
+
+## Repository layout
+
+```
+docs/                 architecture, decisions, open questions (start with docs/12-decision-log.md)
+services/backend/     FastAPI backend (Phase 1a implemented): see its README to run and test it
+infra/compose.yaml    local PostgreSQL and Redis for development
+.github/workflows/    CI: lint, strict types, tests on PostgreSQL 16 and 17, dependency audit, Docker build
+```

@@ -18,6 +18,7 @@ Every business decision and architecture decision, with date, status and source.
 |-----|--------|------|
 | S1 | Project initialisation brief ("PROJECT INITIALIZATION – MIXT AI") | 2026-11-09 |
 | S2 | Mixt clarification: "confirmed business information" items 1–12 and documentation instructions | 2026-11-09 |
+| S3 | Mixt approval of the architecture ("Approved") | 2026-11-10 |
 
 Where a decision is partly confirmed, the confirmed part is logged here as **CONFIRMED** and the remaining unknown is a separate **OPEN** question.
 
@@ -57,32 +58,47 @@ Where a decision is partly confirmed, the confirmed part is logged here as **CON
 | BD-028 | 2026-11-09 | Integrations use official APIs and secure credentials, with webhooks, status tracking, retries and audit logs. | CONFIRMED | S1 | — | 07 |
 | BD-029 | 2026-11-09 | Preferred stack: Next.js, React, TypeScript, Tailwind CSS; Python, FastAPI; PostgreSQL; Redis + background workers; Claude API and OpenAI API via model adapters; Docker, environment variables, migrations. | CONFIRMED (preference) | S1 | — | 01 |
 | BD-030 | 2026-11-09 | Outstanding business decisions are handled with **configurable settings**; the architecture is not blocked by operational unknowns. | CONFIRMED | S2 | — | 13 |
-| BD-031 | 2026-11-09 | **No full implementation until Mixt explicitly approves the architecture.** | CONFIRMED | S1, S2 | — | 10 |
+| BD-031 | 2026-11-09 | **No full implementation until Mixt explicitly approves the architecture.** | CONFIRMED (satisfied by BD-032) | S1, S2 | — | 10 |
+| BD-032 | 2026-11-10 | **The architecture (docs 00–13, v0.2) is approved. Implementation starts with Phase 1.** Open business questions stay OPEN and keep their safe defaults. | CONFIRMED | S3 | — | All |
 
 ## B. Architecture decisions
 
-All **PROPOSED** (dated 2026-11-09), awaiting approval. ADR-01 to ADR-10 are described in [01 §13](01-architecture.md#13-key-architecture-decisions-summary).
+Proposed 2026-11-09; **APPROVED 2026-11-10** (BD-032). ADR-01 to ADR-10 are described in [01 §13](01-architecture.md#13-key-architecture-decisions-summary).
 
 | ID | Decision | Status | Implements |
 |----|----------|--------|-----------|
-| ADR-01 | Modular monolith + separate worker processes | PROPOSED | BD-025, BD-029 |
-| ADR-02 | PostgreSQL as the single system of record, incl. job intent | PROPOSED | BD-025 |
-| ADR-03 | Deterministic pricing engine; LLMs may only call it | PROPOSED | BD-019 |
-| ADR-04 | Action Policy Engine between agents and side effects | PROPOSED | BD-027 |
-| ADR-05 | Agents interact only through CRM, events and typed tools | PROPOSED | BD-025 |
-| ADR-06 | Celery + Redis transport; PostgreSQL outbox and scheduled actions | PROPOSED | BD-028 |
-| ADR-07 | Synchronous ORM sessions in domain services | PROPOSED | — |
-| ADR-08 | pgvector inside PostgreSQL for knowledge retrieval | PROPOSED | — |
-| ADR-09 | Money as integer minor units + ISO currency code | PROPOSED | BD-019 |
-| ADR-10 | Immutable price-book versions; quotations snapshot what they used | PROPOSED | BD-018, BD-023 |
-| ADR-11 | **Configurable settings register** with safe defaults for every outstanding business decision; settings carry `safe_default` / `confirmed` status and a decision-log reference ([13](13-configurable-settings.md)) | PROPOSED | BD-030 |
-| ADR-12 | **Tier/schedule selection mode per market**, default `manual`: a person with permission picks the tier or schedule for each customer, with a reason. The engine refuses (`TIER_DECISION_REQUIRED`) until that happens. AI never selects. Applies to UK, UAE and Ireland. | PROPOSED | BD-012, BD-013, BD-014, BD-019 |
-| ADR-13 | **Pricing market is confirmed by staff.** Currency, phone prefix and curriculum are **never** used to decide a customer's market (USD ≠ US; American curriculum ≠ US; British curriculum ≠ UK pricing; Irish curriculum ≠ Ireland pricing). | PROPOSED | BD-005, BD-006 |
-| ADR-14 | **Corrections are new versions** (`change_type = correction`, `supersedes_version_id`); original versions stay readable in pricing history and are never overwritten. | PROPOSED | BD-015, BD-018 |
-| ADR-15 | **Promotions never modify standard entries.** They live only as separate promotion records or separately labelled promotional price books; quotations show list price and promotion as separate items; promotions are globally disabled until the first promotion is confirmed. | PROPOSED | BD-020, BD-021 |
-| ADR-16 | **Safe-default principle:** while a decision is OPEN the system takes the most restrictive safe path (escalate to a person, show no figure, send nothing automatically), never a guessed business value. | PROPOSED | BD-019, BD-030 |
+| ADR-01 | Modular monolith + separate worker processes | APPROVED | BD-025, BD-029 |
+| ADR-02 | PostgreSQL as the single system of record, incl. job intent | APPROVED | BD-025 |
+| ADR-03 | Deterministic pricing engine; LLMs may only call it | APPROVED | BD-019 |
+| ADR-04 | Action Policy Engine between agents and side effects | APPROVED | BD-027 |
+| ADR-05 | Agents interact only through CRM, events and typed tools | APPROVED | BD-025 |
+| ADR-06 | Celery + Redis transport; PostgreSQL outbox and scheduled actions | APPROVED | BD-028 |
+| ADR-07 | Synchronous ORM sessions in domain services | APPROVED | — |
+| ADR-08 | pgvector inside PostgreSQL for knowledge retrieval | APPROVED | — |
+| ADR-09 | Money as integer minor units + ISO currency code | APPROVED | BD-019 |
+| ADR-10 | Immutable price-book versions; quotations snapshot what they used | APPROVED | BD-018, BD-023 |
+| ADR-11 | **Configurable settings register** with safe defaults for every outstanding business decision; settings carry `safe_default` / `confirmed` status and a decision-log reference ([13](13-configurable-settings.md)) | APPROVED | BD-030 |
+| ADR-12 | **Tier/schedule selection mode per market**, default `manual`: a person with permission picks the tier or schedule for each customer, with a reason. The engine refuses (`TIER_DECISION_REQUIRED`) until that happens. AI never selects. Applies to UK, UAE and Ireland. | APPROVED | BD-012, BD-013, BD-014, BD-019 |
+| ADR-13 | **Pricing market is confirmed by staff.** Currency, phone prefix and curriculum are **never** used to decide a customer's market (USD ≠ US; American curriculum ≠ US; British curriculum ≠ UK pricing; Irish curriculum ≠ Ireland pricing). | APPROVED | BD-005, BD-006 |
+| ADR-14 | **Corrections are new versions** (`change_type = correction`, `supersedes_version_id`); original versions stay readable in pricing history and are never overwritten. | APPROVED | BD-015, BD-018 |
+| ADR-15 | **Promotions never modify standard entries.** They live only as separate promotion records or separately labelled promotional price books; quotations show list price and promotion as separate items; promotions are globally disabled until the first promotion is confirmed. | APPROVED | BD-020, BD-021 |
+| ADR-16 | **Safe-default principle:** while a decision is OPEN the system takes the most restrictive safe path (escalate to a person, show no figure, send nothing automatically), never a guessed business value. | APPROVED | BD-019, BD-030 |
 
-## C. Change history
+## C. Implementation notes (Phase 1a)
+
+Choices made while building, within the approved architecture. None of them changes a business decision.
+
+| ID | Date | Note | Why |
+|----|------|------|-----|
+| IN-01 | 2026-11-10 | Setting **definitions** (schema, safe default, permission, open question) live in code (`settings/registry.py`); only **values** are stored in `system_settings`. Doc 02 originally showed a `setting_definitions` table. | Definitions belong with the code that interprets them; a test keeps code and docs/13 in sync. |
+| IN-02 | 2026-11-10 | New setting `crm.unassigned_pool_visible_to_reps` (safe default `true`, Q-TEAM-02). | Who sees unassigned accounts is a business choice, so it is a setting rather than hard-coded. |
+| IN-03 | 2026-11-10 | The audit hash chain is computed by a database trigger and serialised with an advisory lock held until commit. | Every write path is covered, including ones that bypass the app. Fine at expected volume; can move to a background chainer if writes grow a lot. |
+| IN-04 | 2026-11-10 | CI tests on PostgreSQL 16 and 17. | Local development uses 16; production target is 17+. |
+| IN-05 | 2026-11-10 | A contact point that already exists on another household is flagged as a "possible duplicate" without revealing which household. | Customer data isolation: reps must not learn about accounts they cannot see. |
+| IN-06 | 2026-11-10 | Accounts living outside the 13 operating markets (including the US) are flagged `out_of_market` automatically for a person to review; the pricing market itself is only ever set by a person. | Implements BD-005 and ADR-13 with the safe default `markets.out_of_market_handling = human_review`. |
+| IN-07 | 2026-11-10 | Sales reps hold neither read nor write access to restricted learning-needs notes; Sales Managers and Tutor Coordinators do. | Data minimisation for children's sensitive data; adjustable through roles (Q-TEAM-02). |
+
+## D. Change history
 
 | Date | Version | Change | Source |
 |------|---------|--------|--------|
@@ -90,3 +106,4 @@ All **PROPOSED** (dated 2026-11-09), awaiting approval. ADR-01 to ADR-10 are des
 | 2026-11-09 | 0.2 | Clarification S2 applied: BD-002, BD-004 to BD-008, BD-011 to BD-018, BD-020, BD-021, BD-030, BD-031 recorded or re-confirmed; former Q-PRC-07 closed; Q-PRC-21 added (Malaysia correction); tier selection mode (ADR-12), market rule (ADR-13), correction versioning (ADR-14), promotion separation (ADR-15), safe defaults (ADR-16) and the settings register (doc 13) added; open questions re-classified by the phase they block. | S2 |
 | 2026-11-09 | 0.2 | **US-market audit:** every document was searched for any association of the US with a market (incl. "US", "United States", "America", "US$", "$" amounts, "+1" phone prefix). **No document assigned, targeted or assumed a US market**: the US appears only as an excluded country, and "American" only as a curriculum name. To prevent any future inference, explicit rules were added: currency, curriculum and phone prefix never decide a market (ADR-13); a database trigger blocks a US market (DB-01); automated tests are listed in [04 §18](04-pricing-engine.md#18-tests-phase-2-exit-criteria). | S2 |
 | 2026-11-09 | 0.2 | **Pricing figures unchanged.** The register was re-checked by script after the update: 13 books and 91 entries, identical to the brief. | S2 |
+| 2026-11-10 | 0.3 | Architecture approved (BD-032); ADR-01 to ADR-16 marked APPROVED. Phase 1a (backend foundation) implemented with tests; implementation notes IN-01 to IN-07 added. | S3 |

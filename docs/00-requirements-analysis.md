@@ -1,6 +1,6 @@
 # 00: Requirements Analysis
 
-Status: **Draft for approval** · Phase 0 · v0.2 (2026-11-09) · Sources: project brief (S1) and Mixt clarification (S2), both 2026-11-09. Every confirmed item cites its entry in the [decision log](12-decision-log.md).
+Status: **APPROVED 2026-11-10** (BD-032) · v0.2 (2026-11-09) · Sources: project brief (S1) and Mixt clarification (S2), both 2026-11-09. Every confirmed item cites its entry in the [decision log](12-decision-log.md).
 
 ## 1. How information is labelled
 

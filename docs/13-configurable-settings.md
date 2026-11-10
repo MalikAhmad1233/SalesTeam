@@ -1,6 +1,6 @@
 # 13: Configurable Settings Register
 
-Status: **PROPOSAL, awaiting approval** · Implements ADR-11 and ADR-16 ([decision log](12-decision-log.md))
+Status: **APPROVED 2026-11-10** · Implemented in Phase 1a (`services/backend/mixt/modules/settings`) · Implements ADR-11 and ADR-16 ([decision log](12-decision-log.md))
 
 ## 1. Why this exists
 
@@ -10,11 +10,11 @@ Many business decisions are still OPEN (see [11](11-open-questions.md)). The arc
 - A safe default is **never a guessed business answer.** For example, there is no default quotation validity period: the approver types the expiry date on each quote until Mixt decides a standard.
 - When Mixt answers a question, the setting changes to `confirmed`, with a reference to the decision-log entry. No code change is needed.
 
-## 2. How settings work (PROPOSAL)
+## 2. How settings work
 
 | Aspect | Design |
 |--------|--------|
-| Storage | `setting_definitions` (key, description, JSON schema for the value, safe default, who may change it, whether dual approval is needed) and `system_settings` (key, scope, value, `status` = `safe_default` / `confirmed`, `decision_ref` e.g. `BD-012`, `version`). Tables are defined in [02 §15](02-database-schema.md#15-integrations-and-reliability). |
+| Storage | **Definitions live in code** (`services/backend/mixt/modules/settings/registry.py`): key, description, JSON schema, safe default, status, decision reference, who may change it, dual approval, open question. They sit next to the code that interprets them, and a test checks they match this document. **Values** that differ from the default, or that Mixt has confirmed, are stored in `system_settings` (key, scope, value, `status` = `safe_default` / `confirmed`, `decision_ref`, `version`); see [02 §15](02-database-schema.md#15-integrations-and-reliability). |
 | Scopes | `global`, `market`, `price_book`, `price_book_version`, `channel`, `agent`, `role` |
 | Validation | Every value is validated against its JSON schema; invalid values are refused. |
 | Changes | Permission-checked; sensitive settings need two approvers; every change is audited with old/new value and decision reference. |
@@ -59,6 +59,7 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 | `crm.offerings_unconfirmed` | global | board × qualification and subject combinations not marked "offered" → AI may not say Mixt teaches them; it escalates | safe_default | — | Q-ACA-01, Q-ACA-02 | Admin |
 | `crm.student_birth_data` | global | `year_only` | safe_default | `full_date` | Q-CMP-04 | Owner |
 | `crm.lead_assignment` | global | `manual` | safe_default | rules (market, language, workload) | Q-TEAM-01 | SM |
+| `crm.unassigned_pool_visible_to_reps` | global | `true`: sales reps can see accounts with no owner yet | safe_default | `false` (only managers see the pool) | Q-TEAM-02 | SM |
 | `crm.pipeline_stages` | pipeline | proposed defaults in [06 §4](06-crm-structure.md#4-sales-pipeline-default-new_business-pipeline-proposal), editable | safe_default | edited stages | Q-SAL-01 | Admin |
 | `crm.stage_required_fields` | stage | Qualified = confirmed market + curriculum + one student with grade and subject (proposed) | safe_default | edited fields | Q-CRM-01, Q-SAL-03 | Admin |
 
@@ -72,7 +73,7 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 | `messaging.student_direct_contact` | global | `disabled`: messages go to guardians only | safe_default | `enabled_from_age:N` | Q-AI-05 | Owner |
 | `messaging.sequences_enabled` | global | `false` until cadence and contact hours are set | safe_default | `true` | Q-SAL-06, Q-MKT-07 | SM |
 | `ai.enabled` | global / agent / channel / market | `false` | safe_default | `true` | Phase 4 | Owner |
-| `ai.autonomy.<action>` | action × channel × market | `approval` for every customer-facing action | **confirmed** default (BD-027) | per [03 §8](03-ai-agent-architecture.md#8-action-policy-engine-and-approval-levels) | Q-AI-02 | Owner |
+| `ai.autonomy.customer_facing` | action × channel × market | `approval` for every customer-facing action | **confirmed** default (BD-027) | per [03 §8](03-ai-agent-architecture.md#8-action-policy-engine-and-approval-levels) | Q-AI-02 | Owner |
 | `ai.customer_data_to_llm` | global | `blocked` until AI-provider data terms are approved | safe_default | `allowed` | Q-CMP-06 | Owner |
 | `ai.reply_languages` | global | `[en]`: messages in other languages go to a person | safe_default | language list | Q-AI-03 | Admin |
 | `ai.disclosure` | global | `on`: conversations state that an AI assistant helps the team | safe_default | `off` | Q-CMP-05 | Owner |
@@ -100,5 +101,5 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 |---------|-------|-----------|--------|---------------|----------|-----------|
 | `auth.sso` | global | `off`: local accounts with mandatory MFA | safe_default | `google`, `microsoft` | Q-TECH-01 | Owner |
 | `infra.region` | deployment | unset: **production deployment with real customer data is blocked** | safe_default | region(s) | Q-CMP-02 | Owner |
-| `privacy.retention.<type>` | data type | unset: nothing deleted automatically; erasure only via data-subject requests | safe_default | days + delete/anonymise | Q-CMP-07 | Owner |
+| `privacy.retention` | global / data type | unset: nothing deleted automatically; erasure only via data-subject requests | safe_default | days + delete/anonymise | Q-CMP-07 | Owner |
 | `notifications.internal_channel` | global | dashboard + email | safe_default | Slack, Teams | Q-TEAM-04 | Admin |

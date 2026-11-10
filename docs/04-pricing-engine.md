@@ -1,6 +1,6 @@
 # 04: Pricing Engine Design
 
-Status: **PROPOSAL, awaiting approval** · **Pricing database: INCOMPLETE (CONFIRMED, BD-017)** · **No pricing or promotion is active.** · Updated 2026-11-09 (v0.2)
+Status: **APPROVED 2026-11-10** (BD-032) · **Pricing database: INCOMPLETE (CONFIRMED, BD-017)** · **No pricing or promotion is active.** · Updated 2026-11-09 (v0.2)
 
 ## 1. Confirmed pricing rules
 

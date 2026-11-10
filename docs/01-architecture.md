@@ -1,6 +1,6 @@
 # 01: System Architecture
 
-Status: **PROPOSAL, awaiting approval** · Nothing in this document is implemented.
+Status: **APPROVED 2026-11-10** (BD-032) · Implementation in progress: see the [roadmap](10-roadmap.md) for what exists.
 
 ## 1. Architectural principles
 

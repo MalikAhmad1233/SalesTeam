@@ -1,6 +1,6 @@
 # 08: Security, Privacy and Compliance
 
-Status: **PROPOSAL, awaiting approval** · Not legal advice: the regulatory points below must be confirmed by Mixt's legal counsel for each market.
+Status: **APPROVED 2026-11-10** (BD-032) · Not legal advice: the regulatory points below must be confirmed by Mixt's legal counsel for each market.
 
 ## 1. Security baseline
 
