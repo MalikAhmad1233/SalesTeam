@@ -432,6 +432,21 @@ def confirm_figures(
     return _view(db, version)
 
 
+def confirm_unit_definition(
+    db: Session, actor: Actor, access: Access, version_id: uuid.UUID, decision_ref: str
+) -> VersionView:
+    """Mixt has confirmed what one unit of this version is (hour or class, and its minutes) (G-04)."""
+    access.require_somewhere("pricing.version.confirm_figures")
+    ref = _decision_ref(decision_ref, "The unit definition")
+    version = _version(db, version_id, lock=True)
+    _require_editable(version, "A unit definition")
+    before = version.unit_definition_ref
+    version.unit_definition_ref = ref
+    db.flush()
+    _record(db, actor, "pricing_unit_confirmed", version, {"from": before, "to": ref})
+    return _view(db, version)
+
+
 def set_tax_treatment(
     db: Session, actor: Actor, access: Access, version_id: uuid.UUID, treatment: str, decision_ref: str
 ) -> VersionView:
@@ -613,6 +628,56 @@ def anomalies(db: Session, book: PriceBook, entries: list[NewEntry]) -> list[str
     return notes
 
 
+def create_version(
+    db: Session,
+    actor: Actor,
+    book: PriceBook,
+    entries: list[NewEntry],
+    *,
+    change_type: str,
+    supersedes: PriceBookVersion | None,
+    source_document: str,
+    source_received_on: date,
+    change_summary: str,
+    unit_definition_ref: str | None,
+    minutes_per_unit: int = 60,
+) -> PriceBookVersion:
+    """A new draft version with its full set of entries, locked as soon as they are written."""
+    next_no = (
+        db.scalar(select(func.max(PriceBookVersion.version_no)).where(PriceBookVersion.price_book_id == book.id)) or 0
+    ) + 1
+    version = PriceBookVersion(
+        price_book_id=book.id,
+        version_no=next_no,
+        change_type=change_type,
+        supersedes_version_id=supersedes.id if supersedes else None,
+        unit_definition_ref=unit_definition_ref,
+        session_minutes_per_unit=minutes_per_unit,
+        source_document=source_document.strip(),
+        source_received_on=source_received_on,
+        change_summary=change_summary.strip(),
+        created_by=actor.principal_id,
+    )
+    db.add(version)
+    db.flush()
+    for i, e in enumerate(sorted(entries, key=lambda x: x.quantity)):
+        db.add(
+            PriceBookEntry(
+                price_book_version_id=version.id,
+                package_code=e.package_code,
+                display_name=e.display_name,
+                quantity=e.quantity,
+                package_total_minor=e.package_total_minor,
+                advertised_unit_rate_minor=e.advertised_unit_rate_minor,
+                sort_order=i,
+            )
+        )
+    db.flush()
+    version.figures_locked = True
+    db.flush()
+    return version
+
+
 def create_correction(
     db: Session,
     actor: Actor,
@@ -642,37 +707,20 @@ def create_correction(
         raise ValidationFailed("INVALID_FIGURES", "Quantities and package totals must be positive.")
     book = db.get(PriceBook, original.price_book_id)
     assert book is not None  # noqa: S101 (foreign key)
-    next_no = (
-        db.scalar(select(func.max(PriceBookVersion.version_no)).where(PriceBookVersion.price_book_id == book.id)) or 0
-    ) + 1
-    correction = PriceBookVersion(
-        price_book_id=book.id,
-        version_no=next_no,
+    correction = create_version(
+        db,
+        actor,
+        book,
+        entries,
         change_type="correction",
-        supersedes_version_id=original.id,
-        unit_definition_ref=original.unit_definition_ref,
-        session_minutes_per_unit=original.session_minutes_per_unit,
-        source_document=source_document.strip(),
+        supersedes=original,
+        source_document=source_document,
         source_received_on=source_received_on,
-        change_summary=change_summary.strip(),
-        created_by=actor.principal_id,
+        change_summary=change_summary,
+        unit_definition_ref=original.unit_definition_ref,
+        minutes_per_unit=original.session_minutes_per_unit,
     )
-    db.add(correction)
-    db.flush()
-    for i, e in enumerate(sorted(entries, key=lambda x: x.quantity)):
-        db.add(
-            PriceBookEntry(
-                price_book_version_id=correction.id,
-                package_code=e.package_code,
-                display_name=e.display_name,
-                quantity=e.quantity,
-                package_total_minor=e.package_total_minor,
-                advertised_unit_rate_minor=e.advertised_unit_rate_minor,
-                sort_order=i,
-            )
-        )
-    db.flush()
-    correction.figures_locked = True
+    next_no = correction.version_no
     for benefit, _definition in _benefits(db, original.id):  # same book and market: not a cross-market copy
         db.add(
             PackageBenefit(

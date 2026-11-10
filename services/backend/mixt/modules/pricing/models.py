@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     BigInteger,
@@ -31,6 +32,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mixt.core.db import Base, created_at_col, uuid_pk
@@ -193,6 +195,9 @@ class PriceBookMarketAssignment(Base):
     confirmed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
     confirmed_at: Mapped[datetime | None]
     notes: Mapped[str | None] = mapped_column(Text)
+    # Approved pricing rules (Phase 2b). None are confirmed today (Q-PRC-04, Q-PRC-10).
+    eligibility_rule_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pricing_rules.id"))
+    minimum_purchase_rule_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pricing_rules.id"))
     created_at: Mapped[datetime] = created_at_col()
     version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
 
@@ -273,3 +278,151 @@ class PackageBenefit(Base):
     copied_from_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("package_benefits.id"))
     cross_market_copy_approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
     created_at: Mapped[datetime] = created_at_col()
+
+
+# ------------------------------------------------------------------------------ Phase 2b
+
+
+class PricingImportBatch(Base):
+    """A pricing sheet upload: validated first, applied as a new draft version only by a person."""
+
+    __tablename__ = "pricing_import_batches"
+    __table_args__ = (CheckConstraint("status IN ('validated','invalid','applied','discarded')", name="status"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    filename: Mapped[str] = mapped_column(Text)
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
+    uploaded_at: Mapped[datetime] = created_at_col()
+    status: Mapped[str] = mapped_column(String(16))
+    report: Mapped[dict[str, Any]] = mapped_column(JSONB)  # per book: diff against the latest version, anomalies
+    error_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    applied_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    applied_at: Mapped[datetime | None]
+    applied_version_ids: Mapped[list[str] | None] = mapped_column(JSONB)
+
+
+class PricingImportRow(Base):
+    __tablename__ = "pricing_import_rows"
+    __table_args__ = (UniqueConstraint("batch_id", "row_no"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pricing_import_batches.id"), index=True)
+    row_no: Mapped[int] = mapped_column(Integer)
+    raw: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    errors: Mapped[list[str]] = mapped_column(JSONB)
+
+
+class PricingRule(Base):
+    """Eligibility or minimum-purchase logic as validated data (docs/04 §8, §11). Approved rules are immutable;
+    a change is a new rule version."""
+
+    __tablename__ = "pricing_rules"
+    __table_args__ = (
+        UniqueConstraint("code", "rule_version"),
+        CheckConstraint("kind IN ('eligibility','minimum_purchase')", name="kind"),
+        CheckConstraint("status IN ('draft','approved','retired')", name="status"),
+        CheckConstraint("(status = 'draft') = (approved_by IS NULL)", name="approval"),
+        CheckConstraint("approved_by IS NULL OR approved_by <> created_by", name="four_eyes"),
+        CheckConstraint("code ~ '^[A-Z0-9][A-Z0-9-]{1,40}$'", name="code_format"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    code: Mapped[str] = mapped_column(Text)
+    rule_version: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    name: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(String(24))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    description: Mapped[str | None] = mapped_column(Text)
+    decision_ref: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), server_default=text("'draft'"))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
+    created_at: Mapped[datetime] = created_at_col()
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    approved_at: Mapped[datetime | None]
+    retired_at: Mapped[datetime | None]
+
+
+class CustomerPricingAssignment(Base):
+    """Special, confidential pricing for one customer: a restricted price book, requested and approved by two
+    different people. Never created by AI."""
+
+    __tablename__ = "customer_pricing_assignments"
+    __table_args__ = (
+        CheckConstraint("status IN ('pending_approval','active','rejected','revoked','expired')", name="status"),
+        CheckConstraint("length(btrim(reason)) >= 5", name="reason"),
+        CheckConstraint("valid_to IS NULL OR valid_to > valid_from", name="dates"),
+        CheckConstraint("approved_by IS NULL OR approved_by <> requested_by", name="four_eyes"),
+        CheckConstraint("status <> 'active' OR approved_by IS NOT NULL", name="active_approved"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    account_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("accounts.id"), index=True)
+    price_book_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("price_books.id"))
+    reason: Mapped[str] = mapped_column(Text)
+    is_confidential: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    valid_from: Mapped[datetime]
+    valid_to: Mapped[datetime | None]
+    status: Mapped[str] = mapped_column(String(24), server_default=text("'pending_approval'"))
+    requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    approved_at: Mapped[datetime | None]
+    closed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    closed_at: Mapped[datetime | None]
+    close_reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = created_at_col()
+
+
+class Promotion(Base):
+    """A time-limited offer kept apart from standard pricing (BD-021, ADR-15): it never changes a price-book entry
+    and is shown next to the list price, never folded into it."""
+
+    __tablename__ = "promotions"
+    __table_args__ = (
+        CheckConstraint("kind IN ('percent_off','amount_off','bonus_units')", name="kind"),
+        CheckConstraint("status IN ('draft','in_review','approved','active','expired','cancelled')", name="status"),
+        CheckConstraint("ends_at > starts_at", name="must_expire"),
+        CheckConstraint("max_per_account >= 1", name="max_per_account"),
+        CheckConstraint("max_redemptions IS NULL OR max_redemptions >= 1", name="max_redemptions"),
+        CheckConstraint("approved_by IS NULL OR approved_by <> submitted_by", name="four_eyes"),
+        CheckConstraint(
+            "status NOT IN ('approved','active','expired') OR approved_by IS NOT NULL", name="approval_recorded"
+        ),
+        CheckConstraint("code ~ '^[A-Z0-9][A-Z0-9-]{1,40}$'", name="code_format"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    code: Mapped[str] = mapped_column(Text, unique=True)
+    name: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text)
+    terms: Mapped[str | None] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(String(16))
+    value: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    eligibility_rule_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pricing_rules.id"))
+    stackable: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    starts_at: Mapped[datetime]
+    ends_at: Mapped[datetime]
+    max_redemptions: Mapped[int | None] = mapped_column(Integer)
+    max_per_account: Mapped[int] = mapped_column(Integer, server_default=text("1"))
+    decision_ref: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), server_default=text("'draft'"))
+    status_reason: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
+    submitted_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    approved_at: Mapped[datetime | None]
+    activated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+    activated_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = created_at_col()
+
+
+class PromotionTarget(Base):
+    __tablename__ = "promotion_targets"
+    __table_args__ = (
+        CheckConstraint("price_book_version_id IS NOT NULL OR price_book_entry_id IS NOT NULL", name="has_target"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    promotion_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("promotions.id"), index=True)
+    price_book_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("price_book_versions.id"))
+    price_book_entry_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("price_book_entries.id"))
+    market_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("markets.id"))

@@ -21,6 +21,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounts/{account_id}/pricing/special": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Special */
+        get: operations["list_special_api_v1_accounts__account_id__pricing_special_get"];
+        put?: never;
+        /** Request Special */
+        post: operations["request_special_api_v1_accounts__account_id__pricing_special_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{account_id}/pricing/special/books": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Special Books */
+        get: operations["special_books_api_v1_accounts__account_id__pricing_special_books_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounts/{account_id}/pricing/tiers": {
         parameters: {
             query?: never;
@@ -938,6 +973,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pricing/assignments/{assignment_id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach Rule */
+        post: operations["attach_rule_api_v1_pricing_assignments__assignment_id__rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pricing/benefit-definitions": {
         parameters: {
             query?: never;
@@ -1017,6 +1069,297 @@ export interface paths {
         put?: never;
         /** Assign Market */
         post: operations["assign_market_api_v1_pricing_books__book_id__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Import */
+        post: operations["upload_import_api_v1_pricing_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import Template */
+        get: operations["import_template_api_v1_pricing_imports_template_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/imports/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Import */
+        get: operations["get_import_api_v1_pricing_imports__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/imports/{batch_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Import */
+        post: operations["apply_import_api_v1_pricing_imports__batch_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/imports/{batch_id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard Import */
+        post: operations["discard_import_api_v1_pricing_imports__batch_id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Promotions */
+        get: operations["list_promotions_api_v1_pricing_promotions_get"];
+        put?: never;
+        /** Create Promotion */
+        post: operations["create_promotion_api_v1_pricing_promotions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/promotions/{promotion_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Promotion */
+        post: operations["cancel_promotion_api_v1_pricing_promotions__promotion_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/promotions/{promotion_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promotion Action */
+        post: operations["promotion_action_api_v1_pricing_promotions__promotion_id___action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rules */
+        get: operations["list_rules_api_v1_pricing_rules_get"];
+        put?: never;
+        /** Create Rule */
+        post: operations["create_rule_api_v1_pricing_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/facts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rule Facts */
+        get: operations["rule_facts_api_v1_pricing_rules_facts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Rule */
+        put: operations["update_rule_api_v1_pricing_rules__rule_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/{rule_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Rule */
+        post: operations["approve_rule_api_v1_pricing_rules__rule_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/{rule_id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate Rule */
+        post: operations["evaluate_rule_api_v1_pricing_rules__rule_id__evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/{rule_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Rule */
+        post: operations["retire_rule_api_v1_pricing_rules__rule_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/rules/{rule_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Rule */
+        post: operations["test_rule_api_v1_pricing_rules__rule_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/special/{assignment_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Special */
+        post: operations["approve_special_api_v1_pricing_special__assignment_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/special/{assignment_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Special */
+        post: operations["close_special_api_v1_pricing_special__assignment_id___action__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1221,6 +1564,23 @@ export interface paths {
         put?: never;
         /** Set Tax */
         post: operations["set_tax_api_v1_pricing_versions__version_id__tax_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/unit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Unit */
+        post: operations["confirm_unit_api_v1_pricing_versions__version_id__unit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1627,6 +1987,23 @@ export interface components {
             /** Visibility */
             visibility: string;
         };
+        /** ApplyImportIn */
+        ApplyImportIn: {
+            /** Change Summary */
+            change_summary: string;
+            /**
+             * Change Type
+             * @enum {string}
+             */
+            change_type: "price_change" | "correction";
+            /** Source Document */
+            source_document: string;
+            /**
+             * Source Received On
+             * Format: date
+             */
+            source_received_on: string;
+        };
         /** AssignIn */
         AssignIn: {
             /** Decision Ref */
@@ -1648,6 +2025,8 @@ export interface components {
             country_code: string;
             /** Decision Ref */
             decision_ref: string | null;
+            /** Eligibility Rule Id */
+            eligibility_rule_id?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1660,6 +2039,8 @@ export interface components {
             market_id: string;
             /** Market Name */
             market_name: string;
+            /** Minimum Purchase Rule Id */
+            minimum_purchase_rule_id?: string | null;
             /** Notes */
             notes: string | null;
             /** Relationship Confirmed Ref */
@@ -1668,6 +2049,16 @@ export interface components {
             requires_relationship_confirmation: boolean;
             /** Status */
             status: string;
+        };
+        /** AttachRuleIn */
+        AttachRuleIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "eligibility" | "minimum_purchase";
+            /** Rule Id */
+            rule_id: string | null;
         };
         /** AuditEntryOut */
         AuditEntryOut: {
@@ -1744,6 +2135,11 @@ export interface components {
             campaign_id?: string | null;
             /** Default Owner User Id */
             default_owner_user_id?: string | null;
+            /** File */
+            file: string;
+        };
+        /** Body_upload_import_api_v1_pricing_imports_post */
+        Body_upload_import_api_v1_pricing_imports_post: {
             /** File */
             file: string;
         };
@@ -1830,6 +2226,11 @@ export interface components {
             name: string;
             /** Status */
             status: string;
+        };
+        /** CloseIn */
+        CloseIn: {
+            /** Reason */
+            reason: string;
         };
         /** CodeIn */
         CodeIn: {
@@ -2245,6 +2646,22 @@ export interface components {
             /** Student Subject Id */
             student_subject_id: string | null;
         };
+        /** FactOut */
+        FactOut: {
+            /** Fact */
+            fact: string;
+            /** Operators */
+            operators: string[];
+            /** Type */
+            type: string;
+        };
+        /** FactsIn */
+        FactsIn: {
+            /** Facts */
+            facts: {
+                [key: string]: unknown;
+            };
+        };
         /** GateCheckOut */
         GateCheckOut: {
             /** Code */
@@ -2307,6 +2724,17 @@ export interface components {
             status: string;
             /** Valid Count */
             valid_count: number;
+        };
+        /** ImportRowOut */
+        ImportRowOut: {
+            /** Errors */
+            errors: string[];
+            /** Raw */
+            raw: {
+                [key: string]: unknown;
+            };
+            /** Row No */
+            row_no: number;
         };
         /** IntakeOut */
         IntakeOut: {
@@ -2611,6 +3039,35 @@ export interface components {
             /** Visibility */
             visibility: string;
         };
+        /**
+         * OfferOut
+         * @description A promotion shown next to the list price, never folded into it (ADR-15).
+         */
+        OfferOut: {
+            /** Bonus Units */
+            bonus_units: string | null;
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Promotional Total Display */
+            promotional_total_display: string | null;
+            /** Promotional Total Minor */
+            promotional_total_minor: number | null;
+            /** Stackable */
+            stackable: boolean;
+            /** Terms */
+            terms: string | null;
+        };
         /** OpportunityIn */
         OpportunityIn: {
             /**
@@ -2711,6 +3168,8 @@ export interface components {
             derived_unit_rate_display: string;
             /** Display Name */
             display_name: string;
+            /** Is Special */
+            is_special: boolean;
             /** Minutes Per Unit */
             minutes_per_unit: number;
             /** Option Ref */
@@ -2725,6 +3184,8 @@ export interface components {
             plan_type: string;
             /** Price Book Code */
             price_book_code: string;
+            /** Promotions */
+            promotions: components["schemas"]["OfferOut"][];
             /** Quantity */
             quantity: string;
             /** Tier Label */
@@ -2753,6 +3214,33 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /** PricingImportOut */
+        PricingImportOut: {
+            /** Applied Version Ids */
+            applied_version_ids: string[] | null;
+            /** Error Count */
+            error_count: number;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            };
+            /** Rows */
+            rows: components["schemas"]["ImportRowOut"][];
+            /** Status */
+            status: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
         /** PricingStatusOut */
         PricingStatusOut: {
             /** Active Versions */
@@ -2763,6 +3251,98 @@ export interface components {
             catalogue_complete: boolean;
             /** Markets */
             markets: components["schemas"]["MarketPricingOut"][];
+        };
+        /** PromotionIn */
+        PromotionIn: {
+            /** Code */
+            code: string;
+            /** Decision Ref */
+            decision_ref?: string | null;
+            /** Description */
+            description: string;
+            /** Eligibility Rule Id */
+            eligibility_rule_id?: string | null;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent_off" | "amount_off" | "bonus_units";
+            /**
+             * Max Per Account
+             * @default 1
+             */
+            max_per_account: number;
+            /** Max Redemptions */
+            max_redemptions?: number | null;
+            /** Name */
+            name: string;
+            /**
+             * Stackable
+             * @default false
+             */
+            stackable: boolean;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Targets */
+            targets: components["schemas"]["TargetIn"][];
+            /** Terms */
+            terms?: string | null;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+        };
+        /** PromotionOut */
+        PromotionOut: {
+            /** Activation Problems */
+            activation_problems: string[];
+            /** Code */
+            code: string;
+            /** Decision Ref */
+            decision_ref: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Stackable */
+            stackable: boolean;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Status */
+            status: string;
+            /** Status Reason */
+            status_reason: string | null;
+            /** Targets */
+            targets: components["schemas"]["TargetIn"][];
+            /** Terms */
+            terms: string | null;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
         };
         /** ReasonIn */
         ReasonIn: {
@@ -2798,6 +3378,93 @@ export interface components {
         RolesIn: {
             /** Roles */
             roles: components["schemas"]["RoleGrantIn"][];
+        };
+        /** RuleIn */
+        RuleIn: {
+            /** Code */
+            code: string;
+            /** Decision Ref */
+            decision_ref?: string | null;
+            /** Definition */
+            definition: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "eligibility" | "minimum_purchase";
+            /** Name */
+            name: string;
+        };
+        /** RuleOut */
+        RuleOut: {
+            /** Approved At */
+            approved_at: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decision Ref */
+            decision_ref: string | null;
+            /** Definition */
+            definition: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Rule Version */
+            rule_version: number;
+            /** Status */
+            status: string;
+        };
+        /** RuleTestIn */
+        RuleTestIn: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+        };
+        /** RuleTestOut */
+        RuleTestOut: {
+            /** Facts */
+            facts: {
+                [key: string]: unknown;
+            };
+            /** Min Quantity */
+            min_quantity: string | null;
+            /** Result */
+            result: boolean;
+            /** Trace */
+            trace: string[];
+        };
+        /** RuleUpdateIn */
+        RuleUpdateIn: {
+            /** Decision Ref */
+            decision_ref?: string | null;
+            /** Definition */
+            definition: {
+                [key: string]: unknown;
+            };
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
         };
         /** SchedulingPreferencesIn */
         SchedulingPreferencesIn: {
@@ -2962,6 +3629,74 @@ export interface components {
             manual_entry_allowed: boolean;
             /** Name */
             name: string;
+        };
+        /** SpecialBookOut */
+        SpecialBookOut: {
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** SpecialOut */
+        SpecialOut: {
+            /** Approved By */
+            approved_by: string | null;
+            /** Close Reason */
+            close_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Price Book Code */
+            price_book_code: string;
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Price Book Name */
+            price_book_name: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Requested By
+             * Format: uuid
+             */
+            requested_by: string;
+            /** Status */
+            status: string;
+            /**
+             * Valid From
+             * Format: date-time
+             */
+            valid_from: string;
+            /** Valid To */
+            valid_to: string | null;
+        };
+        /** SpecialRequestIn */
+        SpecialRequestIn: {
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Reason */
+            reason: string;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
         };
         /** SsoInfoOut */
         SsoInfoOut: {
@@ -3151,6 +3886,18 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** TargetIn */
+        TargetIn: {
+            /** Market Id */
+            market_id?: string | null;
+            /** Price Book Entry Id */
+            price_book_entry_id?: string | null;
+            /**
+             * Price Book Version Id
+             * Format: uuid
+             */
+            price_book_version_id: string;
         };
         /** TaskIn */
         TaskIn: {
@@ -3537,6 +4284,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OptionsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_special_api_v1_accounts__account_id__pricing_special_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecialOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_special_api_v1_accounts__account_id__pricing_special_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpecialRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecialOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    special_books_api_v1_accounts__account_id__pricing_special_books_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecialBookOut"][];
                 };
             };
             /** @description Validation Error */
@@ -5685,6 +6529,39 @@ export interface operations {
             };
         };
     };
+    attach_rule_api_v1_pricing_assignments__assignment_id__rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachRuleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     benefit_definitions_api_v1_pricing_benefit_definitions_get: {
         parameters: {
             query?: never;
@@ -5807,6 +6684,583 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssignmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_import_api_v1_pricing_imports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_import_api_v1_pricing_imports_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_template_api_v1_pricing_imports_template_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    get_import_api_v1_pricing_imports__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_import_api_v1_pricing_imports__batch_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_import_api_v1_pricing_imports__batch_id__discard_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_promotions_api_v1_pricing_promotions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOut"][];
+                };
+            };
+        };
+    };
+    create_promotion_api_v1_pricing_promotions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromotionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_promotion_api_v1_pricing_promotions__promotion_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promotion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promotion_action_api_v1_pricing_promotions__promotion_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                promotion_id: string;
+                action: "submit" | "approve" | "activate";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rules_api_v1_pricing_rules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"][];
+                };
+            };
+        };
+    };
+    create_rule_api_v1_pricing_rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rule_facts_api_v1_pricing_rules_facts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FactOut"][];
+                };
+            };
+        };
+    };
+    update_rule_api_v1_pricing_rules__rule_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_rule_api_v1_pricing_rules__rule_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_rule_api_v1_pricing_rules__rule_id__evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FactsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retire_rule_api_v1_pricing_rules__rule_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_rule_api_v1_pricing_rules__rule_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_special_api_v1_pricing_special__assignment_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecialOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_special_api_v1_pricing_special__assignment_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+                action: "reject" | "revoke";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecialOut"];
                 };
             };
             /** @description Validation Error */
@@ -6186,6 +7640,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TaxIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_unit_api_v1_pricing_versions__version_id__unit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
             };
         };
         responses: {

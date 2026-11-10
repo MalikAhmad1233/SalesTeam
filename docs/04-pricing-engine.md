@@ -1,6 +1,6 @@
 # 04: Pricing Engine Design
 
-Status: **APPROVED 2026-11-10** (BD-032) · **Pricing database: INCOMPLETE (CONFIRMED, BD-017)** · **No pricing or promotion is active.** · Updated 2026-11-09 (v0.2) · **Implemented in Phase 2a (2026-11-10):** §2 to §7, §10 (attachment and approval), §14 (catalogue, lifecycle, history, tier selection), §16 and §18 (golden, property, gate, tier, correction and market-inference tests); promotions, rules, special pricing, imports and quotations follow in 2b and 2c. Implementation notes IN-27 to IN-32.
+Status: **APPROVED 2026-11-10** (BD-032) · **Pricing database: INCOMPLETE (CONFIRMED, BD-017)** · **No pricing or promotion is active.** · Updated 2026-11-09 (v0.2) · **Implemented in Phase 2a (2026-11-10):** §2 to §7, §10 (attachment and approval), §14 (catalogue, lifecycle, history, tier selection), §16 and §18 (golden, property, gate, tier, correction and market-inference tests); **Phase 2b (2026-11-10):** §8 rules and tester, §9 promotions, §11 minimum purchase, special pricing in §7 and imports in §15. Quotations and discount authority (§12, §13) follow in 2c. Implementation notes IN-27 to IN-37.
 
 ## 1. Confirmed pricing rules
 

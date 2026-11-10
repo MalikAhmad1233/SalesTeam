@@ -35,6 +35,7 @@ from mixt.core.db import _sessionmaker_for, get_engine
 from mixt.core.errors import DomainError
 from mixt.modules.events import service as events
 from mixt.modules.identity import service as identity
+from mixt.modules.pricing import promotions
 from mixt.ops import restore_check
 
 
@@ -107,6 +108,7 @@ def dispatch_once() -> tuple[events.DispatchResult, events.ActionRunResult]:
     try:
         delivered = events.dispatch_outbox(session)
         actions = events.run_due_actions(session)
+        promotions.expire_due(session)  # promotions end on their end date (docs/04 §9)
         session.commit()
         return delivered, actions
     except Exception:

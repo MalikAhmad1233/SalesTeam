@@ -398,6 +398,41 @@
         "title": "ActivityOut",
         "type": "object"
       },
+      "ApplyImportIn": {
+        "properties": {
+          "change_summary": {
+            "maxLength": 2000,
+            "title": "Change Summary",
+            "type": "string"
+          },
+          "change_type": {
+            "enum": [
+              "price_change",
+              "correction"
+            ],
+            "title": "Change Type",
+            "type": "string"
+          },
+          "source_document": {
+            "maxLength": 500,
+            "title": "Source Document",
+            "type": "string"
+          },
+          "source_received_on": {
+            "format": "date",
+            "title": "Source Received On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "change_type",
+          "source_document",
+          "source_received_on",
+          "change_summary"
+        ],
+        "title": "ApplyImportIn",
+        "type": "object"
+      },
       "AssignIn": {
         "properties": {
           "decision_ref": {
@@ -441,6 +476,18 @@
             ],
             "title": "Decision Ref"
           },
+          "eligibility_rule_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Rule Id"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -454,6 +501,18 @@
           "market_name": {
             "title": "Market Name",
             "type": "string"
+          },
+          "minimum_purchase_rule_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Purchase Rule Id"
           },
           "notes": {
             "anyOf": [
@@ -498,6 +557,36 @@
           "notes"
         ],
         "title": "AssignmentOut",
+        "type": "object"
+      },
+      "AttachRuleIn": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "eligibility",
+              "minimum_purchase"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          }
+        },
+        "required": [
+          "kind",
+          "rule_id"
+        ],
+        "title": "AttachRuleIn",
         "type": "object"
       },
       "AuditEntryOut": {
@@ -709,6 +798,20 @@
           "file"
         ],
         "title": "Body_upload_import_api_v1_leads_imports_post",
+        "type": "object"
+      },
+      "Body_upload_import_api_v1_pricing_imports_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_import_api_v1_pricing_imports_post",
         "type": "object"
       },
       "BookDetailOut": {
@@ -952,6 +1055,20 @@
           "status"
         ],
         "title": "CampaignOut",
+        "type": "object"
+      },
+      "CloseIn": {
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "CloseIn",
         "type": "object"
       },
       "CodeIn": {
@@ -2171,6 +2288,46 @@
         "title": "ExamOut",
         "type": "object"
       },
+      "FactOut": {
+        "properties": {
+          "fact": {
+            "title": "Fact",
+            "type": "string"
+          },
+          "operators": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Operators",
+            "type": "array"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fact",
+          "type",
+          "operators"
+        ],
+        "title": "FactOut",
+        "type": "object"
+      },
+      "FactsIn": {
+        "properties": {
+          "facts": {
+            "additionalProperties": true,
+            "title": "Facts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "facts"
+        ],
+        "title": "FactsIn",
+        "type": "object"
+      },
       "GateCheckOut": {
         "properties": {
           "code": {
@@ -2332,6 +2489,33 @@
           "note"
         ],
         "title": "ImportOut",
+        "type": "object"
+      },
+      "ImportRowOut": {
+        "properties": {
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "title": "Raw",
+            "type": "object"
+          },
+          "row_no": {
+            "title": "Row No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "row_no",
+          "raw",
+          "errors"
+        ],
+        "title": "ImportRowOut",
         "type": "object"
       },
       "IntakeOut": {
@@ -3192,6 +3376,94 @@
         "title": "NoteOut",
         "type": "object"
       },
+      "OfferOut": {
+        "description": "A promotion shown next to the list price, never folded into it (ADR-15).",
+        "properties": {
+          "bonus_units": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bonus Units"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "promotional_total_display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promotional Total Display"
+          },
+          "promotional_total_minor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promotional Total Minor"
+          },
+          "stackable": {
+            "title": "Stackable",
+            "type": "boolean"
+          },
+          "terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "kind",
+          "description",
+          "terms",
+          "promotional_total_minor",
+          "promotional_total_display",
+          "bonus_units",
+          "ends_at",
+          "stackable"
+        ],
+        "title": "OfferOut",
+        "type": "object"
+      },
       "OpportunityIn": {
         "properties": {
           "account_id": {
@@ -3561,6 +3833,10 @@
             "title": "Display Name",
             "type": "string"
           },
+          "is_special": {
+            "title": "Is Special",
+            "type": "boolean"
+          },
           "minutes_per_unit": {
             "title": "Minutes Per Unit",
             "type": "integer"
@@ -3588,6 +3864,13 @@
           "price_book_code": {
             "title": "Price Book Code",
             "type": "string"
+          },
+          "promotions": {
+            "items": {
+              "$ref": "#/components/schemas/OfferOut"
+            },
+            "title": "Promotions",
+            "type": "array"
           },
           "quantity": {
             "title": "Quantity",
@@ -3629,7 +3912,9 @@
           "derived_unit_rate_display",
           "plan_type",
           "tier_label",
-          "benefits"
+          "benefits",
+          "is_special",
+          "promotions"
         ],
         "title": "OptionOut",
         "type": "object"
@@ -3681,6 +3966,70 @@
         "title": "PasswordChangeIn",
         "type": "object"
       },
+      "PricingImportOut": {
+        "properties": {
+          "applied_version_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied Version Ids"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "report": {
+            "additionalProperties": true,
+            "title": "Report",
+            "type": "object"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "title": "Uploaded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "status",
+          "uploaded_at",
+          "error_count",
+          "report",
+          "rows",
+          "applied_version_ids"
+        ],
+        "title": "PricingImportOut",
+        "type": "object"
+      },
       "PricingStatusOut": {
         "properties": {
           "active_versions": {
@@ -3710,6 +4059,243 @@
           "markets"
         ],
         "title": "PricingStatusOut",
+        "type": "object"
+      },
+      "PromotionIn": {
+        "properties": {
+          "code": {
+            "pattern": "^[A-Z0-9][A-Z0-9-]{1,40}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "decision_ref": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Ref"
+          },
+          "description": {
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "eligibility_rule_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Rule Id"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "percent_off",
+              "amount_off",
+              "bonus_units"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "max_per_account": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Max Per Account",
+            "type": "integer"
+          },
+          "max_redemptions": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Redemptions"
+          },
+          "name": {
+            "maxLength": 200,
+            "title": "Name",
+            "type": "string"
+          },
+          "stackable": {
+            "default": false,
+            "title": "Stackable",
+            "type": "boolean"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Targets",
+            "type": "array"
+          },
+          "terms": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "kind",
+          "value",
+          "starts_at",
+          "ends_at",
+          "targets"
+        ],
+        "title": "PromotionIn",
+        "type": "object"
+      },
+      "PromotionOut": {
+        "properties": {
+          "activation_problems": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Activation Problems",
+            "type": "array"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "decision_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Ref"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "stackable": {
+            "title": "Stackable",
+            "type": "boolean"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetIn"
+            },
+            "title": "Targets",
+            "type": "array"
+          },
+          "terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "terms",
+          "kind",
+          "value",
+          "starts_at",
+          "ends_at",
+          "stackable",
+          "decision_ref",
+          "status",
+          "status_reason",
+          "targets",
+          "activation_problems"
+        ],
+        "title": "PromotionOut",
         "type": "object"
       },
       "ReasonIn": {
@@ -3816,6 +4402,250 @@
           "roles"
         ],
         "title": "RolesIn",
+        "type": "object"
+      },
+      "RuleIn": {
+        "properties": {
+          "code": {
+            "pattern": "^[A-Z0-9][A-Z0-9-]{1,40}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "decision_ref": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Ref"
+          },
+          "definition": {
+            "additionalProperties": true,
+            "title": "Definition",
+            "type": "object"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "kind": {
+            "enum": [
+              "eligibility",
+              "minimum_purchase"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "kind",
+          "definition"
+        ],
+        "title": "RuleIn",
+        "type": "object"
+      },
+      "RuleOut": {
+        "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Ref"
+          },
+          "definition": {
+            "additionalProperties": true,
+            "title": "Definition",
+            "type": "object"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "rule_version",
+          "name",
+          "kind",
+          "definition",
+          "description",
+          "decision_ref",
+          "status",
+          "created_at",
+          "approved_at"
+        ],
+        "title": "RuleOut",
+        "type": "object"
+      },
+      "RuleTestIn": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id"
+        ],
+        "title": "RuleTestIn",
+        "type": "object"
+      },
+      "RuleTestOut": {
+        "properties": {
+          "facts": {
+            "additionalProperties": true,
+            "title": "Facts",
+            "type": "object"
+          },
+          "min_quantity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Quantity"
+          },
+          "result": {
+            "title": "Result",
+            "type": "boolean"
+          },
+          "trace": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Trace",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "trace",
+          "facts",
+          "min_quantity"
+        ],
+        "title": "RuleTestOut",
+        "type": "object"
+      },
+      "RuleUpdateIn": {
+        "properties": {
+          "decision_ref": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Ref"
+          },
+          "definition": {
+            "additionalProperties": true,
+            "title": "Definition",
+            "type": "object"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "maxLength": 200,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "definition"
+        ],
+        "title": "RuleUpdateIn",
         "type": "object"
       },
       "SchedulingPreferencesIn": {
@@ -4361,6 +5191,170 @@
           "manual_entry_allowed"
         ],
         "title": "SourceOut",
+        "type": "object"
+      },
+      "SpecialBookOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "SpecialBookOut",
+        "type": "object"
+      },
+      "SpecialOut": {
+        "properties": {
+          "approved_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "close_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Reason"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "price_book_code": {
+            "title": "Price Book Code",
+            "type": "string"
+          },
+          "price_book_id": {
+            "format": "uuid",
+            "title": "Price Book Id",
+            "type": "string"
+          },
+          "price_book_name": {
+            "title": "Price Book Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "id",
+          "price_book_id",
+          "price_book_code",
+          "price_book_name",
+          "reason",
+          "status",
+          "valid_from",
+          "valid_to",
+          "requested_by",
+          "approved_by",
+          "close_reason",
+          "created_at"
+        ],
+        "title": "SpecialOut",
+        "type": "object"
+      },
+      "SpecialRequestIn": {
+        "properties": {
+          "price_book_id": {
+            "format": "uuid",
+            "title": "Price Book Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "price_book_id",
+          "reason"
+        ],
+        "title": "SpecialRequestIn",
         "type": "object"
       },
       "SsoInfoOut": {
@@ -5157,6 +6151,44 @@
           "color"
         ],
         "title": "TagOut",
+        "type": "object"
+      },
+      "TargetIn": {
+        "properties": {
+          "market_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Id"
+          },
+          "price_book_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Book Entry Id"
+          },
+          "price_book_version_id": {
+            "format": "uuid",
+            "title": "Price Book Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "price_book_version_id"
+        ],
+        "title": "TargetIn",
         "type": "object"
       },
       "TaskIn": {
@@ -6365,6 +7397,151 @@
           }
         },
         "summary": "Options",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/pricing/special": {
+      "get": {
+        "operationId": "list_special_api_v1_accounts__account_id__pricing_special_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SpecialOut"
+                  },
+                  "title": "Response List Special Api V1 Accounts  Account Id  Pricing Special Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Special",
+        "tags": [
+          "pricing"
+        ]
+      },
+      "post": {
+        "operationId": "request_special_api_v1_accounts__account_id__pricing_special_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecialRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Special",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}/pricing/special/books": {
+      "get": {
+        "operationId": "special_books_api_v1_accounts__account_id__pricing_special_books_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SpecialBookOut"
+                  },
+                  "title": "Response Special Books Api V1 Accounts  Account Id  Pricing Special Books Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Special Books",
         "tags": [
           "pricing"
         ]
@@ -9694,6 +10871,52 @@
         ]
       }
     },
+    "/api/v1/pricing/assignments/{assignment_id}/rules": {
+      "post": {
+        "operationId": "attach_rule_api_v1_pricing_assignments__assignment_id__rules_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachRuleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Attach Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
     "/api/v1/pricing/benefit-definitions": {
       "get": {
         "operationId": "benefit_definitions_api_v1_pricing_benefit_definitions_get",
@@ -9871,6 +11094,824 @@
           }
         },
         "summary": "Assign Market",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/imports": {
+      "post": {
+        "operationId": "upload_import_api_v1_pricing_imports_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_import_api_v1_pricing_imports_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Import",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/imports/template": {
+      "get": {
+        "operationId": "import_template_api_v1_pricing_imports_template_get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Import Template",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/imports/{batch_id}": {
+      "get": {
+        "operationId": "get_import_api_v1_pricing_imports__batch_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Import",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/imports/{batch_id}/apply": {
+      "post": {
+        "operationId": "apply_import_api_v1_pricing_imports__batch_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyImportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Import",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/imports/{batch_id}/discard": {
+      "post": {
+        "operationId": "discard_import_api_v1_pricing_imports__batch_id__discard_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discard Import",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/promotions": {
+      "get": {
+        "operationId": "list_promotions_api_v1_pricing_promotions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PromotionOut"
+                  },
+                  "title": "Response List Promotions Api V1 Pricing Promotions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Promotions",
+        "tags": [
+          "pricing"
+        ]
+      },
+      "post": {
+        "operationId": "create_promotion_api_v1_pricing_promotions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Promotion",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/promotions/{promotion_id}/cancel": {
+      "post": {
+        "operationId": "cancel_promotion_api_v1_pricing_promotions__promotion_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "promotion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Promotion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Promotion",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/promotions/{promotion_id}/{action}": {
+      "post": {
+        "operationId": "promotion_action_api_v1_pricing_promotions__promotion_id___action__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "promotion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Promotion Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "submit",
+                "approve",
+                "activate"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Promotion Action",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules": {
+      "get": {
+        "operationId": "list_rules_api_v1_pricing_rules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RuleOut"
+                  },
+                  "title": "Response List Rules Api V1 Pricing Rules Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Rules",
+        "tags": [
+          "pricing"
+        ]
+      },
+      "post": {
+        "operationId": "create_rule_api_v1_pricing_rules_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/facts": {
+      "get": {
+        "operationId": "rule_facts_api_v1_pricing_rules_facts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FactOut"
+                  },
+                  "title": "Response Rule Facts Api V1 Pricing Rules Facts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Rule Facts",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/{rule_id}": {
+      "put": {
+        "operationId": "update_rule_api_v1_pricing_rules__rule_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/{rule_id}/approve": {
+      "post": {
+        "operationId": "approve_rule_api_v1_pricing_rules__rule_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/{rule_id}/evaluate": {
+      "post": {
+        "operationId": "evaluate_rule_api_v1_pricing_rules__rule_id__evaluate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FactsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleTestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/{rule_id}/retire": {
+      "post": {
+        "operationId": "retire_rule_api_v1_pricing_rules__rule_id__retire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/rules/{rule_id}/test": {
+      "post": {
+        "operationId": "test_rule_api_v1_pricing_rules__rule_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleTestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleTestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test Rule",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/special/{assignment_id}/approve": {
+      "post": {
+        "operationId": "approve_special_api_v1_pricing_special__assignment_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Special",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/special/{assignment_id}/{action}": {
+      "post": {
+        "operationId": "close_special_api_v1_pricing_special__assignment_id___action__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "reject",
+                "revoke"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Special",
         "tags": [
           "pricing"
         ]
@@ -10435,6 +12476,59 @@
           }
         },
         "summary": "Set Tax",
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
+    "/api/v1/pricing/versions/{version_id}/unit": {
+      "post": {
+        "operationId": "confirm_unit_api_v1_pricing_versions__version_id__unit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Unit",
         "tags": [
           "pricing"
         ]

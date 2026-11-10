@@ -126,6 +126,47 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await page.goBack();
   });
 
+  await test.step("import a pricing sheet as drafts, write and try a rule, see promotions switched off", async () => {
+    await page.getByRole("link", { name: "Pricing" }).first().click();
+    const tabs = page.getByRole("navigation", { name: "Pricing sections" });
+    await tabs.getByRole("link", { name: "Import sheet" }).click();
+    await page.getByLabel("Pricing sheet (CSV)").setInputFiles({
+      name: "family.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "price_book_code,currency,plan_type,audience,unit_type,quantity,package_total\n" +
+          "QA-QAR-FAMILY,QAR,standard,restricted,hour,30,1650\n" +
+          "QA-QAR-FAMILY,QAR,standard,restricted,hour,60,3000\n",
+      ),
+    });
+    await page.getByRole("button", { name: "Check sheet" }).click();
+    await expect(page.getByRole("region", { name: "Changes to QA-QAR-FAMILY" })).toContainText("New price book (restricted)");
+    await page.getByLabel("Source document").fill("Family sheet (E2E)");
+    await page.getByLabel("What changed and who supplied it").fill("New family pricing for testing");
+    await page.getByRole("button", { name: "Create draft versions" }).click();
+    await expect(page.getByText("1 draft version(s) created")).toBeVisible();
+
+    await tabs.getByRole("link", { name: "Rules" }).click();
+    await page.getByRole("button", { name: "New rule" }).click();
+    const ruleDialog = page.getByRole("dialog", { name: "New pricing rule" });
+    await ruleDialog.getByLabel("Code").fill("NEW-CUSTOMERS");
+    await ruleDialog.getByLabel("Name").fill("New customers from the website");
+    await ruleDialog.getByRole("button", { name: "Save draft" }).click();
+    const row = page.getByRole("row", { name: /NEW-CUSTOMERS v1/ });
+    await expect(row).toContainText("Draft");
+    await row.getByRole("button", { name: "Try it" }).click();
+    const tester = page.getByRole("dialog", { name: "Try NEW-CUSTOMERS" });
+    await tester.getByRole("button", { name: "Evaluate" }).click();
+    await expect(tester.getByRole("status")).toContainText("Applies to this customer");
+    await tester.getByRole("button", { name: "Close" }).click();
+
+    await tabs.getByRole("link", { name: "Promotions" }).click();
+    await expect(page.getByRole("note")).toContainText("promotions.enabled");
+    await page.getByRole("link", { name: "Customers" }).click();
+    await page.getByRole("link", { name: "Mona Haddad" }).click();
+    await expect(page.getByRole("heading", { name: "Mona Haddad" })).toBeVisible();
+  });
+
   await test.step("add a note and see the timeline after the worker runs", async () => {
     await page.getByLabel("New note").fill("Prefers WhatsApp after 5pm");
     await page.getByRole("button", { name: "Add note" }).click();

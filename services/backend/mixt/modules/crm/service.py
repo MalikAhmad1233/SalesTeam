@@ -1012,6 +1012,37 @@ def is_visible(db: Session, access: Access, account_id: uuid.UUID) -> bool:
     return db.scalar(visible_account_ids(db, access).where(Account.id == account_id)) is not None
 
 
+@dataclass(frozen=True)
+class PricingFacts:
+    """What pricing rules may know about a customer (docs/04 §8). No names, contact details or notes."""
+
+    market_country: str | None
+    country_of_residence: str | None
+    is_new_customer: bool
+    first_touch_lead_source_id: uuid.UUID | None
+    student_count: int
+    curriculum_codes: tuple[str, ...]
+
+
+def pricing_facts(db: Session, account_id: uuid.UUID) -> PricingFacts:
+    account = account_for_system(db, account_id)
+    market = reference.get_market(db, account.market_id) if account.market_id and account.market_confirmed_at else None
+    students = list(db.scalars(select(Student).where(Student.account_id == account.id)))
+    codes = []
+    for student in students:
+        curriculum = reference.get_curriculum(db, student.curriculum_id) if student.curriculum_id else None
+        if curriculum is not None and curriculum.code not in codes:
+            codes.append(curriculum.code)
+    return PricingFacts(
+        market_country=market.country_code if market else None,
+        country_of_residence=account.country_of_residence,
+        is_new_customer=account.lifecycle_stage not in ("customer", "former_customer"),
+        first_touch_lead_source_id=account.first_touch_lead_source_id,
+        student_count=len(students),
+        curriculum_codes=tuple(sorted(codes)),
+    )
+
+
 def account_for_system(db: Session, account_id: uuid.UUID) -> Account:
     account = db.get(Account, account_id)
     if account is None:

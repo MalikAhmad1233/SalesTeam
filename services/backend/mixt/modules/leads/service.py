@@ -76,6 +76,13 @@ def list_sources(db: Session) -> list[LeadSource]:
     return list(db.scalars(select(LeadSource).where(LeadSource.is_active).order_by(LeadSource.name)))
 
 
+def source_code(db: Session, source_id: uuid.UUID | None) -> str | None:
+    if source_id is None:
+        return None
+    source = db.get(LeadSource, source_id)
+    return source.code if source else None
+
+
 def _source(db: Session, code: str) -> LeadSource:
     source = db.scalar(select(LeadSource).where(LeadSource.code == code, LeadSource.is_active))
     if source is None:

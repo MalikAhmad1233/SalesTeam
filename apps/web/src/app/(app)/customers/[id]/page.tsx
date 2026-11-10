@@ -505,15 +505,26 @@ function Pricing({ accountId, marketConfirmed }: { accountId: string; marketConf
           {options.data ? (
             <ul className="space-y-1 text-sm" aria-label="Package options">
               {options.data.options.map((o) => (
-                <li key={o.option_ref} className="flex justify-between gap-2">
-                  <span>{o.display_name}</span>
-                  <span className="tabular font-medium">{o.package_total_display}</span>
+                <li key={o.option_ref}>
+                  <div className="flex justify-between gap-2">
+                    <span>
+                      {o.display_name} {o.is_special ? <Badge tone="accent">Special (confidential)</Badge> : null}
+                    </span>
+                    <span className="tabular font-medium">{o.package_total_display}</span>
+                  </div>
+                  {o.promotions.map((p) => (
+                    <div key={p.code} className="ml-3 text-xs text-success">
+                      Promotion {p.code}: {p.promotional_total_display ?? `${p.bonus_units} bonus hour(s)`} until{" "}
+                      {formatDateTime(p.ends_at, me?.timezone)} (separate from the list price)
+                    </div>
+                  ))}
                 </li>
               ))}
             </ul>
           ) : null}
         </div>
       ) : null}
+      {marketConfirmed && can(me, "pricing.special.view") ? <SpecialPricing accountId={accountId} /> : null}
       <Modal open={choosing !== null} title="Choose the tier for this customer" onClose={() => setChoosing(null)}>
         {choosing ? (
           <form
@@ -551,5 +562,103 @@ function Pricing({ accountId, marketConfirmed }: { accountId: string; marketConf
         ) : null}
       </Modal>
     </Card>
+  );
+}
+
+function SpecialPricing({ accountId }: { accountId: string }) {
+  const { data: me } = useMe();
+  const queryClient = useQueryClient();
+  const list = useQuery({
+    queryKey: ["pricing-special", accountId],
+    queryFn: () => api<Schemas["SpecialOut"][]>(`/accounts/${accountId}/pricing/special`),
+  });
+  const [requesting, setRequesting] = useState(false);
+  const books = useQuery({
+    queryKey: ["pricing-special-books", accountId],
+    queryFn: () => api<Schemas["SpecialBookOut"][]>(`/accounts/${accountId}/pricing/special/books`),
+    enabled: requesting,
+  });
+  const [bookId, setBookId] = useState("");
+  const [reason, setReason] = useState("");
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["pricing-special", accountId] });
+    void queryClient.invalidateQueries({ queryKey: ["pricing-options", accountId] });
+  };
+  const request = useMutation({
+    mutationFn: () => api(`/accounts/${accountId}/pricing/special`, { json: { price_book_id: bookId, reason } }),
+    onSuccess: () => {
+      setRequesting(false);
+      refresh();
+    },
+  });
+  const act = useMutation({
+    mutationFn: ({ id, path, json }: { id: string; path: string; json?: unknown }) => api(`/pricing/special/${id}/${path}`, { method: "POST", json }),
+    onSuccess: refresh,
+  });
+  return (
+    <div className="mt-4 border-t border-border pt-3 text-sm">
+      <p className="font-medium">Confidential pricing</p>
+      {list.data?.length === 0 ? <p className="text-muted">None.</p> : null}
+      <ul className="space-y-2">
+        {list.data?.map((s) => (
+          <li key={s.id}>
+            {s.price_book_code} <Badge tone={s.status === "active" ? "success" : "neutral"}>{humanize(s.status)}</Badge>
+            <div className="text-xs text-muted">{s.reason}</div>
+            {s.status === "pending_approval" && can(me, "pricing.special.approve") ? (
+              <span className="space-x-2">
+                <Button variant="ghost" onClick={() => act.mutate({ id: s.id, path: "approve" })}>
+                  Approve
+                </Button>
+                <Button variant="ghost" onClick={() => act.mutate({ id: s.id, path: "reject", json: { reason: "Not approved" } })}>
+                  Reject
+                </Button>
+              </span>
+            ) : null}
+            {s.status === "active" && can(me, "pricing.special.approve") ? (
+              <Button variant="ghost" onClick={() => act.mutate({ id: s.id, path: "revoke", json: { reason: "Withdrawn" } })}>
+                Revoke
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <ErrorNote error={act.error} />
+      {can(me, "pricing.special.request") ? (
+        <Button variant="ghost" onClick={() => setRequesting(true)}>
+          Request special pricing
+        </Button>
+      ) : null}
+      <Modal open={requesting} title="Request special pricing" onClose={() => setRequesting(false)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault();
+            request.mutate();
+          }}
+        >
+          <p className="text-sm text-muted">
+            Only restricted price books confirmed for this customer&apos;s market can be used. Someone else must approve it, and it stays
+            confidential to this customer.
+          </p>
+          <Field label="Price book">
+            {(fid) => (
+              <Select id={fid} value={bookId} onChange={(e) => setBookId(e.target.value)} required>
+                <option value="">{books.data?.length === 0 ? "No restricted price books for this market" : "Choose…"}</option>
+                {books.data?.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.code}: {b.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field label="Why this customer">{(fid) => <Textarea id={fid} value={reason} onChange={(e) => setReason(e.target.value)} required />}</Field>
+          <ErrorNote error={request.error} />
+          <Button type="submit" disabled={request.isPending}>
+            Request
+          </Button>
+        </form>
+      </Modal>
+    </div>
   );
 }

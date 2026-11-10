@@ -4,11 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { Badge, Card, ErrorNote, Loading, PageHeader, Table, Td } from "@/components/ui";
-import { PricingBanners, statusTone } from "@/components/pricing";
+import { PricingBanners, PricingTabs, statusTone } from "@/components/pricing";
 import { api, type Schemas } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { useMe } from "@/lib/session";
 
 export default function PricingPage() {
+  const { data: me } = useMe();
   const status = useQuery({ queryKey: ["pricing-status"], queryFn: () => api<Schemas["PricingStatusOut"]>("/pricing/status") });
   const books = useQuery({ queryKey: ["pricing-books"], queryFn: () => api<Schemas["BookOut"][]>("/pricing/books") });
   const unpriced = status.data?.markets.filter((m) => m.books.length === 0) ?? [];
@@ -19,6 +21,7 @@ export default function PricingPage() {
         title="Pricing"
         description="Price books as supplied by Mixt. Figures are never edited: a correction becomes a new version, and the original is kept."
       />
+      <PricingTabs current="/pricing" permissions={me?.permissions ?? []} />
       <PricingBanners status={status.data} />
       {books.isLoading ? <Loading /> : null}
       <ErrorNote error={books.error ?? status.error} />

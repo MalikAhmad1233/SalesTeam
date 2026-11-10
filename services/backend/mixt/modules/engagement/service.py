@@ -345,6 +345,18 @@ def untag_account(db: Session, actor: Actor, access: Access, account_id: uuid.UU
     audit.record(db, actor, "account_untagged", "account", account_id, {"tag_id": tag_id})
 
 
+def account_tag_names(db: Session, account_id: uuid.UUID) -> list[str]:
+    """System use (pricing rules): tag names on an account. Callers check visibility themselves."""
+    return list(
+        db.scalars(
+            select(Tag.name)
+            .join(AccountTag, AccountTag.tag_id == Tag.id)
+            .where(AccountTag.account_id == account_id)
+            .order_by(Tag.name)
+        )
+    )
+
+
 def account_tags(db: Session, access: Access, account_id: uuid.UUID) -> list[Tag]:
     crm.get_account(db, access, account_id)
     return list(

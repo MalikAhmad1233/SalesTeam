@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Schemas } from "@/lib/api";
 
 export function PricingBanners({ status }: { status?: Schemas["PricingStatusOut"] }) {
@@ -28,3 +29,27 @@ export function statusTone(status: string): "neutral" | "success" | "warning" | 
   return "warning";
 }
 
+
+const TABS = [
+  { href: "/pricing", label: "Price books", permission: "pricing.read" },
+  { href: "/pricing/import", label: "Import sheet", permission: "pricing.import" },
+  { href: "/pricing/rules", label: "Rules", permission: "pricing.read" },
+  { href: "/pricing/promotions", label: "Promotions", permission: "pricing.read" },
+];
+
+export function PricingTabs({ current, permissions }: { current: string; permissions: string[] }) {
+  return (
+    <nav aria-label="Pricing sections" className="mb-6 flex flex-wrap gap-2 border-b border-border pb-2 text-sm">
+      {TABS.filter((t) => permissions.includes(t.permission)).map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          aria-current={current === t.href ? "page" : undefined}
+          className={`rounded-md px-3 py-1.5 ${current === t.href ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-ink"}`}
+        >
+          {t.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}

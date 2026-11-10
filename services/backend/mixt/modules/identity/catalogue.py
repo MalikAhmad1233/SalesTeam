@@ -55,6 +55,15 @@ PERMISSIONS: dict[str, str] = {
     "pricing.benefits.approve": "Approve benefits attached to a price-book version",
     "pricing.tier.select": "Choose a customer's tier or schedule between valid options, with a reason",
     "pricing.options.read": "Look up the package options a customer can be offered (active pricing only)",
+    # Phase 2b (migration 0005)
+    "pricing.import": "Upload a pricing sheet and create draft versions or new price books from it",
+    "pricing.rules.manage": "Write draft pricing rules and attach approved rules to a market assignment",
+    "pricing.rules.approve": "Approve a pricing rule (not one you wrote)",
+    "pricing.special.view": "See confidential customer pricing",
+    "pricing.special.request": "Request confidential pricing for a customer",
+    "pricing.special.approve": "Approve or revoke confidential customer pricing (not one you requested)",
+    "pricing.promotions.manage": "Draft and submit promotions",
+    "pricing.promotions.approve": "Approve, activate or cancel promotions (not one you submitted)",
 }
 
 _PHASE_1B_ALL = [
@@ -81,6 +90,14 @@ _PRICING_MANAGE = [
     "pricing.version.correct",
     "pricing.assignments.manage",
     "pricing.benefits.approve",
+    "pricing.import",
+    "pricing.rules.manage",
+    "pricing.rules.approve",
+    "pricing.special.view",
+    "pricing.special.request",
+    "pricing.special.approve",
+    "pricing.promotions.manage",
+    "pricing.promotions.approve",
 ]
 
 _CRM_CORE = [
@@ -115,6 +132,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "pricing.read",
             "pricing.tier.select",
             "pricing.options.read",
+            "pricing.special.view",
+            "pricing.special.request",
         ],
     ),
     "pricing_manager": (
@@ -139,6 +158,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "pricing.read",
             "pricing.tier.select",
             "pricing.options.read",
+            "pricing.special.view",
+            "pricing.special.request",
         ],
     ),
     "sales_rep": (

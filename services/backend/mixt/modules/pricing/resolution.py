@@ -22,6 +22,7 @@ from mixt.core.errors import DomainError
 from mixt.core.money import Money, format_money
 from mixt.core.timezones import now_utc
 from mixt.modules.crm import service as crm
+from mixt.modules.pricing import promotions, rule_service, special
 from mixt.modules.pricing.models import (
     PackageBenefit,
     PriceBook,
@@ -29,6 +30,7 @@ from mixt.modules.pricing.models import (
     PriceBookMarketAssignment,
     PriceBookVersion,
 )
+from mixt.modules.pricing.promotions import Offer
 from mixt.modules.pricing.service import active_selection, tier_choices
 from mixt.modules.reference import service as reference
 from mixt.modules.settings import service as settings
@@ -43,6 +45,7 @@ CUSTOMER_MESSAGES = {
     ),
     "TIER_DECISION_REQUIRED": "Our team will confirm the package options for you shortly.",
     "QUANTITY_NOT_OFFERED": "That isn't one of our standard packages; our team can suggest the closest options.",
+    "BELOW_MINIMUM_PURCHASE": "Our team can suggest the packages that are available to you.",
 }
 
 
@@ -85,6 +88,8 @@ class Option:
     tier_label: str | None
     benefits: tuple[str, ...]
     tier_selection_id: uuid.UUID | None
+    special_assignment_id: uuid.UUID | None
+    promotions: tuple[Offer, ...]
 
 
 @dataclass(frozen=True)
@@ -95,16 +100,18 @@ class Resolution:
     options: tuple[Option, ...]
 
 
-def _live_versions(db: Session, market_id: uuid.UUID, at: datetime) -> list[tuple[PriceBook, PriceBookVersion]]:
-    """Public books with a confirmed assignment to this market and a version active at ``at``."""
+def _live_versions(
+    db: Session, market_id: uuid.UUID, at: datetime, audience: str
+) -> list[tuple[PriceBook, PriceBookVersion, PriceBookMarketAssignment]]:
+    """Books of one audience with a confirmed assignment to this market and a version active at ``at``."""
     rows = db.execute(
-        select(PriceBook, PriceBookVersion)
+        select(PriceBook, PriceBookVersion, PriceBookMarketAssignment)
         .join(PriceBookMarketAssignment, PriceBookMarketAssignment.price_book_id == PriceBook.id)
         .join(PriceBookVersion, PriceBookVersion.price_book_id == PriceBook.id)
         .where(
             PriceBookMarketAssignment.market_id == market_id,
             PriceBookMarketAssignment.assignment_status == "confirmed",
-            PriceBook.audience == "public",
+            PriceBook.audience == audience,
             PriceBook.archived_at.is_(None),
             PriceBook.plan_type != "promotional",  # promotions are separate offers (ADR-15), never list prices
             PriceBookVersion.status == "active",
@@ -113,7 +120,23 @@ def _live_versions(db: Session, market_id: uuid.UUID, at: datetime) -> list[tupl
         )
         .order_by(PriceBook.code)
     )
-    return [(b, v) for b, v in rows.tuples()]
+    return [(b, v, a) for b, v, a in rows.tuples()]
+
+
+def _passes(db: Session, rule_id: uuid.UUID | None, facts: dict[str, Any]) -> bool:
+    if rule_id is None:
+        return True
+    rule = rule_service.get_rule(db, rule_id)
+    return rule.status == "approved" and rule_service.evaluate(rule, facts).result
+
+
+def _minimum(db: Session, rule_id: uuid.UUID | None, facts: dict[str, Any]) -> Decimal | None:
+    if rule_id is None:
+        return None
+    rule = rule_service.get_rule(db, rule_id)
+    if rule.status != "approved" or not rule_service.evaluate(rule, facts).result:
+        return None
+    return Decimal(str(rule.definition["min_quantity"]))
 
 
 def resolve_options(
@@ -124,8 +147,13 @@ def resolve_options(
     quantity: Decimal | None = None,
     opportunity_id: uuid.UUID | None = None,
     at: datetime | None = None,
+    include_special: bool = False,
 ) -> Resolution:
-    """Callers check that the person or agent may see this account; this function never infers a market."""
+    """Callers check that the person or agent may see this account; this function never infers a market.
+
+    ``include_special``: also offer this customer's approved confidential pricing. Only callers allowed
+    to see confidential pricing (``pricing.special.view``) pass it.
+    """
     when = at or now_utc()
     account = crm.account_for_system(db, account_id)
     # 1. market: confirmed by a person, never inferred from currency, phone prefix or curriculum (ADR-13)
@@ -135,24 +163,35 @@ def resolve_options(
     if market.status != "active":
         raise PricingUnavailable("MARKET_NOT_ACTIVE", f"{market.name} is not an active market.")
 
-    # 3-4. candidates: live public books of this market (special assignments arrive in a later increment)
-    live = _live_versions(db, market.id, when)
-    if not live:
+    facts = rule_service.facts_for(db, account.id, when.date())
+    # 2. confidential pricing approved for this customer (restricted books of the same market only)
+    granted = special.active_books(db, account.id, when) if include_special else {}
+    specials = [(b, v, a) for b, v, a in _live_versions(db, market.id, when, "restricted") if b.id in granted]
+    # 3-4. public books of this market, passing their eligibility rule for this customer
+    public = [
+        (b, v, a)
+        for b, v, a in _live_versions(db, market.id, when, "public")
+        if _passes(db, a.eligibility_rule_id, facts)
+    ]
+    if not public and not specials:
         raise PricingUnavailable(
             "NO_APPROVED_PRICING_FOR_MARKET", f"There is no active, approved pricing for {market.name}."
         )
     if plan_type is not None:
-        live = [(b, v) for b, v in live if b.plan_type == plan_type]
-        if not live:
+        public = [(b, v, a) for b, v, a in public if b.plan_type == plan_type]
+        specials = [(b, v, a) for b, v, a in specials if b.plan_type == plan_type]
+        if not public and not specials:
             raise PricingUnavailable(
                 "PLAN_NOT_OFFERED_IN_MARKET", f"No active {plan_type} pricing exists for {market.name}."
             )
+    live = [(b, v) for b, v, _a in public]
+    assignment_for = {b.id: a for b, _v, a in public + specials}
 
     # 5. tiers: where the market has several VALID books of a plan type (active or not), a person must
     #    have chosen one for this customer. Never decided by price, label or customer data.
     choices = tier_choices(db, market.id)
     chosen: list[tuple[PriceBook, PriceBookVersion, uuid.UUID | None]] = []
-    for plan in sorted({b.plan_type for b, _ in live}):
+    for plan in sorted({b.plan_type for b, _ in live} - {b.plan_type for b, _v, _a in specials}):
         in_plan = [(b, v) for b, v in live if b.plan_type == plan]
         if plan not in choices:
             chosen += [(b, v, None) for b, v in in_plan]
@@ -185,12 +224,16 @@ def resolve_options(
                 "The tier chosen for this customer has no active, approved pricing yet.",
             )
         chosen += match
+    # A person's approved special pricing replaces the public choice for its plan type (it is their decision).
+    chosen += [(b, v, None) for b, v, _a in specials]
+    chosen.sort(key=lambda item: item[0].code)
     if not chosen:
         raise PricingUnavailable("NO_APPROVED_PRICING_FOR_MARKET", f"No offerable pricing for {market.name}.")
 
     # 6. entries, exact quantity only (no interpolation, no rate x hours)
     options: list[Option] = []
     nearest: set[str] = set()
+    below_minimum: set[str] = set()
     for book, version, selection_id in chosen:
         currency = reference.currency(db, book.currency_code)
         entries = list(
@@ -200,6 +243,12 @@ def resolve_options(
                 .order_by(PriceBookEntry.quantity)
             )
         )
+        # 7. minimum purchase (approved rule on this book's market assignment, if it applies to this customer)
+        minimum = _minimum(db, assignment_for[book.id].minimum_purchase_rule_id, facts)
+        if minimum is not None:
+            if quantity is not None and quantity < minimum and any(Decimal(e.quantity) == quantity for e in entries):
+                below_minimum.add(f"{book.code}: at least {minimum.normalize():f}")
+            entries = [e for e in entries if Decimal(e.quantity) >= minimum]
         if quantity is not None:
             exact = [e for e in entries if Decimal(e.quantity) == quantity]
             if not exact:
@@ -244,13 +293,23 @@ def resolve_options(
                     tier_label=book.tier_label,
                     benefits=benefits,
                     tier_selection_id=selection_id,
+                    special_assignment_id=granted.get(book.id),
+                    # 8. promotions: separate offers next to the list price, never applied to it
+                    promotions=tuple(
+                        promotions.offers_for(db, version.id, e.id, market.id, e.package_total_minor, facts, when)
+                    ),
                 )
             )
+    if quantity is not None and not options and below_minimum:
+        raise PricingUnavailable(
+            "BELOW_MINIMUM_PURCHASE",
+            f"{quantity.normalize():f} units is below the minimum purchase.",
+            minimums=sorted(below_minimum),
+        )
     if quantity is not None and not options:
         raise PricingUnavailable(
             "QUANTITY_NOT_OFFERED",
             f"No active package has exactly {quantity.normalize()} units.",
             nearest_options=sorted(nearest),
         )
-    # 7. minimum-purchase rules: none confirmed (Q-PRC-10). 8. promotions: none (promotions.enabled = false).
     return Resolution(market.id, market.country_code, when, tuple(options))

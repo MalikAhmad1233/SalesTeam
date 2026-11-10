@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { PricingBanners, statusTone } from "@/components/pricing";
+import { PricingBanners, PricingTabs, statusTone } from "@/components/pricing";
 import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Textarea } from "@/components/ui";
 import { api, type Schemas } from "@/lib/api";
 import { formatDate, formatDateTime, humanize } from "@/lib/format";
@@ -19,6 +19,7 @@ export default function PriceBookPage() {
   const status = useQuery({ queryKey: ["pricing-status"], queryFn: () => api<Schemas["PricingStatusOut"]>("/pricing/status") });
   const book = useQuery({ queryKey: ["pricing-book", id], queryFn: () => api<Schemas["BookDetailOut"]>(`/pricing/books/${id}`) });
   const [selected, setSelected] = useState<string | null>(null);
+  const { data: me } = useMe();
 
   if (book.isLoading) return <Loading />;
   if (book.error || !book.data) return <ErrorNote error={book.error ?? new Error("not found")} />;
@@ -36,6 +37,7 @@ export default function PriceBookPage() {
           </Link>
         }
       />
+      <PricingTabs current="/pricing" permissions={me?.permissions ?? []} />
       <PricingBanners status={status.data} />
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">{versionId ? <VersionPanel versionId={versionId} bookId={b.id} /> : null}</div>
@@ -85,7 +87,7 @@ function VersionPanel({ versionId, bookId }: { versionId: string; bookId: string
   const { data: me } = useMe();
   const version = useQuery({ queryKey: ["pricing-version", versionId], queryFn: () => api<Version>(`/pricing/versions/${versionId}`) });
   const action = useVersionAction(versionId, bookId);
-  const [dialog, setDialog] = useState<null | "figures" | "tax" | "reason-return" | "reason-reject" | "reason-retire" | "correction">(null);
+  const [dialog, setDialog] = useState<null | "figures" | "unit" | "tax" | "reason-return" | "reason-reject" | "reason-retire" | "correction">(null);
 
   if (version.isLoading) return <Loading />;
   if (version.error || !version.data) return <ErrorNote error={version.error} />;
@@ -172,6 +174,11 @@ function VersionPanel({ versionId, bookId }: { versionId: string; bookId: string
                 Record Mixt&apos;s confirmation of the figures
               </Button>
             ) : null}
+            {can(me, "pricing.version.confirm_figures") && !v.unit_definition_ref ? (
+              <Button variant="secondary" onClick={() => setDialog("unit")}>
+                Record Mixt&apos;s unit definition
+              </Button>
+            ) : null}
             {can(me, "pricing.version.tax") ? (
               <Button variant="secondary" onClick={() => setDialog("tax")}>
                 Record tax treatment
@@ -239,6 +246,12 @@ function VersionPanel({ versionId, bookId }: { versionId: string; bookId: string
         <DecisionForm
           noteLabel="What Mixt confirmed"
           onSubmit={(decision_ref, note) => action.mutateAsync({ path: "confirm-figures", json: { decision_ref, note } }).then(() => setDialog(null))}
+        />
+      </Modal>
+      <Modal open={dialog === "unit"} title="Unit definition" onClose={() => setDialog(null)}>
+        <DecisionForm
+          noteLabel={`What one ${v.unit_type} means (${v.session_minutes_per_unit} minutes)`}
+          onSubmit={(decision_ref) => action.mutateAsync({ path: "unit", json: { decision_ref } }).then(() => setDialog(null))}
         />
       </Modal>
       <Modal open={dialog === "tax"} title="Tax treatment" onClose={() => setDialog(null)}>
@@ -492,6 +505,7 @@ function Markets({ book }: { book: Schemas["BookDetailOut"] }) {
             <li key={a.id}>
               <span className="font-medium">{a.market_name}</span> <Badge tone={a.status === "confirmed" ? "success" : "neutral"}>{humanize(a.status)}</Badge>
               <div className="text-xs text-muted">Decision: {a.decision_ref ?? "none"}</div>
+              {a.status === "confirmed" && can(me, "pricing.rules.manage") ? <AttachRules assignment={a} bookId={book.id} /> : null}
               {a.requires_relationship_confirmation ? (
                 <div className="text-xs">
                   {a.relationship_confirmed_ref ? (
@@ -553,5 +567,45 @@ function Markets({ book }: { book: Schemas["BookDetailOut"] }) {
         />
       </Modal>
     </Card>
+  );
+}
+
+function AttachRules({ assignment, bookId }: { assignment: Schemas["AssignmentOut"]; bookId: string }) {
+  const assignmentId = assignment.id;
+  const queryClient = useQueryClient();
+  const rules = useQuery({ queryKey: ["pricing-rules"], queryFn: () => api<Schemas["RuleOut"][]>("/pricing/rules") });
+  const attach = useMutation({
+    mutationFn: ({ kind, rule_id }: { kind: string; rule_id: string | null }) =>
+      api(`/pricing/assignments/${assignmentId}/rules`, { json: { kind, rule_id } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["pricing-book", bookId] });
+    },
+  });
+  const approved = rules.data?.filter((r) => r.status === "approved") ?? [];
+  if (approved.length === 0) return <div className="text-xs text-muted">No approved rules to apply.</div>;
+  return (
+    <div className="mt-1 flex flex-wrap gap-2 text-xs">
+      {(["eligibility", "minimum_purchase"] as const).map((kind) => (
+        <label key={kind} className="flex items-center gap-1">
+          {humanize(kind)}:
+          <select
+            className="rounded border border-border px-1 py-0.5"
+            value={(kind === "eligibility" ? assignment.eligibility_rule_id : assignment.minimum_purchase_rule_id) ?? ""}
+            aria-label={`${humanize(kind)} rule for ${assignment.market_name}`}
+            onChange={(e) => attach.mutate({ kind, rule_id: e.target.value || null })}
+          >
+            <option value="">none</option>
+            {approved
+              .filter((r) => r.kind === kind)
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.code} v{r.rule_version}
+                </option>
+              ))}
+          </select>
+        </label>
+      ))}
+      <ErrorNote error={attach.error} />
+    </div>
   );
 }

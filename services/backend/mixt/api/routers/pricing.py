@@ -38,6 +38,8 @@ class AssignmentOut(BaseModel):
     requires_relationship_confirmation: bool
     relationship_confirmed_ref: str | None
     notes: str | None
+    eligibility_rule_id: uuid.UUID | None = None
+    minimum_purchase_rule_id: uuid.UUID | None = None
 
 
 class VersionSummaryOut(BaseModel):
@@ -229,6 +231,21 @@ class SelectTierIn(BaseModel):
     opportunity_id: uuid.UUID | None = None
 
 
+class OfferOut(BaseModel):
+    """A promotion shown next to the list price, never folded into it (ADR-15)."""
+
+    code: str
+    name: str
+    kind: str
+    description: str
+    terms: str | None
+    promotional_total_minor: int | None
+    promotional_total_display: str | None
+    bonus_units: Decimal | None
+    ends_at: datetime
+    stackable: bool
+
+
 class OptionOut(BaseModel):
     option_ref: str
     price_book_code: str
@@ -246,6 +263,8 @@ class OptionOut(BaseModel):
     plan_type: str
     tier_label: str | None
     benefits: list[str]
+    is_special: bool
+    promotions: list[OfferOut]
 
 
 class OptionsOut(BaseModel):
@@ -300,6 +319,8 @@ def _book(view: pricing.BookView) -> BookOut:
                 requires_relationship_confirmation=a.requires_relationship_confirmation,
                 relationship_confirmed_ref=a.relationship_confirmed_ref,
                 notes=a.notes,
+                eligibility_rule_id=a.eligibility_rule_id,
+                minimum_purchase_rule_id=a.minimum_purchase_rule_id,
             )
             for a, name, country in view.assignments
         ],
@@ -457,6 +478,16 @@ def confirm_figures(
     return _version(db, pricing.confirm_figures(db, auth.actor, auth.access, version_id, body.decision_ref, body.note))
 
 
+@router.post("/pricing/versions/{version_id}/unit", response_model=VersionDetailOut)
+def confirm_unit(
+    version_id: uuid.UUID,
+    body: DecisionIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session),
+) -> VersionDetailOut:
+    return _version(db, pricing.confirm_unit_definition(db, auth.actor, auth.access, version_id, body.decision_ref))
+
+
 @router.post("/pricing/versions/{version_id}/tax", response_model=VersionDetailOut)
 def set_tax(
     version_id: uuid.UUID, body: TaxIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
@@ -562,6 +593,8 @@ def _assignment_out(row: pricing.Assignment, name: str, country: str) -> Assignm
         requires_relationship_confirmation=row.requires_relationship_confirmation,
         relationship_confirmed_ref=row.relationship_confirmed_ref,
         notes=row.notes,
+        eligibility_rule_id=row.eligibility_rule_id,
+        minimum_purchase_rule_id=row.minimum_purchase_rule_id,
     )
 
 
@@ -674,8 +707,14 @@ def options(
     account = crm.get_account(db, auth.access, account_id)
     if account.market_id is not None:
         auth.access.require("pricing.options.read", account.market_id)
+    sees_special = auth.access.has("pricing.special.view", account.market_id) if account.market_id else False
     found = resolution.resolve_options(
-        db, account.id, plan_type=plan_type, quantity=quantity, opportunity_id=opportunity_id
+        db,
+        account.id,
+        plan_type=plan_type,
+        quantity=quantity,
+        opportunity_id=opportunity_id,
+        include_special=sees_special,
     )
     return OptionsOut(
         market_country=found.market_country,
@@ -698,6 +737,24 @@ def options(
                 plan_type=o.plan_type,
                 tier_label=o.tier_label,
                 benefits=list(o.benefits),
+                is_special=o.special_assignment_id is not None,
+                promotions=[
+                    OfferOut(
+                        code=p.code,
+                        name=p.name,
+                        kind=p.kind,
+                        description=p.description,
+                        terms=p.terms,
+                        promotional_total_minor=p.promotional_total_minor,
+                        promotional_total_display=_money(db, p.promotional_total_minor, o.currency)
+                        if p.promotional_total_minor is not None
+                        else None,
+                        bonus_units=p.bonus_units,
+                        ends_at=p.ends_at,
+                        stackable=p.stackable,
+                    )
+                    for p in o.promotions
+                ],
             )
             for o in found.options
         ],
