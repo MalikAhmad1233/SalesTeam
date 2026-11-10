@@ -73,6 +73,22 @@ def _percent(value: dict[str, Any]) -> Decimal:
     return percent
 
 
+@dataclass(frozen=True)
+class PromotionState:
+    status: str
+    starts_at: datetime
+    ends_at: datetime
+    max_redemptions: int | None
+    max_per_account: int
+
+
+def state(db: Session, promotion_id: uuid.UUID) -> PromotionState | None:
+    row = db.get(Promotion, promotion_id)
+    if row is None:
+        return None
+    return PromotionState(row.status, row.starts_at, row.ends_at, row.max_redemptions, row.max_per_account)
+
+
 def promotional_total(kind: str, value: dict[str, Any], list_total: int) -> int | None:
     """The promotional total for one package, exactly; None when the kind does not change the price."""
     if kind == "amount_off":

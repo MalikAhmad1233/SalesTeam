@@ -1,6 +1,6 @@
 # Mixt AI: AI Sales & CRM Platform for Mixt Academy
 
-> **Project status: Phase 1 is code complete; Phase 2 (pricing) is in progress; increments 2a and 2b are done.** Architecture approved by Mixt on 2026-11-10 (BD-032).
+> **Project status: Phases 1 and 2 are code complete.** No price is live until Mixt confirms the pricing data. Architecture approved by Mixt on 2026-11-10 (BD-032).
 > **Built so far (increments 1a to 1d):**
 > * The backend: sign-in with mandatory two-step verification and optional single sign-on; roles and record-level access; a tamper-evident audit log; reference data with the US blocked; the settings register.
 > * The CRM: lead intake and spreadsheet import, duplicate review and merge, the sales pipeline, tasks, notes, tags and the customer timeline.
@@ -8,10 +8,11 @@
 > * Hardening: separate database roles, rate limiting, a nonce-based Content-Security-Policy, a staging stack with HTTPS, and encrypted backups with a restore check.
 > * **Pricing (2a):** the 13 supplied price books are stored exactly as supplied and locked against changes, and **none is active**. The catalogue also has: the activation checklist (each blocker shown with the open question behind it), review and two-person approval, corrections as new versions, per-customer tier choice by a person, and the price-lookup engine that refuses with clear reasons.
 > * **Pricing (2b):** pricing-sheet import (checked and compared, applied as drafts), eligibility and minimum-purchase rules with a tester, confidential per-customer pricing (two people, own market only), and promotions kept separate from list prices (switched off until Mixt confirms one).
+> * **Quotations (2c):** built only from the customer's offered options; list price, promotion and discount shown separately; approved by people other than the preparer (any discount also needs a pricing approval); frozen with a fingerprint on approval; PDF made from the frozen version; issue, customer answer, revisions and expiry.
 >
-> 267 backend tests run against a real PostgreSQL database as the least-privileged application role. A browser end-to-end test drives the real stack, and CI starts the full staging stack on every push and checks it over HTTPS.
+> 279 backend tests run against a real PostgreSQL database as the least-privileged application role. A browser end-to-end test drives the real stack, and CI starts the full staging stack on every push and checks it over HTTPS.
 > Details: [services/backend/README.md](services/backend/README.md), [apps/web/README.md](apps/web/README.md), [operations runbook](docs/14-operations-runbook.md).
-> **Not built yet:** quotations and discount authority (2c, next), messaging channels, AI agents and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
+> **Not built yet:** messaging channels (Phase 3, next), AI agents and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
 > A feature counts as implemented only when working code and passing tests exist for it.
 
 Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.

@@ -56,6 +56,7 @@ export default function CustomerPage() {
           <Contacts accountId={id} />
           <Students accountId={id} />
           <Opportunities accountId={id} />
+          {can(me, "quotations.read") ? <Quotations accountId={id} /> : null}
           <Notes accountId={id} />
         </div>
         <div className="space-y-6">
@@ -660,5 +661,76 @@ function SpecialPricing({ accountId }: { accountId: string }) {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function Quotations({ accountId }: { accountId: string }) {
+  const { data: me } = useMe();
+  const list = useQuery({
+    queryKey: ["quotations", accountId],
+    queryFn: () => api<Schemas["QuotationSummaryOut"][]>(`/accounts/${accountId}/quotations`),
+  });
+  const opportunities = useQuery({
+    queryKey: ["opportunities", "account", accountId],
+    queryFn: () => api<Schemas["OpportunityOut"][]>(`/pipeline/opportunities${qs({ account_id: accountId })}`),
+  });
+  const [creating, setCreating] = useState(false);
+  const [opportunityId, setOpportunityId] = useState("");
+  const create = useMutation({
+    mutationFn: () => api<Schemas["QuotationOut"]>("/quotations", { json: { account_id: accountId, opportunity_id: opportunityId } }),
+    onSuccess: (q) => window.location.assign(`/quotations/${q.id}`),
+  });
+  return (
+    <Card
+      title="Quotations"
+      actions={
+        can(me, "quotations.manage") ? (
+          <Button variant="ghost" onClick={() => setCreating(true)}>
+            New quotation
+          </Button>
+        ) : null
+      }
+    >
+      {(list.data ?? []).length === 0 ? <Empty>No quotations.</Empty> : null}
+      <ul className="divide-y divide-border text-sm">
+        {(list.data ?? []).map((q) => (
+          <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <Link href={`/quotations/${q.id}`} className="text-accent">
+              {q.quote_number} rev {q.revision_no}
+            </Link>
+            <span className="flex items-center gap-2">
+              <span className="tabular">{q.total_display ?? ""}</span>
+              <Badge tone={q.status === "accepted" ? "success" : q.status === "issued" ? "accent" : "neutral"}>{humanize(q.status)}</Badge>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Modal open={creating} title="New quotation" onClose={() => setCreating(false)}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault();
+            create.mutate();
+          }}
+        >
+          <Field label="For opportunity">
+            {(fid) => (
+              <Select id={fid} value={opportunityId} onChange={(e) => setOpportunityId(e.target.value)} required>
+                <option value="">Choose…</option>
+                {opportunities.data?.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.title}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <ErrorNote error={create.error} />
+          <Button type="submit" disabled={create.isPending}>
+            Create draft
+          </Button>
+        </form>
+      </Modal>
+    </Card>
   );
 }

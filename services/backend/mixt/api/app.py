@@ -27,6 +27,7 @@ from mixt.api.routers import (
     pipeline,
     pricing,
     pricing_admin,
+    quotations,
     reference,
     settings,
     sso,
@@ -162,4 +163,5 @@ def create_app() -> FastAPI:
     app.include_router(engagement.router, prefix=prefix)
     app.include_router(pricing.router, prefix=prefix)
     app.include_router(pricing_admin.router, prefix=prefix)
+    app.include_router(quotations.router, prefix=prefix)
     return app

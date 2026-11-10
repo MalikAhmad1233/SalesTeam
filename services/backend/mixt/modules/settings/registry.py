@@ -267,6 +267,16 @@ DEFINITIONS: tuple[SettingDefinition, ...] = (
         open_question="Q-PRC-13",
     ),
     SettingDefinition(
+        "quotations.approval",
+        "pricing",
+        "Who approves a quotation at list price (no discount, no promotion). 'second_person' = always someone other "
+        "than the preparer. Discounts always follow pricing.discount_authority.",
+        _enum("second_person", "preparer_may_issue_list_price"),
+        "second_person",
+        OWNER,
+        open_question="Q-PRC-22",
+    ),
+    SettingDefinition(
         "quotations.on_price_change",
         "pricing",
         "What happens to an issued quotation when its price version is superseded. Issued quotes are never altered.",

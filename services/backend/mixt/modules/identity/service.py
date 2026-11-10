@@ -213,6 +213,11 @@ def find_account_by_email(db: Session, email: str) -> ExternalAccount | None:
     return ExternalAccount(user.id, user.email, user.status == "active") if user else None
 
 
+def principal_of_user(db: Session, user_id: uuid.UUID) -> uuid.UUID | None:
+    user = db.get(User, user_id)
+    return user.principal_id if user else None
+
+
 def find_account(db: Session, user_id: uuid.UUID) -> ExternalAccount | None:
     user = db.get(User, user_id)
     return ExternalAccount(user.id, user.email, user.status == "active") if user else None

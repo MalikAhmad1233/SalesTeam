@@ -177,3 +177,8 @@ def active_books(db: Session, account_id: uuid.UUID, at: datetime) -> dict[uuid.
         )
     )
     return {r.price_book_id: r.id for r in rows}
+
+
+def assignment_status(db: Session, assignment_id: uuid.UUID) -> str | None:
+    row = db.get(CustomerPricingAssignment, assignment_id)
+    return row.status if row else None

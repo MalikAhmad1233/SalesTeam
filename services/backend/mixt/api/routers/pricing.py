@@ -248,6 +248,7 @@ class OfferOut(BaseModel):
 
 class OptionOut(BaseModel):
     option_ref: str
+    entry_id: uuid.UUID
     price_book_code: str
     version_no: int
     package_code: str
@@ -722,6 +723,7 @@ def options(
         options=[
             OptionOut(
                 option_ref=o.option_ref,
+                entry_id=o.entry_id,
                 price_book_code=o.price_book_code,
                 version_no=o.version_no,
                 package_code=o.package_code,

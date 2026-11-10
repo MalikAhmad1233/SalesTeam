@@ -41,6 +41,11 @@ def _describe(event: events.Event) -> tuple[str, str, str | None, str]:
             return "task", f"Task created: {p.get('title')}", None, "team"
         case "task.completed":
             return "task", f"Task completed: {p.get('title')}", None, "team"
+        case "quotation.issued":
+            return "system", f"Quotation {p.get('number')} issued: {p.get('total')}", None, "team"
+        case "quotation.accepted" | "quotation.declined":
+            outcome = "accepted" if event.event_type == "quotation.accepted" else "declined"
+            return "system", f"Quotation {p.get('number')} {outcome}", p.get("note"), "team"
         case _:
             return "system", event.event_type, None, "team"
 

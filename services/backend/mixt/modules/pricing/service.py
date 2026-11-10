@@ -856,6 +856,23 @@ def _selection_view(db: Session, row: PricingTierSelection) -> TierSelectionView
     return TierSelectionView(row, book.code, book.tier_label, reference.require_market(db, row.market_id).name)
 
 
+@dataclass(frozen=True)
+class VersionFacts:
+    status: str
+    tax_treatment: str
+
+
+def version_facts(db: Session, version_id: uuid.UUID) -> VersionFacts | None:
+    """For quotations: is the version a line was priced from still live, and how is it taxed."""
+    version = db.get(PriceBookVersion, version_id)
+    return VersionFacts(version.status, version.tax_treatment) if version else None
+
+
+def entry_total(db: Session, entry_id: uuid.UUID) -> int | None:
+    entry = db.get(PriceBookEntry, entry_id)
+    return entry.package_total_minor if entry else None
+
+
 def books_with_active_version(db: Session) -> set[uuid.UUID]:
     return set(db.scalars(select(PriceBookVersion.price_book_id).where(PriceBookVersion.status == "active")))
 

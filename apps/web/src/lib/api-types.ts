@@ -74,6 +74,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounts/{account_id}/quotations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List For Account */
+        get: operations["list_for_account_api_v1_accounts__account_id__quotations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -1587,6 +1604,228 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_quotations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approval Inbox */
+        get: operations["approval_inbox_api_v1_quotations_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get */
+        get: operations["get_api_v1_quotations__quote_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update */
+        patch: operations["update_api_v1_quotations__quote_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_quotations__quote_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_quotations__quote_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue */
+        post: operations["issue_api_v1_quotations__quote_id__issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Line */
+        post: operations["add_line_api_v1_quotations__quote_id__lines_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/lines/{line_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Line */
+        delete: operations["remove_line_api_v1_quotations__quote_id__lines__line_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Outcome */
+        post: operations["outcome_api_v1_quotations__quote_id__outcome_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quotation Pdf */
+        get: operations["quotation_pdf_api_v1_quotations__quote_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revise */
+        post: operations["revise_api_v1_quotations__quote_id__revise_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/send-back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Back */
+        post: operations["send_back_api_v1_quotations__quote_id__send_back_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotations/{quote_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submit_api_v1_quotations__quote_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reference/countries": {
         parameters: {
             query?: never;
@@ -2003,6 +2242,37 @@ export interface components {
              * Format: date
              */
             source_received_on: string;
+        };
+        /** ApprovalOut */
+        ApprovalOut: {
+            /** Capacity */
+            capacity: string;
+            /** Comment */
+            comment: string | null;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /**
+             * Decided By User Id
+             * Format: uuid
+             */
+            decided_by_user_id: string;
+            /** Decision */
+            decision: string;
+        };
+        /** ApproveIn */
+        ApproveIn: {
+            /**
+             * Capacity
+             * @enum {string}
+             */
+            capacity: "sales" | "pricing";
+            /** Comment */
+            comment?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** AssignIn */
         AssignIn: {
@@ -2482,6 +2752,21 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** CreateIn */
+        CreateIn: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Customer Note */
+            customer_note?: string | null;
+            /**
+             * Opportunity Id
+             * Format: uuid
+             */
+            opportunity_id: string;
+        };
         /** CurrencyOut */
         CurrencyOut: {
             /** Code */
@@ -2774,6 +3059,14 @@ export interface components {
             /** Submitted Name */
             submitted_name: string | null;
         };
+        /** IssueIn */
+        IssueIn: {
+            /**
+             * Contact Id
+             * Format: uuid
+             */
+            contact_id: string;
+        };
         /** LanguageOut */
         LanguageOut: {
             /** Code */
@@ -2848,6 +3141,73 @@ export interface components {
             submitted_country: string | null;
             /** Submitted Name */
             submitted_name: string | null;
+        };
+        /** LineIn */
+        LineIn: {
+            /**
+             * Discount Minor
+             * @default 0
+             */
+            discount_minor: number;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
+            /** Promotion Code */
+            promotion_code?: string | null;
+            /** Student Id */
+            student_id?: string | null;
+        };
+        /** LineOut */
+        LineOut: {
+            /** Benefits */
+            benefits: string[];
+            /** Bonus Units */
+            bonus_units: string | null;
+            /** Currency Code */
+            currency_code: string;
+            /** Discount Minor */
+            discount_minor: number;
+            /** Display Name */
+            display_name: string;
+            /** Final Total Display */
+            final_total_display: string;
+            /** Final Total Minor */
+            final_total_minor: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line No */
+            line_no: number;
+            /** List Total Display */
+            list_total_display: string;
+            /** List Total Minor */
+            list_total_minor: number;
+            /** Package Code */
+            package_code: string;
+            /** Plan Type */
+            plan_type: string;
+            /** Price Book Code */
+            price_book_code: string;
+            /** Price Book Version No */
+            price_book_version_no: number;
+            /** Promotion Code */
+            promotion_code: string | null;
+            /** Promotion Discount Minor */
+            promotion_discount_minor: number;
+            /** Quantity */
+            quantity: string;
+            /** Special Pricing */
+            special_pricing: boolean;
+            /** Student Id */
+            student_id: string | null;
+            /** Tier Label */
+            tier_label: string | null;
+            /** Unit Type */
+            unit_type: string;
         };
         /** LoginIn */
         LoginIn: {
@@ -3168,6 +3528,11 @@ export interface components {
             derived_unit_rate_display: string;
             /** Display Name */
             display_name: string;
+            /**
+             * Entry Id
+             * Format: uuid
+             */
+            entry_id: string;
             /** Is Special */
             is_special: boolean;
             /** Minutes Per Unit */
@@ -3206,6 +3571,21 @@ export interface components {
             market_country: string;
             /** Options */
             options: components["schemas"]["OptionOut"][];
+        };
+        /** OutcomeIn */
+        OutcomeIn: {
+            /** Note */
+            note: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "declined";
+            /**
+             * Price Change Reconfirmed
+             * @default false
+             */
+            price_change_reconfirmed: boolean;
         };
         /** PasswordChangeIn */
         PasswordChangeIn: {
@@ -3344,6 +3724,118 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** QuotationOut */
+        QuotationOut: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Approvals */
+            approvals: components["schemas"]["ApprovalOut"][];
+            /** Checks */
+            checks: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency Code */
+            currency_code: string | null;
+            /** Customer Note */
+            customer_note: string | null;
+            /** Discount Reason */
+            discount_reason: string | null;
+            /** Discount Total Minor */
+            discount_total_minor: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Internal Note */
+            internal_note: string | null;
+            /** Issued At */
+            issued_at: string | null;
+            /** Issued To Contact Id */
+            issued_to_contact_id: string | null;
+            /** Lines */
+            lines: components["schemas"]["LineOut"][];
+            /**
+             * Market Id
+             * Format: uuid
+             */
+            market_id: string;
+            /** Needs */
+            needs: {
+                [key: string]: unknown;
+            };
+            /**
+             * Opportunity Id
+             * Format: uuid
+             */
+            opportunity_id: string;
+            /** Outcome Note */
+            outcome_note: string | null;
+            /** Outstanding */
+            outstanding: string[];
+            /** Promotion Total Minor */
+            promotion_total_minor: number;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision No */
+            revision_no: number;
+            /** Snapshot Hash */
+            snapshot_hash: string | null;
+            /** Status */
+            status: string;
+            /** Status Reason */
+            status_reason: string | null;
+            /** Subtotal Minor */
+            subtotal_minor: number;
+            /** Tax Treatment */
+            tax_treatment: string | null;
+            /** Total Display */
+            total_display: string | null;
+            /** Total Minor */
+            total_minor: number;
+            /** Valid Until */
+            valid_until: string | null;
+            /** Version */
+            version: number;
+        };
+        /** QuotationSummaryOut */
+        QuotationSummaryOut: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency Code */
+            currency_code: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Quote Number */
+            quote_number: string;
+            /** Revision No */
+            revision_no: number;
+            /** Status */
+            status: string;
+            /** Total Display */
+            total_display: string | null;
+            /** Total Minor */
+            total_minor: number;
+            /** Valid Until */
+            valid_until: string | null;
+        };
         /** ReasonIn */
         ReasonIn: {
             /** Reason */
@@ -3355,6 +3847,12 @@ export interface components {
             decision: string;
             /** Note */
             note: string;
+        };
+        /** RevisionOut */
+        RevisionOut: {
+            /** Dropped */
+            dropped: string[];
+            quotation: components["schemas"]["QuotationOut"];
         };
         /** RoleGrantIn */
         RoleGrantIn: {
@@ -4073,6 +4571,17 @@ export interface components {
             /** Snooze Until */
             snooze_until?: string | null;
         };
+        /** UpdateIn */
+        UpdateIn: {
+            /** Customer Note */
+            customer_note?: string | null;
+            /** Discount Reason */
+            discount_reason?: string | null;
+            /** Internal Note */
+            internal_note?: string | null;
+            /** Valid Until */
+            valid_until?: string | null;
+        };
         /** UserCreateIn */
         UserCreateIn: {
             /** Email */
@@ -4447,6 +4956,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TierSelectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_for_account_api_v1_accounts__account_id__quotations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationSummaryOut"][];
                 };
             };
             /** @description Validation Error */
@@ -7685,6 +8225,458 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_v1_quotations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approval_inbox_api_v1_quotations_approvals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationSummaryOut"][];
+                };
+            };
+        };
+    };
+    get_api_v1_quotations__quote_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_v1_quotations__quote_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_v1_quotations__quote_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_quotations__quote_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_api_v1_quotations__quote_id__issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_line_api_v1_quotations__quote_id__lines_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_line_api_v1_quotations__quote_id__lines__line_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outcome_api_v1_quotations__quote_id__outcome_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutcomeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quotation_pdf_api_v1_quotations__quote_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revise_api_v1_quotations__quote_id__revise_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_back_api_v1_quotations__quote_id__send_back_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_quotations__quote_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuotationOut"];
                 };
             };
             /** @description Validation Error */

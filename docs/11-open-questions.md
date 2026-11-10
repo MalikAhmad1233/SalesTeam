@@ -91,6 +91,7 @@ Not activation blockers, because a safe default covers them: Q-PRC-02 (UK/UAE ti
 | Q-PRC-17 | Are any package rows missing (e.g. UK Tier A 150h/200h, UK Tier B 80h, HK Standard above 40h)? | Completeness; never invented. | P2 | Unlisted quantities → custom request |
 | Q-PRC-18 | Can customers buy non-listed quantities (e.g. 25h)? Priced how, approved by whom? | Custom quotes. | P2 | `custom_quantities = disabled` |
 | Q-PRC-19 | Several students: one shared package or one per student? Any sibling pricing? | Quotation structure. | P2 | Staff build multi-student quotes |
+| Q-PRC-22 | Must a quotation at list price (no discount, no promotion) be approved by a second person, or may the person who prepared it issue it? | Quotation approvals. | P2 | Always a second person (`quotations.approval = second_person`) |
 | Q-PRC-20 | Who approves pricing activation (one or two people)? | See §3. | P2-activate (all) | Dual approval required |
 | Q-PRC-21 | Are the register's MYR figures the corrected totals? | See §3. | P2-activate (MY) | Inactive |
 

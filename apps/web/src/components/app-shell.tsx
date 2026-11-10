@@ -26,7 +26,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/customers", label: "Customers", permission: "crm.accounts.read" },
       { href: "/pipeline", label: "Sales Pipeline", permission: "crm.accounts.read" },
       { href: "/tasks", label: "Tasks & Follow-ups", permission: "crm.tasks.manage" },
-      { href: "/quotations", label: "Quotations", phase: "Phase 2" },
+      { href: "/quotations", label: "Quotations", permission: "quotations.read" },
     ],
   },
   {

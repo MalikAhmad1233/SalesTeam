@@ -1128,6 +1128,21 @@ def student_profile_problems(db: Session, account_id: uuid.UUID, student_ids: li
     return problems
 
 
+@dataclass(frozen=True)
+class ContactSummary:
+    account_id: uuid.UUID
+    name: str
+
+
+def contact_summary(db: Session, contact_id: uuid.UUID) -> ContactSummary | None:
+    """System use (quotations): which account a contact belongs to, and a display name."""
+    contact = db.get(Contact, contact_id)
+    if contact is None:
+        return None
+    name = " ".join(p for p in (contact.preferred_name or contact.first_name, contact.last_name) if p) or "Customer"
+    return ContactSummary(contact.account_id, name)
+
+
 def students_belong(db: Session, account_id: uuid.UUID, student_ids: list[uuid.UUID]) -> bool:
     if not student_ids:
         return True

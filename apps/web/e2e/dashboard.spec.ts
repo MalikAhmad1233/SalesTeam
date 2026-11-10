@@ -56,7 +56,7 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
   });
 
   await test.step("future modules are shown as not yet available", async () => {
-    await expect(page.getByTitle("Arrives in Phase 2").first()).toBeVisible();
+    await expect(page.getByTitle("Arrives in Phase 3").first()).toBeVisible();
   });
 
   await test.step("outstanding decisions are listed", async () => {
@@ -165,6 +165,26 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await page.getByRole("link", { name: "Customers" }).click();
     await page.getByRole("link", { name: "Mona Haddad" }).click();
     await expect(page.getByRole("heading", { name: "Mona Haddad" })).toBeVisible();
+  });
+
+  await test.step("a quotation can be started, but no package can be quoted while pricing is inactive", async () => {
+    const quotes = page.locator("section").filter({ has: page.getByRole("heading", { name: "Quotations", exact: true }) });
+    await quotes.getByRole("button", { name: "New quotation" }).click();
+    const dialog = page.getByRole("dialog", { name: "New quotation" });
+    await dialog.getByLabel("For opportunity").selectOption({ label: "Mona Haddad: new enquiry" });
+    await dialog.getByRole("button", { name: "Create draft" }).click();
+    await expect(page.getByRole("heading", { name: /Quotation Q-\d{6} rev 1/ })).toBeVisible();
+    await expect(page.getByText("No lines yet")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "no active, approved pricing" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel quotation" }).click();
+    const cancel = page.getByRole("dialog", { name: "Cancel quotation" });
+    await cancel.getByLabel("Reason").fill("Waiting for Mixt to confirm pricing");
+    await cancel.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByText("Cancelled", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Quotations" }).click();
+    await expect(page.getByText("Nothing is waiting for you.")).toBeVisible();
+    await page.getByRole("link", { name: "Customers" }).click();
+    await page.getByRole("link", { name: "Mona Haddad" }).click();
   });
 
   await test.step("add a note and see the timeline after the worker runs", async () => {

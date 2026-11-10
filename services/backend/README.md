@@ -2,9 +2,9 @@
 
 Python 3.12+ · FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL 16/17. Architecture: [docs/01](../../docs/01-architecture.md).
 
-## What exists today (Phases 1a to 1d, 2a and 2b)
+## What exists today (Phases 1 and 2)
 
-Everything listed here has working code **and** automated tests (`tests/`, 267 tests, 92% coverage). They run against a real PostgreSQL database **as the least-privileged application role**, like the API in staging.
+Everything listed here has working code **and** automated tests (`tests/`, 279 tests, 92% coverage). They run against a real PostgreSQL database **as the least-privileged application role**, like the API in staging.
 
 | Area | Implemented | Main tests |
 |------|-------------|-----------|
@@ -21,13 +21,14 @@ Everything listed here has working code **and** automated tests (`tests/`, 267 t
 | Background work (1b) | Transactional outbox, idempotent consumers, scheduled actions claimed with `SKIP LOCKED`, dead letters with replay, `dispatch-once` and `worker` commands | `test_pipeline.py` |
 | Pricing (2a) | 13 supplied books / 91 entries as locked drafts (none active); append-only entries and other database guards; activation gate G-01 to G-09 with the blocking questions; submit, four-eyes and dual approval with figure fingerprint, activate, supersede, retire, send back, reject; corrections as new versions with anomaly notes; market assignments, Ireland relationship and benefit approvals with decision references; per-customer tier choice by a person; deterministic resolution with docs/04 error codes and customer-safe messages | `test_pricing.py` (golden test against docs/05, guards, gate, tiers, market isolation, Hypothesis), `test_pricing_api.py` |
 | Pricing (2b) | Pricing rules (typed rule language, four-eyes approval with a decision reference, immutable once approved, tester with trace) applied as eligibility and minimum purchase; confidential customer pricing (restricted books, own market only, requested and approved by two people, expiry, never shown without `pricing.special.view`); promotions as separate offers (mandatory end, expiry, switched off by `promotions.enabled`, percentages only without rounding); CSV sheet import with per-row checks, diff, anomalies, applied as drafts | `test_pricing_2b.py` |
+| Quotations (2c) | Lines only from the customer's offered options (snapshot of book, version, entry, plan, tier, unit, totals, benefits); list price, promotion and discount separate; checks V-01 to V-09; approvals by people other than the preparer (sales approval; pricing approval for discounts unless the discount authority covers it); frozen snapshot with SHA-256 and database guards; deterministic PDF from the snapshot; issue to a contact; customer answer with the price-change rule; revisions; expiry | `test_quotations.py` |
 | Database roles (1d) | Migration owner, data-only application role (no DDL/TRUNCATE; append-only tables insert-only), read-only backup role; `migrate` command re-applies grants under a lock; staging/production refuse to start over-privileged or with an old schema; readiness checks database, schema and Redis | `test_hardening.py`, `test_database.py` |
 | Rate limiting (1d) | GCRA limits in Redis (atomic Lua) or memory: per address, per user, per account and per address for sign-in, per session for codes, per user for password changes and imports, per address for single sign-on; 429 with `Retry-After`; hashed keys; Redis outage fails open; `X-Forwarded-For` only from trusted proxies | `test_hardening.py` |
 | Single sign-on (1d) | Off by default (`auth.sso`). OpenID Connect with PKCE/state/nonce; RS256 tokens checked against the provider's keys; existing active staff only; linked by email once, then by subject; Microsoft single tenant; two-step code still required unless `auth.sso_satisfies_mfa` and provider MFA | `test_sso.py` |
 | Operations (1d) | `migrate`, `check-db-role`, `worker` (clean SIGTERM stop, heartbeat), `backup-manifest`, `verify-restore` (schema, tables, triggers, audit chain, last audited entry, US exclusion) | `test_hardening.py` |
 | Architecture | Module boundary checks; entry points register every table and event consumer; models ↔ migrations identical | `test_architecture.py`, `test_entrypoints.py`, `test_database.py` |
 
-**Not built yet:** quotations and discount authority (2c); renewal/upsell pipelines (Phase 7); messaging, AI and everything in later phases. The dashboard is in [apps/web](../../apps/web); the staging stack is in [infra/staging](../../infra/staging).
+**Not built yet:** renewal/upsell pipelines (Phase 7); messaging, AI and everything in later phases. The dashboard is in [apps/web](../../apps/web); the staging stack is in [infra/staging](../../infra/staging).
 
 ## Run locally
 
@@ -67,12 +68,12 @@ The test database is wiped and rebuilt from the migrations at the start of every
 ```
 mixt/
   core/        config, db, ids, errors, crypto, money, timezones, normalize, logging, context
-  modules/     identity, reference, settings, audit, events, crm, pipeline, engagement, leads, sso, pricing
+  modules/     identity, reference, settings, audit, events, crm, pipeline, engagement, leads, sso, pricing, quotations
                (models.py private; service.py public; dependencies point downwards only)
   api/         app factory, auth dependencies, routers (request/response schemas live with routers)
   ops/         backup manifest and restore verification
   cli.py       operational commands (create-owner, migrate, check-db-role, worker, verify-restore, ...)
-migrations/    Alembic; 0001 foundation (integrity triggers, seed data), 0002 leads/pipeline/engagement/events, 0003 single sign-on links, 0004 pricing (supplied books as locked drafts), 0005 rules, special pricing, promotions, imports
+migrations/    Alembic; 0001 foundation (integrity triggers, seed data), 0002 leads/pipeline/engagement/events, 0003 single sign-on links, 0004 pricing (supplied books as locked drafts), 0005 rules, special pricing, promotions, imports, 0006 quotations
 tests/         pytest against real PostgreSQL
 ```
 

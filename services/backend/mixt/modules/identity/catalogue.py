@@ -64,6 +64,11 @@ PERMISSIONS: dict[str, str] = {
     "pricing.special.approve": "Approve or revoke confidential customer pricing (not one you requested)",
     "pricing.promotions.manage": "Draft and submit promotions",
     "pricing.promotions.approve": "Approve, activate or cancel promotions (not one you submitted)",
+    # Phase 2c (migration 0006)
+    "quotations.read": "View quotations of customers the user can see",
+    "quotations.manage": "Prepare quotations, submit them for approval, issue approved ones and record the outcome",
+    "quotations.approve": "Approve a quotation (sales approval; not one you prepared)",
+    "quotations.approve_discount": "Approve a discount on a quotation (pricing approval; not one you prepared)",
 }
 
 _PHASE_1B_ALL = [
@@ -134,12 +139,22 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "pricing.options.read",
             "pricing.special.view",
             "pricing.special.request",
+            "quotations.read",
+            "quotations.manage",
+            "quotations.approve",
         ],
     ),
     "pricing_manager": (
         "Pricing Manager",
         "Pricing configuration and approvals",
-        ["reference.read", "settings.read", "settings.change.pricing", *_PRICING_MANAGE, "pricing.options.read"],
+        [
+            "reference.read",
+            "settings.read",
+            "settings.change.pricing",
+            *_PRICING_MANAGE,
+            "pricing.options.read",
+            "quotations.approve_discount",
+        ],
     ),
     "sales_manager": (
         "Sales Manager",
@@ -160,12 +175,23 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "pricing.options.read",
             "pricing.special.view",
             "pricing.special.request",
+            "quotations.read",
+            "quotations.manage",
+            "quotations.approve",
         ],
     ),
     "sales_rep": (
         "Sales Representative",
         "Own accounts and the unassigned pool",
-        ["reference.read", "settings.read", *_CRM_CORE, *_REP_1B, "pricing.options.read"],
+        [
+            "reference.read",
+            "settings.read",
+            *_CRM_CORE,
+            *_REP_1B,
+            "pricing.options.read",
+            "quotations.read",
+            "quotations.manage",
+        ],
     ),
     "finance": (
         "Finance",
@@ -180,6 +206,7 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.notes.write",
             "pricing.read",
             "pricing.version.tax",
+            "quotations.read",
         ],
     ),
     "tutor_coordinator": (
