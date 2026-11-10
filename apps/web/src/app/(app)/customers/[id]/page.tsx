@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Loading, Modal, PageHeader, Select, Textarea } from "@/components/ui";
-import { api, qs, type Schemas } from "@/lib/api";
+import { api, ApiError, qs, type Schemas } from "@/lib/api";
 import { formatDateTime, formatMoney, humanize, localTimeIn } from "@/lib/format";
 import { useCurrencies, useCurricula, useMarkets, useStages, useUserNames } from "@/lib/queries";
 import { can, useMe } from "@/lib/session";
@@ -59,6 +59,7 @@ export default function CustomerPage() {
           <Notes accountId={id} />
         </div>
         <div className="space-y-6">
+          <Pricing accountId={id} marketConfirmed={Boolean(market)} />
           <Tasks accountId={id} />
           <Tags accountId={id} />
           <Timeline accountId={id} timezone={me?.timezone} />
@@ -81,6 +82,8 @@ function ConfirmMarket({ account, onDone }: { account: Schemas["AccountOut"]; on
       api(`/crm/accounts/${account.id}/market-confirmation`, { json: { market_id: marketId, note }, version: account.version }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["account", account.id] });
+      await queryClient.invalidateQueries({ queryKey: ["pricing-tiers", account.id] });
+      await queryClient.invalidateQueries({ queryKey: ["pricing-options", account.id] });
       onDone();
     },
   });
@@ -423,6 +426,130 @@ function Timeline({ accountId, timezone }: { accountId: string; timezone?: strin
           </li>
         ))}
       </ol>
+    </Card>
+  );
+}
+
+function Pricing({ accountId, marketConfirmed }: { accountId: string; marketConfirmed: boolean }) {
+  const { data: me } = useMe();
+  const queryClient = useQueryClient();
+  const tiers = useQuery({
+    queryKey: ["pricing-tiers", accountId],
+    queryFn: () => api<Schemas["TierChoicesOut"]>(`/accounts/${accountId}/pricing/tiers`),
+  });
+  const [showOptions, setShowOptions] = useState(false);
+  const options = useQuery({
+    queryKey: ["pricing-options", accountId],
+    queryFn: () => api<Schemas["OptionsOut"]>(`/accounts/${accountId}/pricing/options`),
+    enabled: showOptions,
+    retry: false,
+  });
+  const [choosing, setChoosing] = useState<Schemas["TierChoiceOut"] | null>(null);
+  const [bookId, setBookId] = useState("");
+  const [reason, setReason] = useState("");
+  const select = useMutation({
+    mutationFn: () => api(`/accounts/${accountId}/pricing/tiers`, { json: { price_book_id: bookId, reason } }),
+    onSuccess: () => {
+      setChoosing(null);
+      setReason("");
+      void queryClient.invalidateQueries({ queryKey: ["pricing-tiers", accountId] });
+      void queryClient.invalidateQueries({ queryKey: ["pricing-options", accountId] });
+    },
+  });
+  const refusal = options.error instanceof ApiError ? options.error : null;
+
+  return (
+    <Card title="Pricing">
+      {!marketConfirmed ? (
+        <p className="text-sm text-muted">Confirm the pricing market first. Currency, phone number and curriculum never decide it.</p>
+      ) : null}
+      {tiers.data?.choices.map((choice) => (
+        <div key={choice.plan_type} className="mb-3 text-sm">
+          <p className="font-medium">{humanize(choice.plan_type)} tier / schedule</p>
+          {choice.current ? (
+            <p>
+              <Badge tone="accent">{choice.current.tier_label ?? choice.current.price_book_code}</Badge>{" "}
+              <span className="text-muted">chosen {formatDateTime(choice.current.selected_at, me?.timezone)}: {choice.current.reason}</span>
+            </p>
+          ) : (
+            <p className="text-warning">Not chosen yet: a person decides which applies to this customer.</p>
+          )}
+          {can(me, "pricing.tier.select") ? (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setChoosing(choice);
+                setBookId(choice.current?.price_book_id ?? "");
+              }}
+            >
+              {choice.current ? "Change" : "Choose"}
+            </Button>
+          ) : null}
+        </div>
+      ))}
+      {marketConfirmed && can(me, "pricing.options.read") ? (
+        <div className="space-y-2">
+          <Button variant="secondary" onClick={() => setShowOptions(true)}>
+            Show package options
+          </Button>
+          {options.isFetching ? <Loading /> : null}
+          {refusal ? (
+            <div role="status" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-warning">
+              <p className="font-medium">No figures can be offered: {refusal.detail}</p>
+              <p className="mt-1 text-xs">Tell the customer: &ldquo;{String(refusal.body.customer_safe_message ?? "")}&rdquo;</p>
+              <p className="mt-1 text-xs opacity-75">Code: {refusal.code}</p>
+            </div>
+          ) : (
+            <ErrorNote error={options.error} />
+          )}
+          {options.data ? (
+            <ul className="space-y-1 text-sm" aria-label="Package options">
+              {options.data.options.map((o) => (
+                <li key={o.option_ref} className="flex justify-between gap-2">
+                  <span>{o.display_name}</span>
+                  <span className="tabular font-medium">{o.package_total_display}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      <Modal open={choosing !== null} title="Choose the tier for this customer" onClose={() => setChoosing(null)}>
+        {choosing ? (
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(e: FormEvent) => {
+              e.preventDefault();
+              select.mutate();
+            }}
+          >
+            <p className="text-sm text-muted">
+              Both options are valid in this market. Mixt has not set a rule for choosing (Q-PRC-02), so a person decides. Never mention the
+              other option to the customer.
+            </p>
+            <Field label="Tier / schedule">
+              {(fid) => (
+                <Select id={fid} value={bookId} onChange={(e) => setBookId(e.target.value)} required>
+                  <option value="">Choose…</option>
+                  {choosing.books.map((b) => (
+                    <option key={b.price_book_id} value={b.price_book_id}>
+                      {b.tier_label ?? b.code}
+                      {b.has_active_pricing ? "" : " (no active pricing yet)"}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Why this applies to this customer">
+              {(fid) => <Textarea id={fid} value={reason} onChange={(e) => setReason(e.target.value)} required />}
+            </Field>
+            <ErrorNote error={select.error} />
+            <Button type="submit" disabled={select.isPending}>
+              Save choice
+            </Button>
+          </form>
+        ) : null}
+      </Modal>
     </Card>
   );
 }

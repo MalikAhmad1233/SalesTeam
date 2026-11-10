@@ -71,7 +71,14 @@ Original Phase 1 scope:
 
 **Exit criteria status (2026-11-10):** sign-in with MFA, permissions, leads/households/students/opportunities/tasks and audit verification are met and tested; coverage is 93%. "Staging deployed" is met as a deployable stack that CI starts and checks on every push. A permanently running staging server is still to be set up, once a server or cloud account is available ([14 §2](14-operations-runbook.md#2-first-deployment-a-linux-server-with-docker)).
 
-## Phase 2: Pricing engine and quotations (L)
+## Phase 2: Pricing engine and quotations (L): **in progress**
+
+| Increment | Scope | Status |
+|-----------|-------|--------|
+| **2a** Catalogue, lifecycle, tiers, resolution | Price books, versions, entries, market assignments, benefits; the 13 supplied books loaded as **locked drafts**, figures unchanged; activation gate G-01 to G-09 with the open question behind each blocker; review, four-eyes and dual approval, activation, supersession, retirement; corrections as new versions with anomaly notes; per-customer tier selection by a person; deterministic resolution engine with the docs/04 error codes; pricing API; Pricing screens and the customer's pricing card | **Done 2026-11-10**: golden test of all 91 entries against an independent reading of docs/05; database guards (entries append-only, versions never deleted, activation requirements as constraints); property and market-isolation tests; implementation notes IN-27 to IN-32. **No pricing is active.** |
+| **2b** Promotions, rules, special pricing, imports | Promotions (separate from list prices, mandatory end date), eligibility and minimum-purchase rules with a tester, confidential customer pricing assignments, discount authority, spreadsheet import with diff | Next |
+| **2c** Quotations | Builder from resolved options, validation V-01 to V-09, approvals, immutable snapshots, PDF, revisions | Planned |
+
 
 - Price books, versions, entries, market assignments, benefits, policies, rules, promotions, customer pricing assignments, discount authority.
 - Activation gate; dual approval; history and diffs; spreadsheet import with anomaly detection.

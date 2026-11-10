@@ -43,6 +43,18 @@ PERMISSIONS: dict[str, str] = {
     "crm.notes.write": "Add notes",
     "crm.tags.manage": "Create tags",
     "events.dead_letters.manage": "View and replay failed background work",
+    # Phase 2a: pricing (migration 0004)
+    "pricing.read": "View price books, versions, entries and their activation checklist (internal only)",
+    "pricing.version.submit": "Submit a price-book version for review",
+    "pricing.version.approve": "Approve or reject a price-book version (not one you submitted)",
+    "pricing.version.activate": "Activate or retire a price-book version (the activation gate must pass)",
+    "pricing.version.confirm_figures": "Record Mixt's confirmation of a version's figures (needs a decision reference)",
+    "pricing.version.tax": "Record a version's tax treatment (needs a decision reference)",
+    "pricing.version.correct": "Load a correction as a new version (the original is kept unchanged)",
+    "pricing.assignments.manage": "Confirm or revoke a price book's market assignment (needs a decision reference)",
+    "pricing.benefits.approve": "Approve benefits attached to a price-book version",
+    "pricing.tier.select": "Choose a customer's tier or schedule between valid options, with a reason",
+    "pricing.options.read": "Look up the package options a customer can be offered (active pricing only)",
 }
 
 _PHASE_1B_ALL = [
@@ -58,6 +70,18 @@ _PHASE_1B_ALL = [
     "crm.tags.manage",
 ]
 _REP_1B = ["leads.read", "leads.create", "crm.opportunities.manage", "crm.tasks.manage", "crm.notes.write"]
+
+_PRICING_MANAGE = [
+    "pricing.read",
+    "pricing.version.submit",
+    "pricing.version.approve",
+    "pricing.version.activate",
+    "pricing.version.confirm_figures",
+    "pricing.version.tax",
+    "pricing.version.correct",
+    "pricing.assignments.manage",
+    "pricing.benefits.approve",
+]
 
 _CRM_CORE = [
     "crm.accounts.read",
@@ -88,12 +112,15 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.accounts.assign_owner",
             *_PHASE_1B_ALL,
             "events.dead_letters.manage",
+            "pricing.read",
+            "pricing.tier.select",
+            "pricing.options.read",
         ],
     ),
     "pricing_manager": (
         "Pricing Manager",
         "Pricing configuration and approvals",
-        ["reference.read", "settings.read", "settings.change.pricing"],
+        ["reference.read", "settings.read", "settings.change.pricing", *_PRICING_MANAGE, "pricing.options.read"],
     ),
     "sales_manager": (
         "Sales Manager",
@@ -109,12 +136,15 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.students.learning_needs.read",
             "crm.students.learning_needs.write",
             *_PHASE_1B_ALL,
+            "pricing.read",
+            "pricing.tier.select",
+            "pricing.options.read",
         ],
     ),
     "sales_rep": (
         "Sales Representative",
         "Own accounts and the unassigned pool",
-        ["reference.read", "settings.read", *_CRM_CORE, *_REP_1B],
+        ["reference.read", "settings.read", *_CRM_CORE, *_REP_1B, "pricing.options.read"],
     ),
     "finance": (
         "Finance",
@@ -127,6 +157,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "crm.accounts.read_all",
             "crm.tasks.manage",
             "crm.notes.write",
+            "pricing.read",
+            "pricing.version.tax",
         ],
     ),
     "tutor_coordinator": (

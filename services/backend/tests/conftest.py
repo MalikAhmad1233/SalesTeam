@@ -148,6 +148,7 @@ def client(app: Any) -> Iterator[TestClient]:
 
 @dataclass
 class TestUser:
+    __test__ = False  # a fixture type, not a test class
     user: User
     password: str
     totp_secret: str | None

@@ -94,6 +94,38 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await expect(page.getByText("Pricing market: United Arab Emirates")).toBeVisible();
   });
 
+  await test.step("a person chooses the UAE tier; nothing can be quoted while pricing is inactive", async () => {
+    const pricing = page.locator("section").filter({ has: page.getByRole("heading", { name: "Pricing", exact: true }) });
+    await expect(pricing.getByText("Not chosen yet")).toBeVisible();
+    await pricing.getByRole("button", { name: "Choose" }).click();
+    const dialog = page.getByRole("dialog", { name: "Choose the tier for this customer" });
+    await dialog.getByLabel("Tier / schedule").selectOption({ label: "Tier B (no active pricing yet)" });
+    await dialog.getByLabel("Why this applies to this customer").fill("Agreed with the parent on the call");
+    await dialog.getByRole("button", { name: "Save choice" }).click();
+    await expect(pricing.getByText("Tier B", { exact: true })).toBeVisible();
+    await pricing.getByRole("button", { name: "Show package options" }).click();
+    await expect(pricing.getByRole("status").filter({ hasText: "No figures can be offered" })).toContainText(
+      "NO_APPROVED_PRICING_FOR_MARKET",
+    );
+  });
+
+  await test.step("pricing shows the supplied books, unchanged and not active", async () => {
+    await page.getByRole("link", { name: "Pricing" }).click();
+    await expect(page.getByRole("heading", { name: "Pricing", exact: true })).toBeVisible();
+    await expect(page.getByRole("note").filter({ hasText: "No pricing is active" })).toBeVisible();
+    await expect(page.getByRole("note").filter({ hasText: "Pricing catalogue incomplete" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Price books" }).getByRole("row")).toHaveCount(14); // header + 13
+    await expect(page.getByRole("row", { name: /USD-SCHEDULE-A/ })).toContainText("No market (unconfirmed)");
+    await page.getByRole("link", { name: "UK-GBP-TIER-A" }).click();
+    await expect(page.getByRole("table", { name: "Packages" })).toContainText("GBP 285");
+    const checklist = page.getByRole("list", { name: "Activation checklist" });
+    await expect(checklist).toContainText("G-05 Tax treatment set not passed");
+    await expect(checklist).toContainText("Q-PAY-04");
+    await shot("05-pricing-checklist");
+    await page.goBack();
+    await page.goBack();
+  });
+
   await test.step("add a note and see the timeline after the worker runs", async () => {
     await page.getByLabel("New note").fill("Prefers WhatsApp after 5pm");
     await page.getByRole("button", { name: "Add note" }).click();

@@ -59,6 +59,13 @@ def list_currencies(db: Session) -> list[Currency]:
     return list(db.scalars(select(Currency).order_by(Currency.code)))
 
 
+def currency(db: Session, code: str) -> Currency:
+    found = db.get(Currency, code)
+    if found is None:
+        raise NotFound("CURRENCY_NOT_FOUND", f"Unknown currency {code}.")
+    return found
+
+
 def list_languages(db: Session) -> list[Language]:
     return list(db.scalars(select(Language).order_by(Language.name)))
 

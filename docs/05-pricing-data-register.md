@@ -238,5 +238,6 @@ Benefits are never shown with a price until they are attached to that exact vers
 |------|------------------|--------|------------------|
 | 2026-11-09 | 0.1 | 13 books / 91 entries transcribed from the brief (all `version 1`, draft, inactive) | — (initial) |
 | 2026-11-09 | 0.2 | Statuses updated from Mixt's clarification: UK and UAE tiers valid (BD-012, BD-013); Ireland schedules separate (BD-014); 1 class = 1 hour (BD-011); HK Standard/Premium separate (BD-016); Malaysia correction noted (BD-015, Q-PRC-21); catalogue still incomplete (BD-017) | **No** (verified by script) |
+| 2026-11-10 | 0.3 | Loaded into the database by migration 0004 as **version 1 of each book, draft, figures locked, supplied-unverified, tax unknown**; the two USD books with no market. A test reads this register independently and checks every stored entry against it | **No** (verified by the golden test on every CI run) |
 
 Future corrections (e.g. a new Malaysia set) are added as **new price-book versions**. The original version stays listed here and in the pricing history screen.

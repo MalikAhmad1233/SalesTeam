@@ -8,6 +8,7 @@ from mixt.modules.events import models as events_models
 from mixt.modules.identity import models as identity_models
 from mixt.modules.leads import models as leads_models
 from mixt.modules.pipeline import models as pipeline_models
+from mixt.modules.pricing import models as pricing_models
 from mixt.modules.reference import models as reference_models
 from mixt.modules.settings import models as settings_models
 from mixt.modules.sso import models as sso_models
@@ -21,6 +22,7 @@ __all__ = [
     "identity_models",
     "leads_models",
     "pipeline_models",
+    "pricing_models",
     "reference_models",
     "settings_models",
     "sso_models",

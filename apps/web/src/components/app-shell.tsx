@@ -39,7 +39,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Revenue",
     items: [
-      { href: "/pricing", label: "Pricing", phase: "Phase 2" },
+      { href: "/pricing", label: "Pricing", permission: "pricing.read" },
       { href: "/payments", label: "Payments", phase: "Phase 6" },
       { href: "/retention", label: "Retention", phase: "Phase 7" },
     ],

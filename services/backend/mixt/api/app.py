@@ -17,7 +17,20 @@ from starlette.concurrency import run_in_threadpool
 import mixt.wiring  # noqa: F401  (tables, event consumers, validators)
 from mixt.api import startup, throttle
 from mixt.api.net import resolve_client_ip
-from mixt.api.routers import audit, auth, crm, engagement, health, leads, pipeline, reference, settings, sso, users
+from mixt.api.routers import (
+    audit,
+    auth,
+    crm,
+    engagement,
+    health,
+    leads,
+    pipeline,
+    pricing,
+    reference,
+    settings,
+    sso,
+    users,
+)
 from mixt.core.config import get_config
 from mixt.core.db import get_engine
 from mixt.core.errors import DomainError
@@ -146,4 +159,5 @@ def create_app() -> FastAPI:
     app.include_router(leads.router, prefix=prefix)
     app.include_router(pipeline.router, prefix=prefix)
     app.include_router(engagement.router, prefix=prefix)
+    app.include_router(pricing.router, prefix=prefix)
     return app

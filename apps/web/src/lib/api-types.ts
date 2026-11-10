@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/v1/accounts/{account_id}/pricing/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_api_v1_accounts__account_id__pricing_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{account_id}/pricing/tiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tier Choices */
+        get: operations["tier_choices_api_v1_accounts__account_id__pricing_tiers_get"];
+        put?: never;
+        /** Select Tier */
+        post: operations["select_tier_api_v1_accounts__account_id__pricing_tiers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -869,6 +904,329 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pricing/assignments/{assignment_id}/confirm-relationship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Relationship */
+        post: operations["confirm_relationship_api_v1_pricing_assignments__assignment_id__confirm_relationship_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/assignments/{assignment_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Assignment */
+        post: operations["revoke_assignment_api_v1_pricing_assignments__assignment_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/benefit-definitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Benefit Definitions */
+        get: operations["benefit_definitions_api_v1_pricing_benefit_definitions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/benefits/{benefit_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Benefit */
+        post: operations["approve_benefit_api_v1_pricing_benefits__benefit_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/books": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Books */
+        get: operations["list_books_api_v1_pricing_books_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/books/{book_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Book */
+        get: operations["get_book_api_v1_pricing_books__book_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/books/{book_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign Market */
+        post: operations["assign_market_api_v1_pricing_books__book_id__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pricing Status */
+        get: operations["pricing_status_api_v1_pricing_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/tier-selections/{selection_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Tier */
+        post: operations["revoke_tier_api_v1_pricing_tier_selections__selection_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Version */
+        get: operations["get_version_api_v1_pricing_versions__version_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate */
+        post: operations["activate_api_v1_pricing_versions__version_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_pricing_versions__version_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/confirm-figures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Figures */
+        post: operations["confirm_figures_api_v1_pricing_versions__version_id__confirm_figures_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Correction */
+        post: operations["create_correction_api_v1_pricing_versions__version_id__corrections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_pricing_versions__version_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire */
+        post: operations["retire_api_v1_pricing_versions__version_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Return To Draft */
+        post: operations["return_to_draft_api_v1_pricing_versions__version_id__return_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submit_api_v1_pricing_versions__version_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/versions/{version_id}/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Tax */
+        post: operations["set_tax_api_v1_pricing_versions__version_id__tax_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reference/countries": {
         parameters: {
             query?: never;
@@ -1269,6 +1627,48 @@ export interface components {
             /** Visibility */
             visibility: string;
         };
+        /** AssignIn */
+        AssignIn: {
+            /** Decision Ref */
+            decision_ref: string;
+            /**
+             * Market Id
+             * Format: uuid
+             */
+            market_id: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** AssignmentOut */
+        AssignmentOut: {
+            /** Country Code */
+            country_code: string;
+            /** Decision Ref */
+            decision_ref: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Market Id
+             * Format: uuid
+             */
+            market_id: string;
+            /** Market Name */
+            market_name: string;
+            /** Notes */
+            notes: string | null;
+            /** Relationship Confirmed Ref */
+            relationship_confirmed_ref: string | null;
+            /** Requires Relationship Confirmation */
+            requires_relationship_confirmation: boolean;
+            /** Status */
+            status: string;
+        };
         /** AuditEntryOut */
         AuditEntryOut: {
             /** Action */
@@ -1302,6 +1702,42 @@ export interface components {
              */
             occurred_at: string;
         };
+        /** BenefitDefinitionOut */
+        BenefitDefinitionOut: {
+            /** Attached To Versions */
+            attached_to_versions: number;
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Supplied Scope */
+            supplied_scope: string;
+        };
+        /** BenefitOut */
+        BenefitOut: {
+            /** Code */
+            code: string;
+            /** Customer Facing Text */
+            customer_facing_text: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+        };
         /** Body_upload_import_api_v1_leads_imports_post */
         Body_upload_import_api_v1_leads_imports_post: {
             /** Campaign Id */
@@ -1310,6 +1746,62 @@ export interface components {
             default_owner_user_id?: string | null;
             /** File */
             file: string;
+        };
+        /** BookDetailOut */
+        BookDetailOut: {
+            /** Active Version No */
+            active_version_no: number | null;
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+            /** Audience */
+            audience: string;
+            /** Code */
+            code: string;
+            /** Currency Code */
+            currency_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            latest_version: components["schemas"]["VersionSummaryOut"];
+            /** Name */
+            name: string;
+            /** Plan Type */
+            plan_type: string;
+            /** Tier Label */
+            tier_label: string | null;
+            /** Unit Type */
+            unit_type: string;
+            /** Versions */
+            versions: components["schemas"]["VersionSummaryOut"][];
+        };
+        /** BookOut */
+        BookOut: {
+            /** Active Version No */
+            active_version_no: number | null;
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+            /** Audience */
+            audience: string;
+            /** Code */
+            code: string;
+            /** Currency Code */
+            currency_code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            latest_version: components["schemas"]["VersionSummaryOut"];
+            /** Name */
+            name: string;
+            /** Plan Type */
+            plan_type: string;
+            /** Tier Label */
+            tier_label: string | null;
+            /** Unit Type */
+            unit_type: string;
         };
         /** CampaignIn */
         CampaignIn: {
@@ -1350,6 +1842,13 @@ export interface components {
             code: string;
             /** Name */
             name: string;
+        };
+        /** ConfirmFiguresIn */
+        ConfirmFiguresIn: {
+            /** Decision Ref */
+            decision_ref: string;
+            /** Note */
+            note: string;
         };
         /** ConsentIn */
         ConsentIn: {
@@ -1535,6 +2034,42 @@ export interface components {
             /** Value */
             value: string;
         };
+        /** CorrectionEntryIn */
+        CorrectionEntryIn: {
+            /** Advertised Unit Rate */
+            advertised_unit_rate?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Package Code */
+            package_code: string;
+            /**
+             * Package Total
+             * @description In major units exactly as on the sheet, e.g. '1170' or '285.00'
+             */
+            package_total: string;
+            /** Quantity */
+            quantity: number | string;
+        };
+        /** CorrectionIn */
+        CorrectionIn: {
+            /** Change Summary */
+            change_summary: string;
+            /** Entries */
+            entries: components["schemas"]["CorrectionEntryIn"][];
+            /** Source Document */
+            source_document: string;
+            /**
+             * Source Received On
+             * Format: date
+             */
+            source_received_on: string;
+        };
+        /** CorrectionOut */
+        CorrectionOut: {
+            /** Anomalies */
+            anomalies: string[];
+            version: components["schemas"]["VersionDetailOut"];
+        };
         /** CountryOut */
         CountryOut: {
             /** Code */
@@ -1607,6 +2142,11 @@ export interface components {
             /** Source */
             source: string;
         };
+        /** DecisionIn */
+        DecisionIn: {
+            /** Decision Ref */
+            decision_ref: string;
+        };
         /** DuplicateOut */
         DuplicateOut: {
             /**
@@ -1635,6 +2175,30 @@ export interface components {
             score: number | null;
             /** Status */
             status: string;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /** Advertised Unit Rate Minor */
+            advertised_unit_rate_minor: number | null;
+            /** Derived Unit Rate Display */
+            derived_unit_rate_display: string;
+            /** Derived Unit Rate Minor */
+            derived_unit_rate_minor: number;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Package Code */
+            package_code: string;
+            /** Package Total Display */
+            package_total_display: string;
+            /** Package Total Minor */
+            package_total_minor: number;
+            /** Quantity */
+            quantity: string;
         };
         /** ExamIn */
         ExamIn: {
@@ -1680,6 +2244,19 @@ export interface components {
             source: string;
             /** Student Subject Id */
             student_subject_id: string | null;
+        };
+        /** GateCheckOut */
+        GateCheckOut: {
+            /** Code */
+            code: string;
+            /** Detail */
+            detail: string;
+            /** Ok */
+            ok: boolean;
+            /** Questions */
+            questions: string[];
+            /** Title */
+            title: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1895,6 +2472,22 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** MarketPricingOut */
+        MarketPricingOut: {
+            /** Active Books */
+            active_books: string[];
+            /** Books */
+            books: string[];
+            /** Country Code */
+            country_code: string;
+            /**
+             * Market Id
+             * Format: uuid
+             */
+            market_id: string;
+            /** Name */
+            name: string;
+        };
         /** MeOut */
         MeOut: {
             /** Email */
@@ -2106,12 +2699,75 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** OptionOut */
+        OptionOut: {
+            /** Advertised Unit Rate Minor */
+            advertised_unit_rate_minor: number | null;
+            /** Benefits */
+            benefits: string[];
+            /** Currency */
+            currency: string;
+            /** Derived Unit Rate Display */
+            derived_unit_rate_display: string;
+            /** Display Name */
+            display_name: string;
+            /** Minutes Per Unit */
+            minutes_per_unit: number;
+            /** Option Ref */
+            option_ref: string;
+            /** Package Code */
+            package_code: string;
+            /** Package Total Display */
+            package_total_display: string;
+            /** Package Total Minor */
+            package_total_minor: number;
+            /** Plan Type */
+            plan_type: string;
+            /** Price Book Code */
+            price_book_code: string;
+            /** Quantity */
+            quantity: string;
+            /** Tier Label */
+            tier_label: string | null;
+            /** Unit Type */
+            unit_type: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** OptionsOut */
+        OptionsOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Market Country */
+            market_country: string;
+            /** Options */
+            options: components["schemas"]["OptionOut"][];
+        };
         /** PasswordChangeIn */
         PasswordChangeIn: {
             /** Current Password */
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** PricingStatusOut */
+        PricingStatusOut: {
+            /** Active Versions */
+            active_versions: number;
+            /** Books */
+            books: number;
+            /** Catalogue Complete */
+            catalogue_complete: boolean;
+            /** Markets */
+            markets: components["schemas"]["MarketPricingOut"][];
+        };
+        /** ReasonIn */
+        ReasonIn: {
+            /** Reason */
+            reason: string;
         };
         /** ReviewIn */
         ReviewIn: {
@@ -2181,6 +2837,18 @@ export interface components {
             student_id: string;
             /** Timezone */
             timezone: string;
+        };
+        /** SelectTierIn */
+        SelectTierIn: {
+            /** Opportunity Id */
+            opportunity_id?: string | null;
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Reason */
+            reason: string;
         };
         /** SessionOut */
         SessionOut: {
@@ -2563,6 +3231,84 @@ export interface components {
             /** Type */
             type?: string | null;
         };
+        /** TaxIn */
+        TaxIn: {
+            /** Decision Ref */
+            decision_ref: string;
+            /**
+             * Treatment
+             * @enum {string}
+             */
+            treatment: "inclusive" | "exclusive" | "not_applicable";
+        };
+        /** TierBookOut */
+        TierBookOut: {
+            /** Code */
+            code: string;
+            /** Has Active Pricing */
+            has_active_pricing: boolean;
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Tier Label */
+            tier_label: string | null;
+        };
+        /** TierChoiceOut */
+        TierChoiceOut: {
+            /** Books */
+            books: components["schemas"]["TierBookOut"][];
+            current: components["schemas"]["TierSelectionOut"] | null;
+            /** Plan Type */
+            plan_type: string;
+        };
+        /** TierChoicesOut */
+        TierChoicesOut: {
+            /** Choices */
+            choices: components["schemas"]["TierChoiceOut"][];
+            /** History */
+            history: components["schemas"]["TierSelectionOut"][];
+            /** Market Confirmed */
+            market_confirmed: boolean;
+        };
+        /** TierSelectionOut */
+        TierSelectionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Market Name */
+            market_name: string;
+            /** Opportunity Id */
+            opportunity_id: string | null;
+            /** Plan Type */
+            plan_type: string;
+            /** Price Book Code */
+            price_book_code: string;
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Selected At
+             * Format: date-time
+             */
+            selected_at: string;
+            /**
+             * Selected By User Id
+             * Format: uuid
+             */
+            selected_by_user_id: string;
+            /** Status */
+            status: string;
+            /** Tier Label */
+            tier_label: string | null;
+        };
         /** TotpSetupOut */
         TotpSetupOut: {
             /** Provisioning Uri */
@@ -2647,6 +3393,119 @@ export interface components {
             /** Rows Checked */
             rows_checked: number;
         };
+        /** VersionDetailOut */
+        VersionDetailOut: {
+            /** Approvals */
+            approvals: number;
+            /** Benefits */
+            benefits: components["schemas"]["BenefitOut"][];
+            /** Change Summary */
+            change_summary: string | null;
+            /** Change Type */
+            change_type: string;
+            /** Content Hash */
+            content_hash: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency Code */
+            currency_code: string;
+            /** Effective From */
+            effective_from: string | null;
+            /** Effective To */
+            effective_to: string | null;
+            /** Entries */
+            entries: components["schemas"]["EntryOut"][];
+            /** Figures Confirmation */
+            figures_confirmation: string;
+            /** Figures Confirmation Ref */
+            figures_confirmation_ref: string | null;
+            /** Figures Locked */
+            figures_locked: boolean;
+            /** Gate */
+            gate: components["schemas"]["GateCheckOut"][];
+            /** Gate Passes */
+            gate_passes: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Price Book Code */
+            price_book_code: string;
+            /**
+             * Price Book Id
+             * Format: uuid
+             */
+            price_book_id: string;
+            /** Session Minutes Per Unit */
+            session_minutes_per_unit: number;
+            /** Source Document */
+            source_document: string;
+            /**
+             * Source Received On
+             * Format: date
+             */
+            source_received_on: string;
+            /** Status */
+            status: string;
+            /** Status Reason */
+            status_reason: string | null;
+            /** Supersedes Version Id */
+            supersedes_version_id: string | null;
+            /** Tax Treatment */
+            tax_treatment: string;
+            /** Tax Treatment Ref */
+            tax_treatment_ref: string | null;
+            /** Unit Definition Ref */
+            unit_definition_ref: string | null;
+            /** Unit Type */
+            unit_type: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** VersionSummaryOut */
+        VersionSummaryOut: {
+            /** Change Summary */
+            change_summary: string | null;
+            /** Change Type */
+            change_type: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Effective From */
+            effective_from: string | null;
+            /** Effective To */
+            effective_to: string | null;
+            /** Figures Confirmation */
+            figures_confirmation: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source Document */
+            source_document: string;
+            /**
+             * Source Received On
+             * Format: date
+             */
+            source_received_on: string;
+            /** Status */
+            status: string;
+            /** Status Reason */
+            status_reason: string | null;
+            /** Supersedes Version Id */
+            supersedes_version_id: string | null;
+            /** Tax Treatment */
+            tax_treatment: string;
+            /** Version No */
+            version_no: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -2656,6 +3515,107 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    options_api_v1_accounts__account_id__pricing_options_get: {
+        parameters: {
+            query?: {
+                plan_type?: ("standard" | "premium") | null;
+                quantity?: number | string | null;
+                opportunity_id?: string | null;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tier_choices_api_v1_accounts__account_id__pricing_tiers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TierChoicesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    select_tier_api_v1_accounts__account_id__pricing_tiers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectTierIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TierSelectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_entries_api_v1_audit_get: {
         parameters: {
             query?: {
@@ -4651,6 +5611,600 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StageOut"][];
+                };
+            };
+        };
+    };
+    confirm_relationship_api_v1_pricing_assignments__assignment_id__confirm_relationship_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_assignment_api_v1_pricing_assignments__assignment_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    benefit_definitions_api_v1_pricing_benefit_definitions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenefitDefinitionOut"][];
+                };
+            };
+        };
+    };
+    approve_benefit_api_v1_pricing_benefits__benefit_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                benefit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_books_api_v1_pricing_books_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookOut"][];
+                };
+            };
+        };
+    };
+    get_book_api_v1_pricing_books__book_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_market_api_v1_pricing_books__book_id__assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_status_api_v1_pricing_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingStatusOut"];
+                };
+            };
+        };
+    };
+    revoke_tier_api_v1_pricing_tier_selections__selection_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                selection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TierSelectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_v1_pricing_versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_api_v1_pricing_versions__version_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_v1_pricing_versions__version_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_figures_api_v1_pricing_versions__version_id__confirm_figures_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmFiguresIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_correction_api_v1_pricing_versions__version_id__corrections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_pricing_versions__version_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retire_api_v1_pricing_versions__version_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    return_to_draft_api_v1_pricing_versions__version_id__return_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_v1_pricing_versions__version_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_tax_api_v1_pricing_versions__version_id__tax_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
