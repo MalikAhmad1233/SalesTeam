@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mixt.core.context import Actor
+from mixt.core.context import SYSTEM_PRINCIPAL_ID, Actor
 from mixt.core.errors import PermissionDenied
 from mixt.modules.identity.models import PrincipalRole, Role, RolePermission, TeamMember
 
@@ -80,4 +80,17 @@ def load_access(session: Session, actor: Actor) -> Access:
         grants={k: frozenset(v) for k, v in grants.items()},
         led_team_user_ids=led,
         role_keys=frozenset(role_keys),
+    )
+
+
+def system_access(*permissions: str) -> Access:
+    """Access for work the system does on its own (a webhook, a public form), limited to ``permissions``.
+
+    It has no user, so anything it creates is unowned and goes to the pool for a person to pick up.
+    """
+    return Access(
+        principal_id=SYSTEM_PRINCIPAL_ID,
+        kind="system",
+        user_id=None,
+        grants={p: frozenset({ALL_MARKETS}) for p in permissions},
     )

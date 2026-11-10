@@ -180,6 +180,7 @@ These don't block Phase 1, but **Q-COM-01 and Q-COM-02 should be answered early*
 | Q-COM-03 | Google Workspace or Microsoft 365? Which mailboxes? | Email adapter. | P3 | Email off |
 | Q-COM-04 | Instagram: lead ads, DMs, or both? | Integration scope. | P7 | Instagram off |
 | Q-COM-05 | Sending domain(s); SPF/DKIM/DMARC status. | Deliverability. | P3 | — |
+| Q-COM-06 | Which opt-out and opt-in words (and languages) should Mixt honour on WhatsApp? Confirm that an opt-out stops **all** messages to that number until the customer opts back in or a manager lifts the block. | Suppression list, consent withdrawal. | P3 | Proposed English and Arabic list (`messaging.opt_out_keywords`); an opt-out blocks everything |
 | Q-WEB-01 | Website platform/CMS; who can add forms/scripts. | Forms, chat widget. | P3 | — |
 | Q-WEB-02 | Bot-protection preference. | Form security. | P3 | Proposed default chosen at build |
 

@@ -61,6 +61,7 @@ docker compose up -d --build --wait
 | `MIXT_REDIS_PASSWORD` | API, redis | Update `.env`, `docker compose up -d` (counters reset; harmless) |
 | `BACKUP_AGE_RECIPIENT` + private key | backup / restore | Generate a new pair with `age-keygen`, update the recipient, keep the old private key as long as backups made with it are retained |
 | Single sign-on client secrets | API | Rotate at the provider, update `.env`, `docker compose up -d` |
+| WhatsApp access token, app secret, webhook verify token; Turnstile secret | API, worker (stored encrypted in the database, not in `.env`) | **Integrations → Replace a secret**. Change the verify token in the Meta app at the same time. Disconnecting destroys the stored secrets |
 
 `.env` and `backup-identity.txt` are git-ignored. Never paste them into tickets or chat.
 
@@ -132,12 +133,37 @@ Defaults are in `MIXT_RATE_*` (see `services/backend/.env.example`). A refused r
 4. Staff accounts must already exist; single sign-on never creates accounts or grants roles. The first sign-in links the account by email; after that the provider's stable id is used.
 5. Two-step codes are still asked for after single sign-on. Only if Mixt switches on `auth.sso_satisfies_mfa` **and** the provider reports a multi-factor sign-in is the code skipped.
 
+## 9a. WhatsApp (Cloud API)
+
+Mixt does steps 1 and 2 in Meta's tools (EXT-01 to EXT-03 in [07 §12](07-integrations.md#12-what-mixt-needs-to-start-now-critical-path-checklist)); we can help, but cannot create Mixt's accounts.
+
+1. In Meta Business Suite: business verification; a WhatsApp Business Account with the registered number and approved display name; a Meta app linked to it; a **system user** token with the WhatsApp messaging and management permissions.
+2. Draft and submit the first templates in WhatsApp Manager (greeting, trial reminder, quotation follow-up, payment reminder).
+3. In Mixt AI, an admin opens **Integrations → Connect WhatsApp** and enters the Graph API version the app uses, the WhatsApp Business Account id, the phone number id, the number, the token, the app secret and a long random verify token. Set `MIXT_PUBLIC_BASE_URL` so the screen shows the full webhook address.
+4. In the Meta app's WhatsApp configuration, set the callback URL to that address (`https://<domain>/webhooks/whatsapp/<connection id>`) and the same verify token, then subscribe to the **messages** and **message_template_status_update** fields. "Webhook verified by Meta" turns to "yes".
+5. **Check connection** (confirms the token and shows the verified name and quality rating), then **Sync templates** and approve the templates staff may use (people with `messaging.templates.approve`).
+6. Switch the number on: **Settings → `channels.whatsapp.numbers`** (globally or for the markets that use it, Q-COM-01). Until then nothing is sent; inbound messages are stored.
+
+Operating it:
+
+* Failed webhooks show on the connection card with **Process again** (after the cause is fixed). Failed scheduled work also appears in the dead-letter list (`/api/v1/ops/dead-letters`).
+* A connection in **error** (expired token, account restricted) stops sending; replace the token, then **Check connection**.
+* Rejected webhooks (bad signature) are counted on the card. A rising count means a wrong app secret or someone probing the address.
+* Customers who reply with an opt-out word are blocked automatically; managers see and lift blocks under **Inbox → Blocked numbers**.
+
+## 9b. Website enquiry form
+
+1. Once the privacy notice and consent wording are approved (Q-CMP-01), an Owner lists the wording version in `web.consent_wording_versions` and switches on `web.enquiries.enabled`.
+2. Add the website's origin to `web.allowed_origins` if the browser posts the form directly; server-to-server posts need nothing.
+3. The site posts JSON to `https://<domain>/public/v1/enquiries` with the fields in the API schema (`EnquiryIn`), an empty hidden `website` field (honeypot) and, if `web.bot_protection = turnstile`, the Turnstile token as `bot_token`. For Turnstile, create a connection of provider `website_forms` holding the Turnstile secret as `client_secret`.
+4. Each address may post 5 enquiries per 10 minutes (`MIXT_RATE_ENQUIRY_PER_IP`).
+
 ## 10. Monitoring (minimum until an operations owner is named, Q-TECH-05)
 
 * Uptime check on `https://<domain>/api/v1/health/ready` (expects HTTP 200).
 * `docker compose ps`: all services `healthy`. The worker turns unhealthy if it has not polled for 60 s.
 * Logs are JSON on stdout (`docker compose logs -f api`). Each request has an `X-Correlation-Id`; personal data is redacted.
-* Alert on log events `rate_limit_backend_unavailable`, `startup_check`, `backup: FAILED` and `sso_refused` spikes.
+* Alert on log events `rate_limit_backend_unavailable`, `startup_check`, `backup: FAILED`, `sso_refused` spikes and `webhook_rejected` spikes, and on any WhatsApp connection in **error**.
 * Run `./smoke.sh` after every deployment.
 
 ## 11. Before any real customer data

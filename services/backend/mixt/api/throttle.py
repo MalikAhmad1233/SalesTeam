@@ -18,6 +18,8 @@ MESSAGES = {
     "import_per_user": "Too many imports in a short time. Wait a while and try again.",
     "api_per_user": "Too many requests. Slow down and try again shortly.",
     "api_per_ip": "Too many requests. Slow down and try again shortly.",
+    "enquiry_per_ip": "Too many enquiries from this network. Please wait a few minutes and try again.",
+    "webhook_per_connection": "Too many webhook deliveries.",
 }
 
 

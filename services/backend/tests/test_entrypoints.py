@@ -25,7 +25,7 @@ def test_entry_point_registers_all_tables(module: str) -> None:
         "from mixt.modules.events import service as events\n"
         "print(','.join(sorted(Base.metadata.tables)))\n"
         "print(','.join(sorted(c.name for c in events.consumers())))\n"
-        "print(','.join(events.action_types()))\n"
+        "print(','.join(sorted(events.action_types())))\n"
     )
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-c", code],
@@ -38,4 +38,4 @@ def test_entry_point_registers_all_tables(module: str) -> None:
     tables, consumers, actions = result.stdout.strip().split("\n")
     assert tables.split(",") == EXPECTED
     assert consumers == "engagement.timeline"
-    assert actions == "engagement.create_task"
+    assert actions == "engagement.create_task,integrations.process_webhook,messaging.send"

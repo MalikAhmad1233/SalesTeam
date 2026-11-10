@@ -23,6 +23,8 @@ const backendEnv = {
   MIXT_ACTIVE_ENCRYPTION_KEY_ID: "e2e",
   MIXT_COOKIE_SECURE: "false",
   MIXT_LOG_JSON: "false",
+  // WhatsApp calls go to a local fake Graph API (e2e/fake-graph.mjs), never to Meta.
+  MIXT_WHATSAPP_GRAPH_BASE_URL: "http://127.0.0.1:8099",
 };
 Object.assign(process.env, backendEnv);
 
@@ -46,6 +48,12 @@ export default defineConfig({
     deviceScaleFactor: process.env.E2E_SCREENSHOTS ? 2 : 1,
   },
   webServer: deployed ? undefined : [
+    {
+      command: "node e2e/fake-graph.mjs",
+      url: "http://127.0.0.1:8099/health",
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
     {
       command: "uv run uvicorn mixt.main:app --port 8000",
       cwd: E2E.backendDir,

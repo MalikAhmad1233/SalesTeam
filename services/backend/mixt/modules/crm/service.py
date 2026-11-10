@@ -1198,3 +1198,55 @@ def merge_core(db: Session, actor: Actor, survivor_id: uuid.UUID, merged_id: uui
     merged.merged_into_id = survivor.id
     db.flush()
     return audit.jsonable(snapshot)  # type: ignore[no-any-return]
+
+
+@dataclass(frozen=True)
+class MessagingFacts:
+    account_id: uuid.UUID
+    name: str
+    role: str
+    student_birth_year: int | None  # when the contact is a student
+
+
+def messaging_facts(db: Session, contact_id: uuid.UUID) -> MessagingFacts | None:
+    """System use (messaging): who a contact is, to apply the student-direct-contact rule."""
+    contact = db.get(Contact, contact_id)
+    if contact is None:
+        return None
+    birth_year = None
+    if contact.role == "student":
+        birth_year = db.scalar(
+            select(Student.birth_year).where(Student.contact_id == contact.id, Student.archived_at.is_(None)).limit(1)
+        )
+    name = " ".join(p for p in (contact.preferred_name or contact.first_name, contact.last_name) if p) or "Customer"
+    return MessagingFacts(contact.account_id, name, contact.role, birth_year)
+
+
+def contact_with_point(db: Session, account_id: uuid.UUID, kind: str, value: str) -> uuid.UUID | None:
+    """System use: the contact in this household that has this (normalised) phone or email."""
+    kinds = ("phone", "whatsapp") if kind in ("phone", "whatsapp") else (kind,)
+    return db.scalar(
+        select(Contact.id)
+        .join(ContactPoint, ContactPoint.contact_id == Contact.id)
+        .where(Contact.account_id == account_id, ContactPoint.kind.in_(kinds), ContactPoint.value == value)
+        .order_by(Contact.is_primary.desc(), Contact.created_at)
+        .limit(1)
+    )
+
+
+def latest_consent_status(db: Session, contact_id: uuid.UUID, purpose: str) -> str | None:
+    """System use: the contact's current consent state for a purpose (None if never recorded)."""
+    return db.scalar(
+        select(Consent.status)
+        .where(Consent.contact_id == contact_id, Consent.purpose == purpose)
+        .order_by(Consent.captured_at.desc(), Consent.id.desc())
+        .limit(1)
+    )
+
+
+def account_names(db: Session, account_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """System use: household display names for ids the caller is already allowed to show."""
+    if not account_ids:
+        return {}
+    rows = db.execute(select(Account.id, Account.display_name).where(Account.id.in_(account_ids)))
+    return {row.id: row.display_name for row in rows}

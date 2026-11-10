@@ -1,7 +1,7 @@
 # Mixt AI: AI Sales & CRM Platform for Mixt Academy
 
-> **Project status: Phases 1 and 2 are code complete.** No price is live until Mixt confirms the pricing data. Architecture approved by Mixt on 2026-11-10 (BD-032).
-> **Built so far (increments 1a to 1d):**
+> **Project status: Phases 1 and 2 are code complete; Phase 3a (WhatsApp, unified inbox, website form) is built.** No price is live until Mixt confirms the pricing data, and no channel is connected until Mixt's accounts exist. Architecture approved by Mixt on 2026-11-10 (BD-032).
+> **Built so far:**
 > * The backend: sign-in with mandatory two-step verification and optional single sign-on; roles and record-level access; a tamper-evident audit log; reference data with the US blocked; the settings register.
 > * The CRM: lead intake and spreadsheet import, duplicate review and merge, the sales pipeline, tasks, notes, tags and the customer timeline.
 > * The **dashboard** for all of the above.
@@ -9,10 +9,11 @@
 > * **Pricing (2a):** the 13 supplied price books are stored exactly as supplied and locked against changes, and **none is active**. The catalogue also has: the activation checklist (each blocker shown with the open question behind it), review and two-person approval, corrections as new versions, per-customer tier choice by a person, and the price-lookup engine that refuses with clear reasons.
 > * **Pricing (2b):** pricing-sheet import (checked and compared, applied as drafts), eligibility and minimum-purchase rules with a tester, confidential per-customer pricing (two people, own market only), and promotions kept separate from list prices (switched off until Mixt confirms one).
 > * **Quotations (2c):** built only from the customer's offered options; list price, promotion and discount shown separately; approved by people other than the preparer (any discount also needs a pricing approval); frozen with a fingerprint on approval; PDF made from the frozen version; issue, customer answer, revisions and expiry.
+> * **Channels and inbox (3a):** the integration framework (encrypted secrets, signature-checked webhooks stored once, retries, dead letters and replay); the WhatsApp Cloud API adapter, tested against a fake Graph API and **not yet connected** (24-hour window, templates approved by Meta and by Mixt, consent checks, opt-out words and a suppression list); the unified inbox (matching to households, a "Not linked" queue, assignment, notes, lead creation, live updates); the website enquiry form (off until the consent wording is approved).
 >
-> 279 backend tests run against a real PostgreSQL database as the least-privileged application role. A browser end-to-end test drives the real stack, and CI starts the full staging stack on every push and checks it over HTTPS.
+> 312 backend tests run against a real PostgreSQL database as the least-privileged application role. A browser end-to-end test drives the real stack, and CI starts the full staging stack on every push and checks it over HTTPS.
 > Details: [services/backend/README.md](services/backend/README.md), [apps/web/README.md](apps/web/README.md), [operations runbook](docs/14-operations-runbook.md).
-> **Not built yet:** messaging channels (Phase 3, next), AI agents and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
+> **Not built yet:** email (Phase 3b, waiting for Q-COM-03), AI agents (Phase 4) and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
 > A feature counts as implemented only when working code and passing tests exist for it.
 
 Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.

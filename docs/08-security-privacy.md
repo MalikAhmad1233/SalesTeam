@@ -151,6 +151,10 @@ The sections above are the design. This table lists only controls with working c
 | Containers | Non-root, read-only filesystems, no capabilities, `no-new-privileges`, database network without internet (IN-25) | `staging-ci` |
 | Backups | Encrypted (age) six-hourly dumps by a read-only role; restore check verifies schema, triggers, the audit chain and the last audited entry (IN-22) | `test_hardening.py`, `staging-ci` |
 | Dependencies | Locked dependencies; `pip-audit` in CI | `backend-ci` |
+| Webhooks (3a) | Meta `X-Hub-Signature-256` HMAC checked with a constant-time comparison before anything is parsed or stored; failures counted; each delivery stored once (hash of the body); 1 MB body limit; per-connection rate limit; raw bodies cannot be edited or deleted (IN-43, IN-44) | `test_messaging.py` |
+| Integration secrets (3a) | Encrypted with the field key ring, bound to connection and kind; never returned by the API; rotation audited; destroyed on disconnect | `test_messaging.py` |
+| Messaging (3a) | Suppression list checked when a message is queued and again when it is sent; consent checked on the contact for every template; students not messaged directly by default; message content immutable; sends audited without their text (IN-45, IN-46) | `test_messaging.py` |
+| Public form (3a) | Off by default; honeypot; optional Turnstile; per-address rate limit; strict schema (unknown fields refused); browsers only from listed origins (IN-48) | `test_web_enquiries.py` |
 
 **Not yet implemented (planned):**
 * WebAuthn/passkeys and a breached-password check.
@@ -158,5 +162,5 @@ The sections above are the design. This table lists only controls with working c
 * A KMS for key wrapping (keys currently come from the environment).
 * Managed point-in-time recovery (needed for RPO ≤ 15 min).
 * A WAF, DAST and the external penetration test.
-* Webhook verification (arrives with the channels in Phase 3).
+* Webhook verification for email providers (with Phase 3b).
 * Malware scanning of uploads.

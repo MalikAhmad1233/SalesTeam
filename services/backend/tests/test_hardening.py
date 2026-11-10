@@ -67,7 +67,12 @@ def test_owner_role_is_flagged_as_over_privileged(owner_engine: Engine) -> None:
 
 def test_append_only_tables_are_found_from_the_triggers(engine: Engine) -> None:
     with engine.connect() as conn:
-        assert db_roles.append_only_tables(conn) == ["audit_log", "consents", "price_book_entries"]
+        assert db_roles.append_only_tables(conn) == [
+            "audit_log",
+            "consents",
+            "message_status_events",
+            "price_book_entries",
+        ]
 
 
 @pytest.mark.parametrize(
@@ -162,6 +167,8 @@ def test_staging_needs_redis_and_secure_settings() -> None:
         _config(env="production", redis_url="redis://r", rate_limits_enabled=False)
     with pytest.raises(ValidationError, match="local and test"):
         _config(env="staging", redis_url="redis://r", sso_issuer_overrides={"google": "https://idp.test"})
+    with pytest.raises(ValidationError, match="WHATSAPP_GRAPH_BASE_URL"):
+        _config(env="production", redis_url="redis://r", whatsapp_graph_base_url="http://fake-graph")
     with pytest.raises(ValidationError, match="https"):
         _config(env="staging", redis_url="redis://r", public_base_url="http://app.example.com")
 
@@ -368,7 +375,10 @@ def test_migrate_command_upgrades_and_reapplies_grants(
     assert cli.main(["migrate", "--app-role", APP_ROLE, "--readonly-role", READONLY_ROLE]) == 0
     out = capsys.readouterr().out
     assert f"-> {schema.expected_head()}" in out
-    assert f"grants: {APP_ROLE} read/write" in out and "append-only audit_log, consents, price_book_entries" in out
+    assert (
+        f"grants: {APP_ROLE} read/write" in out
+        and "append-only audit_log, consents, message_status_events, price_book_entries" in out
+    )
     assert cli.main(["migrate", "--app-role", "missing_role_x"]) == 1
     assert "does not exist" in capsys.readouterr().err
 

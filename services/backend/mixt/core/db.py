@@ -7,7 +7,8 @@ services never commit on their own: the caller (request dependency or job) owns 
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime
 from functools import lru_cache
 from typing import Any
@@ -74,3 +75,28 @@ def get_session() -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+
+SessionScope = Callable[[], AbstractContextManager[Session]]
+
+
+def session_scope_factory() -> SessionScope:
+    """FastAPI dependency for long-running responses (live streams): short sessions on demand.
+
+    A stream must not hold one transaction (and one pooled connection) open for its whole life,
+    so it opens a short session for each read instead. Tests override this to share their session.
+    """
+
+    @contextmanager
+    def scope() -> Iterator[Session]:
+        session = _sessionmaker_for(get_config().database_url)()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    return scope

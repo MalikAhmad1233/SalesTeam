@@ -9,6 +9,7 @@ import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Loading, Modal, Pa
 import { api, ApiError, qs, type Schemas } from "@/lib/api";
 import { formatDateTime, formatMoney, humanize, localTimeIn } from "@/lib/format";
 import { useCurrencies, useCurricula, useMarkets, useStages, useUserNames } from "@/lib/queries";
+import { channelLabel } from "@/lib/inbox";
 import { can, useMe } from "@/lib/session";
 
 export default function CustomerPage() {
@@ -56,6 +57,7 @@ export default function CustomerPage() {
           <Contacts accountId={id} />
           <Students accountId={id} />
           <Opportunities accountId={id} />
+          {can(me, "inbox.read") ? <Conversations accountId={id} /> : null}
           {can(me, "quotations.read") ? <Quotations accountId={id} /> : null}
           <Notes accountId={id} />
         </div>
@@ -731,6 +733,34 @@ function Quotations({ accountId }: { accountId: string }) {
           </Button>
         </form>
       </Modal>
+    </Card>
+  );
+}
+
+function Conversations({ accountId }: { accountId: string }) {
+  const { data: me } = useMe();
+  const list = useQuery({
+    queryKey: ["inbox", "account", accountId],
+    queryFn: () => api<Schemas["ConversationOut"][]>(`/crm/accounts/${accountId}/conversations`),
+  });
+  return (
+    <Card title="Conversations" actions={<Link href="/inbox" className="text-sm text-accent">Inbox</Link>}>
+      {list.isLoading ? <Loading /> : null}
+      <ErrorNote error={list.error} />
+      {(list.data ?? []).length === 0 && !list.isLoading ? <Empty>No conversations linked to this household.</Empty> : null}
+      <ul className="divide-y divide-border">
+        {(list.data ?? []).map((c) => (
+          <li key={c.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+            <Link href={`/inbox?c=${c.id}`} className="text-accent">
+              {channelLabel(c.channel)} · {c.contact_name ?? c.customer_name ?? c.customer_handle}
+            </Link>
+            <span className="flex items-center gap-2 text-xs text-muted">
+              {c.unread_count > 0 ? <Badge tone="primary">{c.unread_count} unread</Badge> : null}
+              {formatDateTime(c.last_activity_at, me?.timezone)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

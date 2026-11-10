@@ -69,10 +69,16 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 | Setting | Scope | Value now | Status | Other options | Question | Changed by |
 |---------|-------|-----------|--------|---------------|----------|-----------|
 | `channels.email.provider` | global | unset (email channel off) | safe_default | `gmail`, `microsoft_graph` | Q-COM-03 | Admin |
-| `channels.whatsapp.numbers` | market | none (WhatsApp channel off) | safe_default | number(s) per market or shared | Q-COM-01, Q-COM-02 | Admin |
+| `channels.whatsapp.numbers` | market | none (WhatsApp channel off): a connected number sends nothing until it is listed here, globally or for a market; inbound messages are always stored | safe_default | number(s) per market or shared | Q-COM-01, Q-COM-02 | Admin |
 | `channels.instagram` | global | `disabled` | safe_default | `lead_ads`, `dms`, `both` | Q-COM-04 | Admin |
 | `messaging.student_direct_contact` | global | `disabled`: messages go to guardians only | safe_default | `enabled_from_age:N` | Q-AI-05 | Owner |
 | `messaging.sequences_enabled` | global | `false` until cadence and contact hours are set | safe_default | `true` | Q-SAL-06, Q-MKT-07 | SM |
+| `messaging.opt_out_keywords` | global | `STOP`, `STOP ALL`, `UNSUBSCRIBE`, `OPT OUT`, `OPTOUT`, `إيقاف`, `توقف`, `إلغاء الاشتراك`, `الغاء الاشتراك`: a customer message that is exactly one of these (any case, punctuation ignored) blocks the number and withdraws granted messaging consent | safe_default | edited list (per language) | Q-COM-06 | Admin |
+| `messaging.opt_in_keywords` | global | `START`: lifts a block the customer asked for themselves (never grants marketing consent) | safe_default | edited list | Q-COM-06 | Admin |
+| `web.enquiries.enabled` | global | `false`: the website form is refused until the privacy notice and consent wording are approved | safe_default | `true` | Q-WEB-01, Q-CMP-01 | Owner |
+| `web.consent_wording_versions` | global | none: no consent tick box can be recorded | safe_default | approved wording versions (e.g. `2026-11-v1`) | Q-CMP-01 | Owner |
+| `web.bot_protection` | global | `honeypot` (a hidden field; always on) | safe_default | `turnstile` (Cloudflare Turnstile as well; secret stored on a website-forms connection) | Q-WEB-02 | Admin |
+| `web.allowed_origins` | global | none: browsers on other sites cannot post the form (server-to-server posts still work) | safe_default | Mixt's website origins (`https://...`) | Q-WEB-01 | Admin |
 | `ai.enabled` | global / agent / channel / market | `false` | safe_default | `true` | Phase 4 | Owner |
 | `ai.autonomy.customer_facing` | action × channel × market | `approval` for every customer-facing action | **confirmed** default (BD-027) | per [03 §8](03-ai-agent-architecture.md#8-action-policy-engine-and-approval-levels) | Q-AI-02 | Owner |
 | `ai.customer_data_to_llm` | global | `blocked` until AI-provider data terms are approved | safe_default | `allowed` | Q-CMP-06 | Owner |

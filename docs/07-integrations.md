@@ -1,6 +1,6 @@
 # 07: External Integrations and API Requirements
 
-Status: **APPROVED 2026-11-10** (BD-032) · No integration is implemented.
+Status: **APPROVED 2026-11-10** (BD-032) · **Implemented (Phase 3a, not yet connected to Mixt's accounts):** §1 framework, §2 WhatsApp Cloud API and §6 website enquiry form ([decision log IN-43 to IN-48](12-decision-log.md#c-implementation-notes)). Everything else is not implemented yet.
 
 > Provider rules, permissions and prices change. Every point below will be checked against the provider's current official documentation when each integration is built, and Mixt's accounts must be set up by Mixt (we cannot create them on Mixt's behalf).
 

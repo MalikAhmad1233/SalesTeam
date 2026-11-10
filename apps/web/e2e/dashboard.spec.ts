@@ -1,10 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 import { E2E } from "../playwright.config";
-import { runWorkerOnce, totp } from "./helpers";
+import { apiBase, metaSignature, runWorkerOnce, totp, whatsappWebhook } from "./helpers";
 
 // Set E2E_SCREENSHOTS=/some/dir to save screenshots of key screens (for reviews and release notes).
 const shotsDir = process.env.E2E_SCREENSHOTS;
+const deployed = Boolean(process.env.E2E_BASE_URL);
+// Test values only. Locally the Graph API is a fake (e2e/fake-graph.mjs); against a deployment
+// nothing is sent to customers (no reply is sent, and the number is a test value).
+const WA = {
+  phoneNumberId: "109876543210987",
+  number: "+97143123456",
+  appSecret: "e2e-app-secret-0123456789",
+  verifyToken: "e2e-verify-token-0123456789",
+  customer: "971521234567",
+};
 
 test("sign in with two-step verification, work a lead through the CRM, sign out", async ({ page }) => {
   const shot = async (name: string) => {
@@ -12,6 +22,8 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
   };
   // Any Content-Security-Policy violation anywhere in the journey fails the test.
   const cspViolations: string[] = [];
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error" && /Content Security Policy|Content-Security-Policy/i.test(message.text())) {
       cspViolations.push(message.text());
@@ -56,7 +68,7 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
   });
 
   await test.step("future modules are shown as not yet available", async () => {
-    await expect(page.getByTitle("Arrives in Phase 3").first()).toBeVisible();
+    await expect(page.getByTitle("Arrives in Phase 4").first()).toBeVisible();
   });
 
   await test.step("outstanding decisions are listed", async () => {
@@ -236,6 +248,128 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await dialog.getByRole("button", { name: "Close" }).last().click();
   });
 
+  const csrf = async () => (await page.context().cookies()).find((c) => c.name === "mixt_csrf")?.value ?? "";
+  const putSetting = async (key: string, value: unknown) => {
+    const response = await page.request.put(`/api/v1/settings/${key}`, {
+      data: { value, status: "safe_default" },
+      headers: { "X-CSRF-Token": await csrf() },
+    });
+    expect(response.status(), await response.text()).toBe(200);
+  };
+  let webhookPath = "";
+  const postWebhook = async (body: string) => {
+    const response = await page.request.post(`${apiBase}${webhookPath}`, {
+      data: body,
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": metaSignature(WA.appSecret, body) },
+    });
+    expect(response.status()).toBe(200);
+    runWorkerOnce(); // locally; the API also processes it straight away, and a deployment has a worker
+  };
+
+  await test.step("connect WhatsApp: secrets are saved, Meta's handshake works, the number is switched on", async () => {
+    await page.getByRole("link", { name: "Integrations" }).click();
+    await expect(page.getByText("Nothing connected yet.")).toBeVisible();
+    await page.getByRole("button", { name: "Connect WhatsApp" }).click();
+    const dialog = page.getByRole("dialog", { name: "Connect a WhatsApp number" });
+    await dialog.getByLabel("Graph API version").fill("v21.0");
+    await dialog.getByLabel("WhatsApp Business Account ID").fill("123456789012345");
+    await dialog.getByLabel("Phone number ID").fill(WA.phoneNumberId);
+    await dialog.getByLabel("Phone number", { exact: true }).fill(WA.number);
+    await dialog.getByLabel("System user access token").fill("EAAG-e2e-test-token-0123456789");
+    await dialog.getByLabel("App secret").fill(WA.appSecret);
+    await dialog.getByLabel("Webhook verify token").fill(WA.verifyToken);
+    await dialog.getByRole("button", { name: "Save connection" }).click();
+    await expect(page.getByText("Not switched on")).toBeVisible();
+    await expect(page.getByText("EAAG-e2e-test-token")).toHaveCount(0); // secrets are never shown
+    webhookPath = ((await page.getByTestId("webhook-url").textContent()) ?? "").match(/\/webhooks\/whatsapp\/[0-9a-f-]+/)?.[0] ?? "";
+    expect(webhookPath).not.toBe("");
+    const handshake = await page.request.get(
+      `${apiBase}${webhookPath}?hub.mode=subscribe&hub.verify_token=${WA.verifyToken}&hub.challenge=e2e-challenge`,
+    );
+    expect(await handshake.text()).toBe("e2e-challenge");
+    const forged = await page.request.post(`${apiBase}${webhookPath}`, {
+      data: whatsappWebhook(WA.phoneNumberId, { from: WA.customer, text: "forged" }),
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=00" },
+    });
+    expect(forged.status()).toBe(401);
+    await putSetting("channels.whatsapp.numbers", [WA.number]);
+    await page.reload();
+    await expect(page.getByText("Switched on", { exact: true })).toBeVisible();
+    if (!deployed) {
+      await page.getByRole("button", { name: "Check connection" }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Connected." })).toBeVisible();
+      await page.getByRole("button", { name: "Sync templates" }).click();
+      await expect(page.getByText(/Templates: 1 new/)).toBeVisible();
+      await page.getByRole("button", { name: "Approve for use" }).click();
+      await expect(page.getByRole("button", { name: "Retire" })).toBeVisible();
+    }
+    await shot("05-integrations");
+  });
+
+  await test.step("a customer writes on WhatsApp; the message waits in the inbox until linked", async () => {
+    await postWebhook(
+      whatsappWebhook(WA.phoneNumberId, { from: WA.customer, name: "Layla Nasser", text: "Hello, do you offer IGCSE Physics tutoring?" }),
+    );
+    await page.getByRole("link", { name: "Inbox" }).click();
+    await page.getByRole("tab", { name: "Not linked" }).click();
+    await expect(async () => {
+      await page.getByRole("tab", { name: "All" }).click();
+      await page.getByRole("tab", { name: "Not linked" }).click();
+      await expect(page.getByRole("button", { name: /Layla Nasser/ })).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
+    await page.getByRole("button", { name: /Layla Nasser/ }).click();
+    await expect(page.getByTestId("inbound-message")).toContainText("IGCSE Physics");
+    await expect(page.getByText(/Reply window open until/)).toBeVisible();
+  });
+
+  await test.step("turn the conversation into a lead, leave a note for the team and reply", async () => {
+    await page.getByRole("button", { name: "Create lead" }).click();
+    const dialog = page.getByRole("dialog", { name: "Create a lead from this conversation" });
+    await dialog.getByLabel("Country of residence").fill("AE");
+    await dialog.getByLabel("Student first name").fill("Rami");
+    await dialog.getByRole("button", { name: "Create lead" }).click();
+    await expect(page.getByRole("complementary", { name: "Customer" }).getByRole("link", { name: "Layla Nasser" })).toBeVisible();
+    await page.getByRole("tab", { name: "Internal note" }).click();
+    await page.getByLabel("Internal note").fill("Asked about Physics; prefers calls after 5pm");
+    await page.getByRole("button", { name: "Add note" }).click();
+    await expect(page.getByTestId("internal-note").last()).toContainText("after 5pm");
+    if (!deployed) {
+      await page.getByRole("tab", { name: "Reply" }).click();
+      await page.getByLabel("Reply").fill("Hello Layla, yes we do. When would suit you for a free trial lesson?");
+      await page.getByRole("button", { name: "Send", exact: true }).click();
+      await expect(page.getByTestId("outbound-message")).toContainText("free trial lesson");
+      await expect(async () => {
+        await page.reload();
+        await expect(page.getByTestId("outbound-message")).toContainText("Sending", { timeout: 2_000 });
+      }).toPass({ timeout: 30_000 });
+      await postWebhook(whatsappWebhook(WA.phoneNumberId, { from: WA.customer, statuses: [{ id: "wamid.e2e1", status: "read" }] }));
+      await expect(async () => {
+        await page.reload();
+        await expect(page.getByTestId("outbound-message")).toContainText("Read", { timeout: 2_000 });
+      }).toPass({ timeout: 30_000 });
+    }
+    await shot("06-inbox");
+    await page.getByRole("complementary", { name: "Customer" }).getByRole("link", { name: "Layla Nasser" }).click();
+    await expect(page.getByRole("link", { name: /WhatsApp · Layla Nasser/ })).toBeVisible();
+  });
+
+  await test.step("the website form is off until switched on; then an enquiry arrives as a lead", async () => {
+    const form = {
+      guardian_first_name: "Hana",
+      guardian_last_name: "Saleh",
+      email: "hana.saleh@example.com",
+      country: "QA",
+      message: "British curriculum, Year 9 maths",
+      utm: { source: "e2e" },
+    };
+    expect((await page.request.post(`${apiBase}/public/v1/enquiries`, { data: form })).status()).toBe(404);
+    await putSetting("web.enquiries.enabled", true);
+    expect((await page.request.post(`${apiBase}/public/v1/enquiries`, { data: form })).status()).toBe(202);
+    await putSetting("web.enquiries.enabled", false);
+    await page.getByRole("link", { name: "Leads" }).click();
+    await expect(page.getByRole("cell", { name: "Hana Saleh" })).toBeVisible();
+  });
+
   await test.step("sign out", async () => {
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -244,4 +378,5 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
   });
 
   expect(cspViolations).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });

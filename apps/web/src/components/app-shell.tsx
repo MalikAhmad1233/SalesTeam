@@ -21,7 +21,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Work",
     items: [
-      { href: "/conversations", label: "Conversations", phase: "Phase 3" },
+      { href: "/inbox", label: "Inbox", permission: "inbox.read" },
       { href: "/leads", label: "Leads", permission: "leads.read" },
       { href: "/customers", label: "Customers", permission: "crm.accounts.read" },
       { href: "/pipeline", label: "Sales Pipeline", permission: "crm.accounts.read" },
@@ -55,7 +55,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     group: "Admin",
     items: [
       { href: "/team", label: "Team", permission: "users.read" },
-      { href: "/integrations", label: "Integrations", phase: "Phase 3" },
+      { href: "/integrations", label: "Integrations", permission: "integrations.manage" },
       { href: "/settings", label: "Settings", permission: "settings.read" },
     ],
   },
@@ -127,7 +127,7 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-6">
           <nav aria-label="Mobile" className="flex gap-3 overflow-x-auto text-sm md:hidden">
-            {["/overview", "/leads", "/customers", "/pipeline", "/tasks"].map((href) => (
+            {["/overview", "/inbox", "/leads", "/customers", "/pipeline", "/tasks"].map((href) => (
               <Link key={href} href={href} className="whitespace-nowrap text-accent">
                 {href.slice(1)}
               </Link>

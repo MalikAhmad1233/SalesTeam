@@ -6,7 +6,9 @@ from mixt.modules.crm import models as crm_models
 from mixt.modules.engagement import models as engagement_models
 from mixt.modules.events import models as events_models
 from mixt.modules.identity import models as identity_models
+from mixt.modules.integrations import models as integrations_models
 from mixt.modules.leads import models as leads_models
+from mixt.modules.messaging import models as messaging_models
 from mixt.modules.pipeline import models as pipeline_models
 from mixt.modules.pricing import models as pricing_models
 from mixt.modules.quotations import models as quotations_models
@@ -21,7 +23,9 @@ __all__ = [
     "engagement_models",
     "events_models",
     "identity_models",
+    "integrations_models",
     "leads_models",
+    "messaging_models",
     "pipeline_models",
     "pricing_models",
     "quotations_models",

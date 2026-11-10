@@ -66,3 +66,8 @@ class RateLimited(DomainError):
     def __init__(self, code: str, detail: str, retry_after_seconds: int, **extra: Any) -> None:
         super().__init__(code, detail, retry_after_seconds=retry_after_seconds, **extra)
         self.headers = {"Retry-After": str(retry_after_seconds)}
+
+
+class ServiceUnavailable(DomainError):
+    status = 503
+    title = "Not available"

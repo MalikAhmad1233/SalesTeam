@@ -22,7 +22,7 @@ from mixt.core.normalize import normalize_email
 from mixt.core.timezones import InvalidTimezone, now_utc, validate_timezone
 from mixt.modules.audit import service as audit
 from mixt.modules.identity import mfa, passwords
-from mixt.modules.identity.access import Access
+from mixt.modules.identity.access import Access, load_access
 from mixt.modules.identity.models import (
     Principal,
     PrincipalRole,
@@ -565,3 +565,44 @@ def bootstrap_owner(db: Session, actor: Actor, email: str, full_name: str, passw
     db.flush()
     audit.record(db, actor, "owner_bootstrapped", "user", user.id, {"email": normalized})
     return user
+
+
+def user_names(db: Session, user_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """Display names for staff users (for lists that show who owns or handles something)."""
+    if not user_ids:
+        return {}
+    return {row.id: row.full_name for row in db.execute(select(User.id, User.full_name).where(User.id.in_(user_ids)))}
+
+
+def user_can(db: Session, user_id: uuid.UUID, permission: str) -> bool:
+    """Whether an active user holds ``permission`` in any market (e.g. to receive an assignment)."""
+    user = db.get(User, user_id)
+    if user is None or user.status != "active":
+        return False
+    return load_access(db, user_actor(user, None, None, None)).has_somewhere(permission)
+
+
+def users_with(db: Session, permission: str) -> list[tuple[uuid.UUID, str]]:
+    """Active users holding ``permission`` somewhere, by name (assignment pickers)."""
+    rows = db.execute(
+        select(User.id, User.full_name)
+        .join(PrincipalRole, PrincipalRole.principal_id == User.principal_id)
+        .join(RolePermission, RolePermission.role_id == PrincipalRole.role_id)
+        .where(User.status == "active", RolePermission.permission_key == permission)
+        .distinct()
+        .order_by(User.full_name)
+    )
+    return [(r.id, r.full_name) for r in rows]
+
+
+def principal_names(db: Session, principal_ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """Display names for whoever acted (staff user, AI agent or the system)."""
+    if not principal_ids:
+        return {}
+    names = {
+        row.id: row.display_name
+        for row in db.execute(select(Principal.id, Principal.display_name).where(Principal.id.in_(principal_ids)))
+    }
+    for row in db.execute(select(User.principal_id, User.full_name).where(User.principal_id.in_(principal_ids))):
+        names[row.principal_id] = row.full_name
+    return names

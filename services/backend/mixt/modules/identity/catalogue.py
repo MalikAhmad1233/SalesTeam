@@ -69,7 +69,17 @@ PERMISSIONS: dict[str, str] = {
     "quotations.manage": "Prepare quotations, submit them for approval, issue approved ones and record the outcome",
     "quotations.approve": "Approve a quotation (sales approval; not one you prepared)",
     "quotations.approve_discount": "Approve a discount on a quotation (pricing approval; not one you prepared)",
+    # Phase 3a (migration 0007)
+    "integrations.manage": "Connect, check and disconnect integrations, rotate their secrets, replay failed webhooks",
+    "inbox.read": "Read conversations of customers the user can see, and conversations assigned to them",
+    "inbox.unmatched": "Read conversations not yet linked to a customer, link them or create a lead from them",
+    "inbox.assign": "Assign conversations to any team member",
+    "messaging.send": "Reply to customers and send approved templates (channel rules, consent and opt-outs apply)",
+    "messaging.templates.approve": "Approve or retire message templates for use by staff",
+    "messaging.suppression.manage": "Block a number or address, or allow messages to it again (with a reason)",
 }
+
+_INBOX = ["inbox.read", "inbox.unmatched", "inbox.assign", "messaging.send", "messaging.suppression.manage"]
 
 _PHASE_1B_ALL = [
     "leads.read",
@@ -142,6 +152,9 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "quotations.read",
             "quotations.manage",
             "quotations.approve",
+            "integrations.manage",
+            "messaging.templates.approve",
+            *_INBOX,
         ],
     ),
     "pricing_manager": (
@@ -178,6 +191,7 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "quotations.read",
             "quotations.manage",
             "quotations.approve",
+            *_INBOX,
         ],
     ),
     "sales_rep": (
@@ -191,6 +205,8 @@ ROLES: dict[str, tuple[str, str, list[str]]] = {
             "pricing.options.read",
             "quotations.read",
             "quotations.manage",
+            "inbox.read",
+            "messaging.send",
         ],
     ),
     "finance": (

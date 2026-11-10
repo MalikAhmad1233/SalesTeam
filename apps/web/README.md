@@ -18,6 +18,8 @@ Next.js 16 · React 19 · TypeScript (strict) · Tailwind CSS 4 · TanStack Quer
 | Pricing (2b) | Sections for price books, sheet import (template, per-row problems, comparison with the current version, anomaly notes, apply as drafts), rules (JSON editor with examples, approve, retire, tester with trace, list of usable facts) and promotions (draft, submit, approve, activate, cancel, with what still prevents activation); rules can be attached per market on a price book; unit definition confirmation |
 | Quotations (2c) | Customer page: the customer's quotations and "New quotation" for an opportunity. Quotation page: lines from the offered packages (with promotion and discount), validity and notes, the checks still failing, submit, approve as sales or pricing, send back, PDF download, issue to a contact, the customer's answer (with price-change confirmation), revision and cancellation. Quotations menu: the approvals waiting for you |
 | Customer pricing (2a) | On the household page: who chose which tier and why, choosing or changing it (with a reason), and the package options (special prices and promotion offers marked separately), or the reason none can be offered plus what to tell the customer; confidential pricing requests and approvals for people who may see them |
+| Inbox (3a) | Conversation list (all, mine, unassigned, not linked; search; active or closed) with unread counts and live updates; the thread with delivery status, failures and "Send again"; reply (only inside the 24-hour window), template (with the reason each one cannot be sent now, variables and a preview) or internal note; link to a household (optionally saving the number on the contact) or create a lead; take or assign; close and reopen. Customer page: the household's conversations. Blocked numbers: add and lift blocks with a reason |
+| Integrations (3a) | Connect WhatsApp (secrets are never shown again), webhook address and verification state, check connection, sync templates and approve them for use, replace a secret, disconnect, webhooks that failed with "Process again" |
 | Settings | Outstanding decisions and all settings; change values with status and decision reference (permission-checked; dual-approval settings locked until Phase 2) |
 
 **Security (1d):** every page gets a Content-Security-Policy with a fresh nonce (`src/proxy.ts`): no inline scripts without the nonce, no `eval` in production, no framing. Pages are therefore rendered per request. The image (`Dockerfile`) runs the standalone server as a non-root user.
@@ -49,11 +51,13 @@ npm run e2e
 * leads, market confirmation, notes and the timeline;
 * pipeline checks and tasks;
 * a US enquiry;
+* connecting WhatsApp (Meta's handshake, a forged webhook refused, the number switched on, templates synced and approved), a customer message arriving in the "Not linked" queue, a lead created from it, an internal note, a reply sent through a local fake Graph API (`e2e/fake-graph.mjs`; nothing is ever sent to Meta) and its read receipt;
+* the website form refusing enquiries until switched on, then an enquiry arriving as a lead;
 * sign-out.
 
-Any CSP violation fails the test. Set `E2E_SCREENSHOTS=<dir>` to save screenshots.
+Any CSP violation or browser error fails the test. Set `E2E_SCREENSHOTS=<dir>` to save screenshots.
 
-`E2E_BASE_URL=https://localhost npx playwright test` runs the same journey against a running deployment, such as the staging stack in `infra/staging`. In that mode there are no local servers and no database reset, and the deployment's own worker delivers the timeline events.
+`E2E_BASE_URL=https://localhost npx playwright test` runs the same journey against a running deployment, such as the staging stack in `infra/staging`. In that mode there are no local servers and no database reset, the deployment's own worker delivers the timeline events, and no WhatsApp reply is sent (a deployment talks to the real Graph API).
 
 When the API changes, regenerate the types (CI fails if they are out of date):
 

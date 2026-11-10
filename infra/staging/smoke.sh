@@ -56,6 +56,12 @@ with Session(get_engine()) as s:
     print(r.ok, r.rows_checked)")"
 [[ "$audit" == True* ]] && pass "audit hash chain verifies ($audit)" || fail "audit chain: $audit"
 
+body="$(curl_k -H 'Content-Type: application/json' -d '{"guardian_first_name":"Smoke"}' "$base/public/v1/enquiries")"
+[[ "$body" == *'"code":"ENQUIRIES_OFF"'* ]] && pass "website form reachable and off by default" || fail "enquiries: $body"
+code="$(curl_k -o /dev/null -w '%{http_code}' -H 'X-Hub-Signature-256: sha256=00' -d '{}' \
+  "$base/webhooks/whatsapp/00000000-0000-7000-8000-000000000000")"
+[[ "$code" == 404 ]] && pass "webhooks reach the API; unknown connections refused" || fail "webhook answered $code"
+
 docker compose stop worker >/dev/null
 docker compose logs worker | grep -q "worker stopped" && pass "worker stops cleanly on SIGTERM" || fail "worker did not stop cleanly"
 docker compose start worker >/dev/null

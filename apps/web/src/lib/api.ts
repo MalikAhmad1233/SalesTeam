@@ -39,6 +39,8 @@ export interface RequestOptions {
   form?: FormData;
   /** Record version for optimistic locking; sent as If-Match. */
   version?: number;
+  /** Makes a retried request safe (e.g. sending a message): sent as Idempotency-Key. */
+  idempotencyKey?: string;
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -49,6 +51,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     if (csrf) headers["X-CSRF-Token"] = csrf;
   }
   if (options.version !== undefined) headers["If-Match"] = `"${options.version}"`;
+  if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
   let body: BodyInit | undefined;
   if (options.form) body = options.form;
   else if (options.json !== undefined) {

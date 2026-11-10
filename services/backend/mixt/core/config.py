@@ -81,6 +81,8 @@ class AppConfig(BaseSettings):
     rate_password_per_user: str = "5/15m"  # noqa: S105 (a rate, not a password)
     rate_sso_per_ip: str = "30/15m"
     rate_import_per_user: str = "20/1h"
+    rate_enquiry_per_ip: str = "5/10m"
+    rate_webhook_per_connection: str = "6000/1m"
 
     # Single sign-on (IN-23). Which provider is used is a business setting (`auth.sso`, Q-TECH-01);
     # these are only the client credentials. The public URL builds the redirect address.
@@ -93,6 +95,8 @@ class AppConfig(BaseSettings):
     sso_allowed_domains: list[str] = Field(default_factory=list)
     # Local and test only: point a provider at a test identity provider.
     sso_issuer_overrides: dict[str, str] = Field(default_factory=dict)
+    # Local and test only: send WhatsApp Graph API calls to a fake server (end-to-end tests).
+    whatsapp_graph_base_url: str | None = None
 
     @field_validator("trusted_proxies")
     @classmethod
@@ -110,6 +114,8 @@ class AppConfig(BaseSettings):
         "rate_password_per_user",
         "rate_sso_per_ip",
         "rate_import_per_user",
+        "rate_enquiry_per_ip",
+        "rate_webhook_per_connection",
     )
     @classmethod
     def _rate(cls, value: str) -> str:
@@ -150,6 +156,8 @@ class AppConfig(BaseSettings):
             raise ValueError("rate limits cannot be switched off in staging or production")
         if deployed and self.sso_issuer_overrides:
             raise ValueError("MIXT_SSO_ISSUER_OVERRIDES is for local and test environments only")
+        if deployed and self.whatsapp_graph_base_url:
+            raise ValueError("MIXT_WHATSAPP_GRAPH_BASE_URL is for local and test environments only")
         if deployed and self.public_base_url and not self.public_base_url.startswith("https://"):
             raise ValueError("MIXT_PUBLIC_BASE_URL must use https in staging and production")
         return self

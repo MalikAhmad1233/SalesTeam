@@ -13,6 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.types import Receive, Scope, Send
 
 import mixt.wiring  # noqa: F401  (tables, event consumers, validators)
 from mixt.api import startup, throttle
@@ -23,15 +24,19 @@ from mixt.api.routers import (
     crm,
     engagement,
     health,
+    inbox,
+    integrations,
     leads,
     pipeline,
     pricing,
     pricing_admin,
+    public,
     quotations,
     reference,
     settings,
     sso,
     users,
+    webhooks,
 )
 from mixt.core.config import get_config
 from mixt.core.db import get_engine
@@ -39,6 +44,20 @@ from mixt.core.errors import DomainError
 from mixt.core.logging import configure_logging, get_logger
 
 PROBLEM_JSON = "application/problem+json"
+_OWN_CORS_PREFIXES = ("/public/", "/webhooks/")
+
+
+class _DashboardCors(CORSMiddleware):
+    """CORS for the dashboard's API calls. Public endpoints answer for themselves (the website's
+    origins are a business setting) and webhooks are server-to-server, so both are passed through."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and str(scope.get("path", "")).startswith(_OWN_CORS_PREFIXES):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
+
+
 _CORRELATION_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 log = get_logger("mixt.api")
 
@@ -73,7 +92,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         title="Mixt AI API",
         version="0.1.0",
-        description="Mixt AI backend: identity, reference data, settings, audit, CRM, leads, pipeline and tasks.",
+        description=(
+            "Mixt AI backend: identity, reference data, settings, audit, CRM, leads, pipeline, tasks, pricing, "
+            "quotations, integrations and the unified inbox."
+        ),
         # The schema and interactive docs are for development; deployed environments do not publish them.
         openapi_url="/api/v1/openapi.json" if config.env.value in ("local", "test") else None,
         docs_url="/api/docs" if config.env.value in ("local", "test") else None,
@@ -82,7 +104,7 @@ def create_app() -> FastAPI:
 
     if config.cors_origins:
         app.add_middleware(
-            CORSMiddleware,
+            _DashboardCors,
             allow_origins=config.cors_origins,
             allow_credentials=True,
             allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
@@ -164,4 +186,8 @@ def create_app() -> FastAPI:
     app.include_router(pricing.router, prefix=prefix)
     app.include_router(pricing_admin.router, prefix=prefix)
     app.include_router(quotations.router, prefix=prefix)
+    app.include_router(integrations.router, prefix=prefix)
+    app.include_router(inbox.router, prefix=prefix)
+    app.include_router(webhooks.router)
+    app.include_router(public.router)
     return app

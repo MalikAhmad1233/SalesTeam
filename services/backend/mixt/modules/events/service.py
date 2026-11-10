@@ -6,16 +6,19 @@
   own savepoint and is recorded in ``event_consumptions``, so retries never repeat finished work.
   After ``MAX_ATTEMPTS`` failures an event goes to the dead-letter table for a person to replay.
 - ``schedule`` stores business-timed work in PostgreSQL; ``run_due_actions`` claims due rows with
-  ``FOR UPDATE SKIP LOCKED`` so several workers can run safely.
+  ``FOR UPDATE SKIP LOCKED`` so several workers can run safely. A failed action is retried later
+  with exponential backoff and jitter (or after the delay a ``RetryLater`` names); after
+  ``MAX_ATTEMPTS`` it goes to the dead-letter table and its ``on_dead_letter`` hook runs.
 """
 
 from __future__ import annotations
 
+import random
 import traceback
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select, update
@@ -33,7 +36,26 @@ Event = OutboxEvent
 Action = ScheduledAction
 
 MAX_ATTEMPTS = 5
+RETRY_BASE_SECONDS = 15.0
+RETRY_MAX_SECONDS = 15 * 60.0
 log = get_logger("mixt.events")
+
+
+class RetryLater(Exception):
+    """Raised by an action handler to be retried after ``delay_seconds`` (e.g. a provider's Retry-After)."""
+
+    def __init__(self, message: str, delay_seconds: float | None = None) -> None:
+        super().__init__(message)
+        self.delay_seconds = delay_seconds
+
+
+def retry_delay(attempts: int, hint: float | None = None) -> timedelta:
+    """Exponential backoff with up to 20% jitter: about 15 s, 30 s, 1 min, 2 min ... capped at 15 min."""
+    base = min(RETRY_BASE_SECONDS * (2 ** max(attempts - 1, 0)), RETRY_MAX_SECONDS)
+    if hint is not None:
+        base = min(max(base, hint), RETRY_MAX_SECONDS)
+    return timedelta(seconds=base * (1 + random.uniform(0, 0.2)))  # noqa: S311  (jitter, not security)
+
 
 EventHandler = Callable[[Session, OutboxEvent], None]
 ActionHandler = Callable[[Session, ScheduledAction], None]
@@ -48,14 +70,20 @@ class Consumer:
 
 _CONSUMERS: dict[str, Consumer] = {}
 _ACTION_HANDLERS: dict[str, ActionHandler] = {}
+_DEAD_LETTER_HOOKS: dict[str, ActionHandler] = {}
 
 
 def register_consumer(name: str, event_types: set[str] | None, handler: EventHandler) -> None:
     _CONSUMERS[name] = Consumer(name, frozenset(event_types or ()), handler)
 
 
-def register_action_handler(action_type: str, handler: ActionHandler) -> None:
+def register_action_handler(
+    action_type: str, handler: ActionHandler, on_dead_letter: ActionHandler | None = None
+) -> None:
+    """``on_dead_letter`` runs (in its own savepoint) when the action gives up, e.g. to mark a message failed."""
     _ACTION_HANDLERS[action_type] = handler
+    if on_dead_letter is not None:
+        _DEAD_LETTER_HOOKS[action_type] = on_dead_letter
 
 
 def consumers() -> list[Consumer]:
@@ -191,7 +219,6 @@ class ActionRunResult:
 
 def run_due_actions(db: Session, now: datetime | None = None, limit: int = 100) -> ActionRunResult:
     now = now or now_utc()
-    result = ActionRunResult()
     actions = list(
         db.scalars(
             select(ScheduledAction)
@@ -201,6 +228,28 @@ def run_due_actions(db: Session, now: datetime | None = None, limit: int = 100) 
             .with_for_update(skip_locked=True)
         )
     )
+    return _run(db, actions)
+
+
+def run_action_now(db: Session, action_id: uuid.UUID) -> ActionRunResult:
+    """Run one due action straight away (e.g. send a message without waiting for the next worker poll).
+
+    Skips the action when a worker already holds it or it is not due, so it never runs twice.
+    """
+    action = db.scalar(
+        select(ScheduledAction)
+        .where(
+            ScheduledAction.id == action_id,
+            ScheduledAction.status == "pending",
+            ScheduledAction.due_at <= now_utc(),
+        )
+        .with_for_update(skip_locked=True)
+    )
+    return _run(db, [action] if action is not None else [])
+
+
+def _run(db: Session, actions: list[ScheduledAction]) -> ActionRunResult:
+    result = ActionRunResult()
     for action in actions:
         handler = _ACTION_HANDLERS.get(action.action_type)
         try:
@@ -224,6 +273,16 @@ def run_due_actions(db: Session, now: datetime | None = None, limit: int = 100) 
                     )
                 )
                 result.dead_lettered += 1
+                hook = _DEAD_LETTER_HOOKS.get(action.action_type)
+                if hook is not None:
+                    try:
+                        with db.begin_nested():
+                            hook(db, action)
+                    except Exception:
+                        log.exception("dead_letter_hook_failed", action_type=action.action_type)
+            else:
+                hint = exc.delay_seconds if isinstance(exc, RetryLater) else None
+                action.due_at = now_utc() + retry_delay(action.attempts, hint)
     db.flush()
     return result
 
@@ -251,3 +310,22 @@ def replay_dead_letter(db: Session, actor: Actor, dead_letter_id: uuid.UUID) -> 
     letter.replayed_at = now_utc()
     letter.replayed_by = actor.principal_id
     audit.record(db, actor, "dead_letter_replayed", "dead_letter", letter.id, {"source": letter.source})
+
+
+def replay_action(db: Session, actor: Actor, dedupe_key: str) -> bool:
+    """Replay the failed action with this dedupe key (and close its dead letter). False if none is failed."""
+    action = db.scalar(select(ScheduledAction).where(ScheduledAction.dedupe_key == dedupe_key))
+    if action is None or action.status != "failed":
+        return False
+    letter = db.scalar(
+        select(DeadLetter).where(
+            DeadLetter.source == "scheduled_action", DeadLetter.ref_id == action.id, DeadLetter.replayed_at.is_(None)
+        )
+    )
+    if letter is not None:
+        replay_dead_letter(db, actor, letter.id)
+    else:
+        action.status, action.attempts, action.completed_at = "pending", 0, None
+    action.due_at = now_utc()
+    db.flush()
+    return True

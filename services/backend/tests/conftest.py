@@ -16,6 +16,7 @@ import json
 import os
 import uuid
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
@@ -46,7 +47,7 @@ from mixt.api.app import create_app  # noqa: E402
 from mixt.core import crypto, db_roles, ratelimit, schema  # noqa: E402
 from mixt.core.config import get_config  # noqa: E402
 from mixt.core.context import Actor  # noqa: E402
-from mixt.core.db import get_session  # noqa: E402
+from mixt.core.db import get_session, session_scope_factory  # noqa: E402
 from mixt.modules.identity import mfa, passwords  # noqa: E402
 from mixt.modules.identity.models import (  # noqa: E402
     Principal,
@@ -133,7 +134,13 @@ def app(db: Session) -> Any:
         yield db
         db.flush()
 
+    @contextmanager
+    def _scope() -> Iterator[Session]:
+        yield db
+        db.flush()
+
     application.dependency_overrides[get_session] = _override
+    application.dependency_overrides[session_scope_factory] = lambda: _scope
     return application
 
 
