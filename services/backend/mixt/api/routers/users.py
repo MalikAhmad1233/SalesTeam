@@ -75,13 +75,17 @@ def _grants(items: list[RoleGrantIn]) -> list[RoleGrant]:
 
 
 @router.get("/users", response_model=list[UserOut])
-def list_users(auth: AuthContext = Depends(require("users.read")), db: Session = Depends(get_session)) -> list[UserOut]:
+def list_users(
+    auth: AuthContext = Depends(require("users.read")), db: Session = Depends(get_session, scope="function")
+) -> list[UserOut]:
     return [_out(db, u) for u in identity.list_users(db, auth.access)]
 
 
 @router.post("/users", response_model=UserOut, status_code=201)
 def create_user(
-    body: UserCreateIn, auth: AuthContext = Depends(require("users.manage")), db: Session = Depends(get_session)
+    body: UserCreateIn,
+    auth: AuthContext = Depends(require("users.manage")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> UserOut:
     user = identity.create_user(
         db,
@@ -101,7 +105,7 @@ def set_status(
     user_id: uuid.UUID,
     body: UserStatusIn,
     auth: AuthContext = Depends(require("users.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> UserOut:
     return _out(db, identity.set_user_status(db, auth.actor, auth.access, user_id, body.status))
 
@@ -111,7 +115,7 @@ def grant_roles(
     user_id: uuid.UUID,
     body: RolesIn,
     auth: AuthContext = Depends(require("users.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> UserOut:
     identity.grant_roles(db, auth.actor, auth.access, user_id, _grants(body.roles))
     return _out(db, identity.get_user(db, auth.access, user_id))
@@ -122,14 +126,16 @@ def revoke_role(
     user_id: uuid.UUID,
     body: RoleGrantIn,
     auth: AuthContext = Depends(require("users.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> UserOut:
     identity.revoke_role(db, auth.actor, auth.access, user_id, RoleGrant(body.role, body.market_id))
     return _out(db, identity.get_user(db, auth.access, user_id))
 
 
 @router.get("/roles", response_model=list[RoleOut])
-def list_roles(auth: AuthContext = Depends(require("users.read")), db: Session = Depends(get_session)) -> list[RoleOut]:
+def list_roles(
+    auth: AuthContext = Depends(require("users.read")), db: Session = Depends(get_session, scope="function")
+) -> list[RoleOut]:
     return [
         RoleOut(key=r.key, name=r.name, description=r.description, permissions=perms)
         for r, perms in identity.list_roles(db, auth.access)

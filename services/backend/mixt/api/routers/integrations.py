@@ -98,7 +98,7 @@ def _out(db: Session, view: integrations.ConnectionView) -> ConnectionOut:
 
 @router.get("/integrations", response_model=list[ConnectionOut])
 def list_connections(
-    auth: AuthContext = Depends(require("integrations.manage")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("integrations.manage")), db: Session = Depends(get_session, scope="function")
 ) -> list[ConnectionOut]:
     return [_out(db, v) for v in integrations.list_connections(db, auth.access)]
 
@@ -118,7 +118,7 @@ class WhatsAppIn(BaseModel):
 def connect_whatsapp(
     body: WhatsAppIn,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConnectionOut:
     connected = channels.connect_whatsapp(db, auth.actor, auth.access, channels.WhatsAppSetup(**body.model_dump()))
     return _out(db, connected.view)
@@ -141,7 +141,7 @@ class MailboxIn(BaseModel):
 def connect_mailbox(
     body: MailboxIn,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConnectionOut:
     """Connect an email mailbox over IMAP/SMTP (Mixt uses neither Google Workspace nor Microsoft 365, BD-034)."""
     connected = channels.connect_mailbox(db, auth.actor, auth.access, channels.MailboxSetup(**body.model_dump()))
@@ -158,7 +158,7 @@ class PollOut(BaseModel):
 def poll_mailbox(
     connection_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PollOut:
     return PollOut(**channels.poll_now(db, auth.actor, auth.access, connection_id).__dict__)
 
@@ -167,7 +167,7 @@ def poll_mailbox(
 def get_connection(
     connection_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConnectionOut:
     return _out(db, integrations.view_connection(db, auth.access, connection_id))
 
@@ -186,7 +186,7 @@ class CheckOut(BaseModel):
 def check_connection(
     connection_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> CheckOut:
     return CheckOut(**channels.check_connection(db, auth.actor, auth.access, connection_id).__dict__)
 
@@ -201,7 +201,7 @@ def rotate_credential(
     connection_id: uuid.UUID,
     body: CredentialIn,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     integrations.set_credential(db, auth.actor, auth.access, connection_id, body.kind, body.value)
 
@@ -215,7 +215,7 @@ def update_connection(
     connection_id: uuid.UUID,
     body: ConfigIn,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConnectionOut:
     changes = body.model_dump(exclude_none=True)
     integrations.update_config(db, auth.actor, auth.access, connection_id, changes)
@@ -226,7 +226,7 @@ def update_connection(
 def disconnect(
     connection_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConnectionOut:
     integrations.disconnect(db, auth.actor, auth.access, connection_id)
     return _out(db, integrations.view_connection(db, auth.access, connection_id))
@@ -262,7 +262,7 @@ def webhook_events(
     connection_id: uuid.UUID,
     status: Literal["received", "processed", "ignored", "failed"] | None = None,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[WebhookEventOut]:
     rows = integrations.list_webhook_events(db, auth.access, connection_id, status)
     return [
@@ -284,7 +284,7 @@ def webhook_events(
 def replay_webhook(
     event_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     integrations.replay_webhook(db, auth.actor, auth.access, event_id)
 
@@ -337,7 +337,7 @@ class SyncOut(BaseModel):
 def sync_templates(
     connection_id: uuid.UUID,
     auth: AuthContext = Depends(require("integrations.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SyncOut:
     return SyncOut(**channels.sync_templates(db, auth.actor, auth.access, connection_id).__dict__)
 
@@ -346,7 +346,7 @@ def sync_templates(
 def list_templates(
     channel_account_id: uuid.UUID | None = None,
     _: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[TemplateOut]:
     return [template_out(t, channels.template_usable(t)) for t in channels.list_templates(db, channel_account_id)]
 
@@ -355,7 +355,7 @@ def list_templates(
 def approve_template(
     template_id: uuid.UUID,
     auth: AuthContext = Depends(require("messaging.templates.approve")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TemplateOut:
     template = channels.approve_template(db, auth.actor, auth.access, template_id)
     return template_out(template, channels.template_usable(template))
@@ -365,7 +365,7 @@ def approve_template(
 def retire_template(
     template_id: uuid.UUID,
     auth: AuthContext = Depends(require("messaging.templates.approve")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TemplateOut:
     template = channels.retire_template(db, auth.actor, auth.access, template_id)
     return template_out(template, channels.template_usable(template))
@@ -404,7 +404,7 @@ def _suppression_out(entry: Any) -> SuppressionOut:
 def list_suppressions(
     include_lifted: bool = Query(default=False),
     auth: AuthContext = Depends(require("messaging.suppression.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[SuppressionOut]:
     return [_suppression_out(e) for e in messaging.list_suppressions(db, auth.access, include_lifted)]
 
@@ -420,7 +420,7 @@ class SuppressionIn(BaseModel):
 def add_suppression(
     body: SuppressionIn,
     auth: AuthContext = Depends(require("messaging.suppression.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SuppressionOut:
     entry = messaging.suppress(db, auth.actor, auth.access, body.kind, body.value, body.reason, body.note)
     return _suppression_out(entry)
@@ -435,14 +435,14 @@ def lift_suppression(
     entry_id: uuid.UUID,
     body: LiftIn,
     auth: AuthContext = Depends(require("messaging.suppression.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SuppressionOut:
     return _suppression_out(messaging.lift_suppression(db, auth.actor, auth.access, entry_id, body.reason))
 
 
 @router.get("/messaging/channel-accounts", response_model=list[ChannelAccountOut])
 def channel_accounts(
-    _: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[ChannelAccountOut]:
     rows = [_channel_out(db, a) for a in channels.list_channel_accounts(db)]
     return [r for r in rows if r is not None]

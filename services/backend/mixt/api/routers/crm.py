@@ -295,7 +295,7 @@ def list_accounts(
     before_id: uuid.UUID | None = None,
     limit: int = 50,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[AccountOut]:
     rows = crm.list_accounts(db, auth.access, search, lifecycle_stage, owner_user_id, before_id, limit)
     return [AccountOut.model_validate(a) for a in rows]
@@ -306,7 +306,7 @@ def create_account(
     body: AccountCreateIn,
     response: Response,
     auth: AuthContext = Depends(require("crm.accounts.create")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AccountOut:
     account = crm.create_account(
         db,
@@ -330,7 +330,7 @@ def get_account(
     account_id: uuid.UUID,
     response: Response,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AccountOut:
     account = crm.get_account(db, auth.access, account_id)
     _etag(response, account.version)
@@ -344,7 +344,7 @@ def update_account(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AccountOut:
     account = crm.update_account(db, auth.actor, auth.access, account_id, version, body.model_dump(exclude_unset=True))
     _etag(response, account.version)
@@ -358,7 +358,7 @@ def confirm_market(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.market.confirm")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AccountOut:
     account = crm.confirm_market(db, auth.actor, auth.access, account_id, body.market_id, body.note, version)
     _etag(response, account.version)
@@ -370,7 +370,9 @@ def confirm_market(
 
 @router.get("/accounts/{account_id}/contacts", response_model=list[ContactOut])
 def list_contacts(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[ContactOut]:
     return [ContactOut.model_validate(c) for c in crm.list_contacts(db, auth.access, account_id)]
 
@@ -380,7 +382,7 @@ def add_contact(
     account_id: uuid.UUID,
     body: ContactIn,
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ContactOut:
     return ContactOut.model_validate(crm.add_contact(db, auth.actor, auth.access, account_id, body.model_dump()))
 
@@ -392,7 +394,7 @@ def update_contact(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ContactOut:
     contact = crm.update_contact(db, auth.actor, auth.access, contact_id, version, body.model_dump(exclude_unset=True))
     _etag(response, contact.version)
@@ -401,7 +403,9 @@ def update_contact(
 
 @router.get("/contacts/{contact_id}/contact-points", response_model=list[ContactPointOut])
 def list_contact_points(
-    contact_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    contact_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[ContactPointOut]:
     return [ContactPointOut.model_validate(p) for p in crm.list_contact_points(db, auth.access, contact_id)]
 
@@ -411,7 +415,7 @@ def add_contact_point(
     contact_id: uuid.UUID,
     body: ContactPointIn,
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ContactPointCreatedOut:
     added = crm.add_contact_point(db, auth.actor, auth.access, contact_id, body.kind, body.value, body.is_primary)
     base = ContactPointOut.model_validate(added.contact_point)
@@ -420,7 +424,9 @@ def add_contact_point(
 
 @router.get("/contacts/{contact_id}/consents", response_model=ConsentsOut)
 def consents(
-    contact_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    contact_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConsentsOut:
     return ConsentsOut(
         current=[ConsentOut.model_validate(c) for c in crm.current_consents(db, auth.access, contact_id)],
@@ -433,7 +439,7 @@ def record_consent(
     contact_id: uuid.UUID,
     body: ConsentIn,
     auth: AuthContext = Depends(require("crm.consents.record")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConsentOut:
     consent = crm.record_consent(
         db,
@@ -455,7 +461,9 @@ def record_consent(
 
 @router.get("/accounts/{account_id}/students", response_model=list[StudentOut])
 def list_students(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[StudentOut]:
     return [_student_out(v) for v in crm.list_students(db, auth.access, account_id)]
 
@@ -465,7 +473,7 @@ def create_student(
     account_id: uuid.UUID,
     body: StudentIn,
     auth: AuthContext = Depends(require("crm.students.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> StudentOut:
     data = body.model_dump(exclude_unset=True)
     return _student_out(crm.create_student(db, auth.actor, auth.access, account_id, data))
@@ -476,7 +484,7 @@ def get_student(
     student_id: uuid.UUID,
     response: Response,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> StudentOut:
     view = crm.view_student(db, auth.access, student_id)
     _etag(response, view.student.version)
@@ -490,7 +498,7 @@ def update_student(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.students.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> StudentOut:
     view = crm.update_student(db, auth.actor, auth.access, student_id, version, body.model_dump(exclude_unset=True))
     _etag(response, view.student.version)
@@ -502,7 +510,7 @@ def add_subject(
     student_id: uuid.UUID,
     body: SubjectIn,
     auth: AuthContext = Depends(require("crm.students.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SubjectOut:
     return SubjectOut.model_validate(
         crm.add_student_subject(db, auth.actor, auth.access, student_id, body.model_dump())
@@ -514,7 +522,7 @@ def add_exam(
     student_id: uuid.UUID,
     body: ExamIn,
     auth: AuthContext = Depends(require("crm.students.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ExamOut:
     return ExamOut.model_validate(crm.add_student_exam(db, auth.actor, auth.access, student_id, body.model_dump()))
 
@@ -552,7 +560,9 @@ def _prefs_out(pref: Any) -> SchedulingPreferencesOut:
 
 @router.get("/students/{student_id}/scheduling-preferences", response_model=SchedulingPreferencesOut | None)
 def get_preferences(
-    student_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    student_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SchedulingPreferencesOut | None:
     pref = crm.get_scheduling_preferences(db, auth.access, student_id)
     return _prefs_out(pref) if pref else None
@@ -563,7 +573,7 @@ def set_preferences(
     student_id: uuid.UUID,
     body: SchedulingPreferencesIn,
     auth: AuthContext = Depends(require("crm.students.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SchedulingPreferencesOut:
     data = body.model_dump()
     if data["lessons_per_week"] is not None:

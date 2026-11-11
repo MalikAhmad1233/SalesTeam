@@ -65,7 +65,14 @@ def _sessionmaker_for(url: str) -> sessionmaker[Session]:
 
 
 def get_session() -> Iterator[Session]:
-    """FastAPI dependency: one transaction per request, committed on success."""
+    """FastAPI dependency: one transaction per request, committed on success.
+
+    Always declare it as ``Depends(get_session, scope="function")``: the transaction then commits
+    when the endpoint returns, *before* the response is sent. With the default ("request") scope
+    the commit would run after the response, so a client could act on a success that is not
+    saved yet (its next read, served by another worker, would still see the old data), and a
+    failed commit would follow a success response. tests/test_session_scope.py enforces this.
+    """
     session = _sessionmaker_for(get_config().database_url)()
     try:
         yield session

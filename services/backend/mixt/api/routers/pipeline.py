@@ -114,7 +114,7 @@ def _out(view: pipeline.OpportunityView) -> OpportunityOut:
 
 @router.get("/stages", response_model=list[StageOut])
 def stages(
-    _: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[StageOut]:
     return [
         StageOut(key=s.key, name=s.name, type=s.type, sla_hours=s.sla_hours, requires=list(s.requires))
@@ -131,7 +131,7 @@ def list_opportunities(
     before_id: uuid.UUID | None = None,
     limit: int = 50,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[OpportunityOut]:
     views = pipeline.list_opportunities(db, auth.access, stage, owner_user_id, account_id, open_only, before_id, limit)
     return [_out(v) for v in views]
@@ -142,7 +142,7 @@ def create(
     body: OpportunityIn,
     response: Response,
     auth: AuthContext = Depends(require("crm.opportunities.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> OpportunityOut:
     view = pipeline.create_opportunity(
         db,
@@ -164,7 +164,7 @@ def get(
     opportunity_id: uuid.UUID,
     response: Response,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> OpportunityOut:
     view = pipeline.get_opportunity(db, auth.access, opportunity_id)
     response.headers["ETag"] = f'"{view.opportunity.version}"'
@@ -178,7 +178,7 @@ def update(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.opportunities.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> OpportunityOut:
     view = pipeline.update_opportunity(
         db, auth.actor, auth.access, opportunity_id, version, body.model_dump(exclude_unset=True)
@@ -194,7 +194,7 @@ def move(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.opportunities.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> OpportunityOut:
     view = pipeline.move_stage(
         db,
@@ -216,6 +216,6 @@ def move(
 def history(
     opportunity_id: uuid.UUID,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[HistoryOut]:
     return [HistoryOut.model_validate(h) for h in pipeline.stage_history(db, auth.access, opportunity_id)]

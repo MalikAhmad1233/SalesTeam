@@ -76,13 +76,17 @@ class CurriculumIn(BaseModel):
 
 
 @router.get("/markets", response_model=list[MarketOut])
-def markets(_: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session)) -> list[MarketOut]:
+def markets(
+    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session, scope="function")
+) -> list[MarketOut]:
     return [MarketOut.model_validate(m) for m in reference.list_markets(db)]
 
 
 @router.post("/markets", response_model=MarketOut, status_code=201)
 def create_market(
-    body: MarketIn, auth: AuthContext = Depends(require("reference.markets.manage")), db: Session = Depends(get_session)
+    body: MarketIn,
+    auth: AuthContext = Depends(require("reference.markets.manage")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MarketOut:
     market = reference.create_market(
         db, auth.actor, auth.access, body.country_code, body.name, body.default_timezone, body.decision_ref, body.status
@@ -92,28 +96,28 @@ def create_market(
 
 @router.get("/countries", response_model=list[CountryOut])
 def countries(
-    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[CountryOut]:
     return [CountryOut.model_validate(c) for c in reference.list_countries(db)]
 
 
 @router.get("/currencies", response_model=list[CurrencyOut])
 def currencies(
-    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[CurrencyOut]:
     return [CurrencyOut.model_validate(c) for c in reference.list_currencies(db)]
 
 
 @router.get("/languages", response_model=list[LanguageOut])
 def languages(
-    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[LanguageOut]:
     return [LanguageOut.model_validate(lang) for lang in reference.list_languages(db)]
 
 
 @router.get("/curricula", response_model=list[CurriculumOut])
 def curricula(
-    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("reference.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[CurriculumOut]:
     return [
         CurriculumOut(
@@ -132,7 +136,7 @@ def curricula(
 def add_curriculum(
     body: CurriculumIn,
     auth: AuthContext = Depends(require("reference.curricula.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> CurriculumOut:
     c = reference.add_curriculum(db, auth.actor, auth.access, body.code, body.name, body.decision_ref)
     return CurriculumOut(

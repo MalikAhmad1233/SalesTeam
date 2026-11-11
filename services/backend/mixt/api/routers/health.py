@@ -22,7 +22,7 @@ def liveness() -> dict[str, str]:
 
 
 @router.get("/health/ready", response_model=None)
-def readiness(db: Session = Depends(get_session)) -> dict[str, str] | JSONResponse:
+def readiness(db: Session = Depends(get_session, scope="function")) -> dict[str, str] | JSONResponse:
     db.execute(text("SELECT 1"))
     checks = {"database": "ok"}
     head = schema.expected_head()

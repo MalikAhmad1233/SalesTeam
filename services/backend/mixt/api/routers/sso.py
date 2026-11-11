@@ -39,7 +39,7 @@ def _clear_flow_cookie(response: RedirectResponse) -> None:
 
 
 @router.get("", response_model=SsoInfoOut)
-def sso_info(db: Session = Depends(get_session)) -> SsoInfoOut:
+def sso_info(db: Session = Depends(get_session, scope="function")) -> SsoInfoOut:
     found = sso.info(db)
     provider: Literal["google", "microsoft"] | None = None
     if found.provider == "google":
@@ -50,7 +50,9 @@ def sso_info(db: Session = Depends(get_session)) -> SsoInfoOut:
 
 
 @router.get("/start", response_class=RedirectResponse, status_code=302)
-def sso_start(request: Request, next: str | None = None, db: Session = Depends(get_session)) -> RedirectResponse:
+def sso_start(
+    request: Request, next: str | None = None, db: Session = Depends(get_session, scope="function")
+) -> RedirectResponse:
     if not throttle.check("sso_per_ip", client_ip(request)).allowed:
         return _to_login("rate_limited")
     try:
@@ -77,7 +79,7 @@ def sso_callback(
     state: str | None = None,
     code: str | None = None,
     error: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> RedirectResponse:
     ip = client_ip(request)
     if not throttle.check("sso_per_ip", ip).allowed:

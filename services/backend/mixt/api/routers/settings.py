@@ -70,21 +70,21 @@ def _out(s: EffectiveSetting) -> SettingOut:
 
 @router.get("", response_model=list[SettingOut])
 def list_settings(
-    _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[SettingOut]:
     return [_out(s) for s in settings.list_effective(db)]
 
 
 @router.get("/outstanding", response_model=list[SettingOut])
 def outstanding(
-    _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[SettingOut]:
     return [_out(s) for s in settings.outstanding(db)]
 
 
 @router.get("/{key}", response_model=SettingDetailOut)
 def get_setting(
-    key: str, _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session)
+    key: str, _: AuthContext = Depends(require("settings.read")), db: Session = Depends(get_session, scope="function")
 ) -> SettingDetailOut:
     base = _out(settings.get(db, key))
     overrides = [
@@ -106,7 +106,7 @@ def change_setting(
     key: str,
     body: SettingChangeIn,
     auth: AuthContext = Depends(require("settings.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SettingOut:
     result = settings.change(
         db,

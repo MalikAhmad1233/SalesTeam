@@ -151,18 +151,24 @@ def _import_out(batch: LeadImportBatch) -> ImportOut:
 
 
 @router.get("/leads/sources", response_model=list[SourceOut])
-def sources(_: AuthContext = Depends(require("leads.read")), db: Session = Depends(get_session)) -> list[SourceOut]:
+def sources(
+    _: AuthContext = Depends(require("leads.read")), db: Session = Depends(get_session, scope="function")
+) -> list[SourceOut]:
     return [SourceOut.model_validate(s) for s in leads.list_sources(db)]
 
 
 @router.get("/leads/campaigns", response_model=list[CampaignOut])
-def campaigns(_: AuthContext = Depends(require("leads.read")), db: Session = Depends(get_session)) -> list[CampaignOut]:
+def campaigns(
+    _: AuthContext = Depends(require("leads.read")), db: Session = Depends(get_session, scope="function")
+) -> list[CampaignOut]:
     return [CampaignOut.model_validate(c) for c in leads.list_campaigns(db)]
 
 
 @router.post("/leads/campaigns", response_model=CampaignOut, status_code=201)
 def create_campaign(
-    body: CampaignIn, auth: AuthContext = Depends(require("leads.campaigns.manage")), db: Session = Depends(get_session)
+    body: CampaignIn,
+    auth: AuthContext = Depends(require("leads.campaigns.manage")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> CampaignOut:
     campaign = leads.create_campaign(db, auth.actor, auth.access, body.source, body.name, body.market_id)
     return CampaignOut.model_validate(campaign)
@@ -170,7 +176,9 @@ def create_campaign(
 
 @router.post("/leads", response_model=IntakeOut, status_code=201)
 def create_lead(
-    body: LeadIn, auth: AuthContext = Depends(require("leads.create")), db: Session = Depends(get_session)
+    body: LeadIn,
+    auth: AuthContext = Depends(require("leads.create")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> IntakeOut:
     data = leads.LeadInput(
         source_code=body.source,
@@ -205,7 +213,7 @@ def list_leads(
     before_id: uuid.UUID | None = None,
     limit: int = 50,
     auth: AuthContext = Depends(require("leads.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[LeadOut]:
     rows = leads.list_leads(db, auth.access, status, source, campaign_id, before_id, limit)
     return [LeadOut(**_lead_out(db, auth, lead)) for lead in rows]
@@ -213,7 +221,9 @@ def list_leads(
 
 @router.get("/leads/{lead_id}", response_model=LeadOut)
 def get_lead(
-    lead_id: uuid.UUID, auth: AuthContext = Depends(require("leads.read")), db: Session = Depends(get_session)
+    lead_id: uuid.UUID,
+    auth: AuthContext = Depends(require("leads.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> LeadOut:
     return LeadOut(**_lead_out(db, auth, leads.get_lead(db, auth.access, lead_id)))
 
@@ -223,7 +233,7 @@ def review_lead(
     lead_id: uuid.UUID,
     body: ReviewIn,
     auth: AuthContext = Depends(require("leads.review")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> LeadOut:
     lead = leads.review_lead(db, auth.actor, auth.access, lead_id, body.decision, body.note)
     return LeadOut(**_lead_out(db, auth, lead))
@@ -235,7 +245,7 @@ def upload_import(
     default_owner_user_id: uuid.UUID | None = Form(default=None),
     campaign_id: uuid.UUID | None = Form(default=None),
     auth: AuthContext = Depends(require("leads.import")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ImportOut:
     # A plain (threaded) handler: the import does synchronous database work, which must not block
     # the event loop that serves everyone else's requests.
@@ -251,28 +261,36 @@ def upload_import(
 
 @router.get("/leads/imports/{batch_id}", response_model=ImportOut)
 def get_import(
-    batch_id: uuid.UUID, auth: AuthContext = Depends(require("leads.import")), db: Session = Depends(get_session)
+    batch_id: uuid.UUID,
+    auth: AuthContext = Depends(require("leads.import")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ImportOut:
     return _import_out(leads.get_import(db, auth.access, batch_id))
 
 
 @router.post("/leads/imports/{batch_id}/commit", response_model=ImportOut)
 def commit_import(
-    batch_id: uuid.UUID, auth: AuthContext = Depends(require("leads.import")), db: Session = Depends(get_session)
+    batch_id: uuid.UUID,
+    auth: AuthContext = Depends(require("leads.import")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ImportOut:
     return _import_out(leads.commit_import(db, auth.actor, auth.access, batch_id))
 
 
 @router.post("/leads/imports/{batch_id}/discard", response_model=ImportOut)
 def discard_import(
-    batch_id: uuid.UUID, auth: AuthContext = Depends(require("leads.import")), db: Session = Depends(get_session)
+    batch_id: uuid.UUID,
+    auth: AuthContext = Depends(require("leads.import")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ImportOut:
     return _import_out(leads.discard_import(db, auth.actor, auth.access, batch_id))
 
 
 @router.get("/crm/duplicates", response_model=list[DuplicateOut])
 def duplicates(
-    status: str = "open", auth: AuthContext = Depends(require("crm.accounts.merge")), db: Session = Depends(get_session)
+    status: str = "open",
+    auth: AuthContext = Depends(require("crm.accounts.merge")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[DuplicateOut]:
     return [DuplicateOut.model_validate(d) for d in leads.list_duplicates(db, auth.access, status)]
 
@@ -281,14 +299,16 @@ def duplicates(
 def dismiss(
     candidate_id: uuid.UUID,
     auth: AuthContext = Depends(require("crm.accounts.merge")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> DuplicateOut:
     return DuplicateOut.model_validate(leads.dismiss_duplicate(db, auth.actor, auth.access, candidate_id))
 
 
 @router.post("/crm/merges", response_model=MergeOut, status_code=201)
 def merge(
-    body: MergeIn, auth: AuthContext = Depends(require("crm.accounts.merge")), db: Session = Depends(get_session)
+    body: MergeIn,
+    auth: AuthContext = Depends(require("crm.accounts.merge")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MergeOut:
     record = leads.merge_accounts(db, auth.actor, auth.access, body.survivor_account_id, body.merged_account_id)
     return MergeOut(

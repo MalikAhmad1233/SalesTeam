@@ -411,7 +411,7 @@ def _parse_major(value: str, currency_code: str, minor_units: int) -> int:
 
 @router.get("/pricing/status", response_model=PricingStatusOut)
 def pricing_status(
-    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session, scope="function")
 ) -> PricingStatusOut:
     books = pricing.list_books(db, auth.access)
     per_market: dict[uuid.UUID, MarketPricingOut] = {
@@ -434,14 +434,16 @@ def pricing_status(
 
 @router.get("/pricing/books", response_model=list[BookOut])
 def list_books(
-    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[BookOut]:
     return [_book(v) for v in pricing.list_books(db, auth.access)]
 
 
 @router.get("/pricing/books/{book_id}", response_model=BookDetailOut)
 def get_book(
-    book_id: uuid.UUID, auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    book_id: uuid.UUID,
+    auth: AuthContext = Depends(require("pricing.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> BookDetailOut:
     view = pricing.get_book(db, auth.access, book_id)
     return BookDetailOut(**_book(view).model_dump(), versions=[_summary(v) for v in view.versions])
@@ -449,14 +451,16 @@ def get_book(
 
 @router.get("/pricing/versions/{version_id}", response_model=VersionDetailOut)
 def get_version(
-    version_id: uuid.UUID, auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    auth: AuthContext = Depends(require("pricing.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.view_version(db, auth.access, version_id))
 
 
 @router.get("/pricing/benefit-definitions", response_model=list[BenefitDefinitionOut])
 def benefit_definitions(
-    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[BenefitDefinitionOut]:
     return [
         BenefitDefinitionOut(
@@ -474,7 +478,7 @@ def confirm_figures(
     version_id: uuid.UUID,
     body: ConfirmFiguresIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.confirm_figures(db, auth.actor, auth.access, version_id, body.decision_ref, body.note))
 
@@ -484,14 +488,17 @@ def confirm_unit(
     version_id: uuid.UUID,
     body: DecisionIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.confirm_unit_definition(db, auth.actor, auth.access, version_id, body.decision_ref))
 
 
 @router.post("/pricing/versions/{version_id}/tax", response_model=VersionDetailOut)
 def set_tax(
-    version_id: uuid.UUID, body: TaxIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    body: TaxIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(
         db, pricing.set_tax_treatment(db, auth.actor, auth.access, version_id, body.treatment, body.decision_ref)
@@ -500,42 +507,57 @@ def set_tax(
 
 @router.post("/pricing/versions/{version_id}/submit", response_model=VersionDetailOut)
 def submit(
-    version_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.submit(db, auth.actor, auth.access, version_id))
 
 
 @router.post("/pricing/versions/{version_id}/approve", response_model=VersionDetailOut)
 def approve(
-    version_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.approve(db, auth.actor, auth.access, version_id))
 
 
 @router.post("/pricing/versions/{version_id}/return", response_model=VersionDetailOut)
 def return_to_draft(
-    version_id: uuid.UUID, body: ReasonIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    body: ReasonIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.return_to_draft(db, auth.actor, auth.access, version_id, body.reason))
 
 
 @router.post("/pricing/versions/{version_id}/reject", response_model=VersionDetailOut)
 def reject(
-    version_id: uuid.UUID, body: ReasonIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    body: ReasonIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.reject(db, auth.actor, auth.access, version_id, body.reason))
 
 
 @router.post("/pricing/versions/{version_id}/activate", response_model=VersionDetailOut)
 def activate(
-    version_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.activate(db, auth.actor, auth.access, version_id))
 
 
 @router.post("/pricing/versions/{version_id}/retire", response_model=VersionDetailOut)
 def retire(
-    version_id: uuid.UUID, body: ReasonIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    version_id: uuid.UUID,
+    body: ReasonIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> VersionDetailOut:
     return _version(db, pricing.retire(db, auth.actor, auth.access, version_id, body.reason))
 
@@ -545,7 +567,7 @@ def create_correction(
     version_id: uuid.UUID,
     body: CorrectionIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> CorrectionOut:
     original = pricing.view_version(db, auth.access, version_id)
     currency = reference.currency(db, original.book.currency_code)
@@ -576,7 +598,10 @@ def create_correction(
 
 @router.post("/pricing/books/{book_id}/assignments", response_model=AssignmentOut, status_code=201)
 def assign_market(
-    book_id: uuid.UUID, body: AssignIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    book_id: uuid.UUID,
+    body: AssignIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AssignmentOut:
     row = pricing.assign_market(db, auth.actor, auth.access, book_id, body.market_id, body.decision_ref, body.note)
     market = reference.require_market(db, row.market_id)
@@ -604,7 +629,7 @@ def revoke_assignment(
     assignment_id: uuid.UUID,
     body: ReasonIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AssignmentOut:
     row = pricing.revoke_assignment(db, auth.actor, auth.access, assignment_id, body.reason)
     market = reference.require_market(db, row.market_id)
@@ -616,7 +641,7 @@ def confirm_relationship(
     assignment_id: uuid.UUID,
     body: DecisionIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AssignmentOut:
     row = pricing.confirm_relationship(db, auth.actor, auth.access, assignment_id, body.decision_ref)
     market = reference.require_market(db, row.market_id)
@@ -625,7 +650,9 @@ def confirm_relationship(
 
 @router.post("/pricing/benefits/{benefit_id}/approve", status_code=204)
 def approve_benefit(
-    benefit_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    benefit_id: uuid.UUID,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     pricing.approve_benefit(db, auth.actor, auth.access, benefit_id)
 
@@ -635,7 +662,9 @@ def approve_benefit(
 
 @router.get("/accounts/{account_id}/pricing/tiers", response_model=TierChoicesOut)
 def tier_choices(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TierChoicesOut:
     account = crm.get_account(db, auth.access, account_id)
     history = pricing.list_tier_selections(db, auth.access, account_id)
@@ -677,7 +706,7 @@ def select_tier(
     account_id: uuid.UUID,
     body: SelectTierIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TierSelectionOut:
     view = pricing.select_tier(
         db, auth.actor, auth.access, account_id, body.price_book_id, body.reason, body.opportunity_id
@@ -690,7 +719,7 @@ def revoke_tier(
     selection_id: uuid.UUID,
     body: ReasonIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TierSelectionOut:
     return _selection(pricing.revoke_tier_selection(db, auth.actor, auth.access, selection_id, body.reason))
 
@@ -702,7 +731,7 @@ def options(
     quantity: Decimal | None = None,
     opportunity_id: uuid.UUID | None = None,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> OptionsOut:
     auth.access.require_somewhere("pricing.options.read")
     account = crm.get_account(db, auth.access, account_id)

@@ -162,7 +162,7 @@ def list_conversations(
     before: datetime | None = None,
     limit: int = Query(default=50, ge=1, le=100),
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[ConversationOut]:
     rows = messaging.list_conversations(db, auth.access, view, status, q, before, limit)
     return [conversation_out(v) for v in rows]
@@ -176,7 +176,9 @@ class SummaryOut(BaseModel):
 
 
 @router.get("/inbox/summary", response_model=SummaryOut)
-def summary(auth: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session)) -> SummaryOut:
+def summary(
+    auth: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session, scope="function")
+) -> SummaryOut:
     return SummaryOut(
         unread=messaging.unread_total(db, auth.access),
         can_see_unmatched=auth.access.has_somewhere("inbox.unmatched"),
@@ -191,7 +193,9 @@ class AssigneeOut(BaseModel):
 
 
 @router.get("/inbox/assignees", response_model=list[AssigneeOut])
-def assignees(_: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session)) -> list[AssigneeOut]:
+def assignees(
+    _: AuthContext = Depends(require("inbox.read")), db: Session = Depends(get_session, scope="function")
+) -> list[AssigneeOut]:
     return [AssigneeOut(user_id=i, name=n) for i, n in identity.users_with(db, "inbox.read")]
 
 
@@ -199,7 +203,7 @@ def assignees(_: AuthContext = Depends(require("inbox.read")), db: Session = Dep
 def get_conversation(
     conversation_id: uuid.UUID,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationOut:
     return conversation_out(messaging.view_conversation(db, auth.access, conversation_id))
 
@@ -210,7 +214,7 @@ def list_messages(
     before: datetime | None = None,
     limit: int = Query(default=100, ge=1, le=200),
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[MessageOut]:
     rows = messaging.list_messages(db, auth.access, conversation_id, before, limit)
     names = messaging.sender_names(db, rows)
@@ -225,7 +229,7 @@ def _view(db: Session, auth: AuthContext, conversation_id: uuid.UUID) -> Convers
 def mark_read(
     conversation_id: uuid.UUID,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationOut:
     messaging.mark_read(db, auth.actor, auth.access, conversation_id)
     return _view(db, auth, conversation_id)
@@ -240,7 +244,7 @@ def assign(
     conversation_id: uuid.UUID,
     body: ConversationAssignIn,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationOut:
     messaging.assign(db, auth.actor, auth.access, conversation_id, body.user_id)
     return _view(db, auth, conversation_id)
@@ -255,7 +259,7 @@ def set_status(
     conversation_id: uuid.UUID,
     body: StatusIn,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationOut:
     messaging.set_status(db, auth.actor, auth.access, conversation_id, body.status)
     return _view(db, auth, conversation_id)
@@ -272,7 +276,7 @@ def link_customer(
     conversation_id: uuid.UUID,
     body: LinkIn,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationOut:
     messaging.link_customer(
         db, auth.actor, auth.access, conversation_id, body.account_id, body.contact_id, body.save_number
@@ -302,7 +306,7 @@ def create_lead(
     conversation_id: uuid.UUID,
     body: ConversationLeadIn,
     auth: AuthContext = Depends(require("inbox.unmatched")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> ConversationLeadOut:
     result = messaging.create_lead(
         db,
@@ -339,7 +343,7 @@ def add_note(
     conversation_id: uuid.UUID,
     body: ConversationNoteIn,
     auth: AuthContext = Depends(require("messaging.send")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MessageOut:
     return _one_message(db, messaging.add_note(db, auth.actor, auth.access, conversation_id, body.text))
 
@@ -366,7 +370,7 @@ def send_text(
     background: BackgroundTasks,
     idempotency_key: str | None = IdempotencyKey,
     auth: AuthContext = Depends(require("messaging.send")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MessageOut:
     queued = messaging.send_text(db, auth.actor, auth.access, conversation_id, body.text, idempotency_key, body.subject)
     return _queued(db, queued, background)
@@ -384,7 +388,7 @@ def send_template(
     background: BackgroundTasks,
     idempotency_key: str | None = IdempotencyKey,
     auth: AuthContext = Depends(require("messaging.send")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MessageOut:
     queued = messaging.send_template(
         db, auth.actor, auth.access, conversation_id, body.template_id, body.variables, idempotency_key
@@ -400,7 +404,7 @@ class TemplateOptionOut(TemplateOut):
 def template_options(
     conversation_id: uuid.UUID,
     auth: AuthContext = Depends(require("messaging.send")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[TemplateOptionOut]:
     return [
         TemplateOptionOut(**template_out(t, p).model_dump(), problem=p)
@@ -413,7 +417,7 @@ def retry(
     message_id: uuid.UUID,
     background: BackgroundTasks,
     auth: AuthContext = Depends(require("messaging.send")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> MessageOut:
     return _queued(db, messaging.retry_failed(db, auth.actor, auth.access, message_id), background)
 
@@ -422,7 +426,7 @@ def retry(
 def account_conversations(
     account_id: uuid.UUID,
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[ConversationOut]:
     return [conversation_out(v) for v in messaging.conversations_for_account(db, auth.access, account_id)]
 
@@ -438,7 +442,7 @@ def _sse(event: str, data: dict[str, Any]) -> str:
 def stream(
     max_seconds: int = Query(default=55, ge=1, le=300, description="The stream ends after this; clients reconnect"),
     auth: AuthContext = Depends(require("inbox.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     scope: SessionScope = Depends(session_scope_factory),
 ) -> StreamingResponse:
     """Server-Sent Events: ``conversation`` events name conversations that changed (refetch them)."""

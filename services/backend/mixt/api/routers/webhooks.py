@@ -37,7 +37,7 @@ def whatsapp_verify(
     mode: str | None = Query(default=None, alias="hub.mode"),
     token: str | None = Query(default=None, alias="hub.verify_token"),
     challenge: str | None = Query(default=None, alias="hub.challenge", max_length=200),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> Response:
     """Meta's subscription handshake: echo the challenge only when the verify token matches."""
     connection = _connection(db, connection_id)
@@ -75,7 +75,7 @@ async def whatsapp_receive(
     connection_id: uuid.UUID,
     request: Request,
     background: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> Response:
     decision = await run_in_threadpool(throttle.check, "webhook_per_connection", str(connection_id))
     if not decision.allowed:

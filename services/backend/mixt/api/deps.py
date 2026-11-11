@@ -62,12 +62,12 @@ def _base_auth(request: Request, db: Session) -> AuthContext:
     return AuthContext(resolved.user, resolved.session, actor, load_access(db, actor))
 
 
-def session_auth(request: Request, db: Session = Depends(get_session)) -> AuthContext:
+def session_auth(request: Request, db: Session = Depends(get_session, scope="function")) -> AuthContext:
     """Authenticated session, MFA possibly still pending (MFA and 'me' routes only)."""
     return _base_auth(request, db)
 
 
-def mfa_auth(request: Request, db: Session = Depends(get_session)) -> AuthContext:
+def mfa_auth(request: Request, db: Session = Depends(get_session, scope="function")) -> AuthContext:
     """Authenticated and MFA complete; password change may still be pending."""
     auth = _base_auth(request, db)
     if not auth.session.mfa_verified:

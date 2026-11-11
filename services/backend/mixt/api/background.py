@@ -33,8 +33,9 @@ def run_action_soon(action_id: uuid.UUID) -> None:
 def run_after_commit(db: Session, background: BackgroundTasks, action_id: uuid.UUID) -> None:
     """Commit the request's work now, then run the action once the response is sent.
 
-    The request session normally commits after the response, which is after background tasks
-    run, so without this commit the background run would not see the action yet.
+    The request session commits when the endpoint returns (``scope="function"``), which is
+    already before background tasks run; committing here as well keeps this correct even if an
+    endpoint is ever declared differently.
     """
     db.commit()
     background.add_task(run_action_soon, action_id)

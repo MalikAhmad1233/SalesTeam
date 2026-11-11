@@ -74,7 +74,7 @@ def import_template(_auth: AuthContext = Depends(require("pricing.import"))) -> 
 def upload_import(
     file: UploadFile = File(...),
     auth: AuthContext = Depends(require("pricing.import")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PricingImportOut:
     content = file.file.read(imports.MAX_BYTES + 1)
     if not content:
@@ -85,7 +85,9 @@ def upload_import(
 
 @router.get("/pricing/imports/{batch_id}", response_model=PricingImportOut)
 def get_import(
-    batch_id: uuid.UUID, auth: AuthContext = Depends(require("pricing.import")), db: Session = Depends(get_session)
+    batch_id: uuid.UUID,
+    auth: AuthContext = Depends(require("pricing.import")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PricingImportOut:
     return _import_out(*imports.get_batch(db, auth.access, batch_id))
 
@@ -95,7 +97,7 @@ def apply_import(
     batch_id: uuid.UUID,
     body: ApplyImportIn,
     auth: AuthContext = Depends(require("pricing.import")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PricingImportOut:
     imports.apply(
         db,
@@ -112,7 +114,9 @@ def apply_import(
 
 @router.post("/pricing/imports/{batch_id}/discard", response_model=PricingImportOut)
 def discard_import(
-    batch_id: uuid.UUID, auth: AuthContext = Depends(require("pricing.import")), db: Session = Depends(get_session)
+    batch_id: uuid.UUID,
+    auth: AuthContext = Depends(require("pricing.import")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PricingImportOut:
     imports.discard(db, auth.actor, auth.access, batch_id)
     return _import_out(*imports.get_batch(db, auth.access, batch_id))
@@ -196,13 +200,15 @@ def rule_facts(_auth: AuthContext = Depends(require("pricing.read"))) -> list[Fa
 
 @router.get("/pricing/rules", response_model=list[RuleOut])
 def list_rules(
-    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[RuleOut]:
     return [_rule(r) for r in rule_service.list_rules(db, auth.access)]
 
 
 @router.post("/pricing/rules", response_model=RuleOut, status_code=201)
-def create_rule(body: RuleIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)) -> RuleOut:
+def create_rule(
+    body: RuleIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
+) -> RuleOut:
     rule = rule_service.create_rule(
         db,
         auth.actor,
@@ -222,7 +228,7 @@ def update_rule(
     rule_id: uuid.UUID,
     body: RuleUpdateIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> RuleOut:
     rule = rule_service.update_draft(
         db, auth.actor, auth.access, rule_id, body.name, body.definition, body.description, body.decision_ref
@@ -232,21 +238,24 @@ def update_rule(
 
 @router.post("/pricing/rules/{rule_id}/approve", response_model=RuleOut)
 def approve_rule(
-    rule_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    rule_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> RuleOut:
     return _rule(rule_service.approve_rule(db, auth.actor, auth.access, rule_id))
 
 
 @router.post("/pricing/rules/{rule_id}/retire", response_model=RuleOut)
 def retire_rule(
-    rule_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    rule_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> RuleOut:
     return _rule(rule_service.retire_rule(db, auth.actor, auth.access, rule_id))
 
 
 @router.post("/pricing/rules/{rule_id}/test", response_model=RuleTestOut)
 def test_rule(
-    rule_id: uuid.UUID, body: RuleTestIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    rule_id: uuid.UUID,
+    body: RuleTestIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> RuleTestOut:
     outcome = rule_service.try_rule(db, auth.access, rule_id, body.account_id)
     return RuleTestOut(
@@ -260,7 +269,10 @@ class FactsIn(BaseModel):
 
 @router.post("/pricing/rules/{rule_id}/evaluate", response_model=RuleTestOut)
 def evaluate_rule(
-    rule_id: uuid.UUID, body: FactsIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    rule_id: uuid.UUID,
+    body: FactsIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> RuleTestOut:
     outcome = rule_service.try_rule_with_facts(db, auth.access, rule_id, body.facts)
     rule = rule_service.get_rule(db, rule_id)
@@ -273,7 +285,7 @@ def attach_rule(
     assignment_id: uuid.UUID,
     body: AttachRuleIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     rule_service.attach_rule(db, auth.actor, auth.access, assignment_id, body.kind, body.rule_id)
 
@@ -335,7 +347,7 @@ def _special(view: special.SpecialView) -> SpecialOut:
 def list_special(
     account_id: uuid.UUID,
     auth: AuthContext = Depends(require("pricing.special.view")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[SpecialOut]:
     return [_special(v) for v in special.list_for_account(db, auth.access, account_id)]
 
@@ -344,7 +356,7 @@ def list_special(
 def special_books(
     account_id: uuid.UUID,
     auth: AuthContext = Depends(require("pricing.special.request")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[SpecialBookOut]:
     return [
         SpecialBookOut(id=b.id, code=b.code, name=b.name) for b in special.restricted_books(db, auth.access, account_id)
@@ -356,7 +368,7 @@ def request_special(
     account_id: uuid.UUID,
     body: SpecialRequestIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SpecialOut:
     view = special.request(
         db, auth.actor, auth.access, account_id, body.price_book_id, body.reason, body.valid_from, body.valid_to
@@ -366,7 +378,9 @@ def request_special(
 
 @router.post("/pricing/special/{assignment_id}/approve", response_model=SpecialOut)
 def approve_special(
-    assignment_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    assignment_id: uuid.UUID,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SpecialOut:
     return _special(special.approve(db, auth.actor, auth.access, assignment_id))
 
@@ -377,7 +391,7 @@ def close_special(
     action: Literal["reject", "revoke"],
     body: CloseIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SpecialOut:
     return _special(special.close(db, auth.actor, auth.access, assignment_id, action, body.reason))
 
@@ -455,14 +469,14 @@ def _promotion(db: Session, row: promotions.PromotionRow) -> PromotionOut:
 
 @router.get("/pricing/promotions", response_model=list[PromotionOut])
 def list_promotions(
-    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(require("pricing.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[PromotionOut]:
     return [_promotion(db, p) for p in promotions.list_promotions(db, auth.access)]
 
 
 @router.post("/pricing/promotions", response_model=PromotionOut, status_code=201)
 def create_promotion(
-    body: PromotionIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    body: PromotionIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> PromotionOut:
     row = promotions.create(
         db,
@@ -493,7 +507,7 @@ def cancel_promotion(
     promotion_id: uuid.UUID,
     body: CloseIn,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PromotionOut:
     return _promotion(db, promotions.cancel(db, auth.actor, auth.access, promotion_id, body.reason))
 
@@ -503,7 +517,7 @@ def promotion_action(
     promotion_id: uuid.UUID,
     action: Literal["submit", "approve", "activate"],
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> PromotionOut:
     handler = {"submit": promotions.submit, "approve": promotions.approve, "activate": promotions.activate}[action]
     return _promotion(db, handler(db, auth.actor, auth.access, promotion_id))

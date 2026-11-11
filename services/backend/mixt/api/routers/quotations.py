@@ -224,21 +224,23 @@ def _out(db: Session, view: quotations.QuoteView) -> QuotationOut:
 
 @router.get("/quotations/approvals", response_model=list[QuotationSummaryOut])
 def approval_inbox(
-    auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> list[QuotationSummaryOut]:
     return [_summary(db, q) for q in quotations.approval_inbox(db, auth.access)]
 
 
 @router.get("/accounts/{account_id}/quotations", response_model=list[QuotationSummaryOut])
 def list_for_account(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("quotations.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("quotations.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[QuotationSummaryOut]:
     return [_summary(db, q) for q in quotations.list_for_account(db, auth.access, account_id)]
 
 
 @router.post("/quotations", response_model=QuotationOut, status_code=201)
 def create(
-    body: CreateIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    body: CreateIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> QuotationOut:
     return _out(
         db, quotations.create(db, auth.actor, auth.access, body.account_id, body.opportunity_id, body.customer_note)
@@ -247,14 +249,17 @@ def create(
 
 @router.get("/quotations/{quote_id}", response_model=QuotationOut)
 def get(
-    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> QuotationOut:
     return _out(db, quotations.get(db, auth.access, quote_id))
 
 
 @router.patch("/quotations/{quote_id}", response_model=QuotationOut)
 def update(
-    quote_id: uuid.UUID, body: UpdateIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: UpdateIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     view = quotations.update_draft(
         db,
@@ -271,7 +276,10 @@ def update(
 
 @router.post("/quotations/{quote_id}/lines", response_model=QuotationOut, status_code=201)
 def add_line(
-    quote_id: uuid.UUID, body: LineIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: LineIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     view = quotations.add_line(
         db,
@@ -291,21 +299,24 @@ def remove_line(
     quote_id: uuid.UUID,
     line_id: uuid.UUID,
     auth: AuthContext = Depends(current_auth),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     return _out(db, quotations.remove_line(db, auth.actor, auth.access, quote_id, line_id))
 
 
 @router.post("/quotations/{quote_id}/submit", response_model=QuotationOut)
 def submit(
-    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> QuotationOut:
     return _out(db, quotations.submit(db, auth.actor, auth.access, quote_id))
 
 
 @router.post("/quotations/{quote_id}/approve", response_model=QuotationOut)
 def approve(
-    quote_id: uuid.UUID, body: ApproveIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: ApproveIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     view = quotations.approve(
         db, auth.actor, auth.access, quote_id, body.capacity, valid_until=body.valid_until, comment=body.comment
@@ -315,21 +326,30 @@ def approve(
 
 @router.post("/quotations/{quote_id}/send-back", response_model=QuotationOut)
 def send_back(
-    quote_id: uuid.UUID, body: ReasonIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: ReasonIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     return _out(db, quotations.send_back(db, auth.actor, auth.access, quote_id, body.reason))
 
 
 @router.post("/quotations/{quote_id}/issue", response_model=QuotationOut)
 def issue(
-    quote_id: uuid.UUID, body: IssueIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: IssueIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     return _out(db, quotations.issue(db, auth.actor, auth.access, quote_id, body.contact_id))
 
 
 @router.post("/quotations/{quote_id}/outcome", response_model=QuotationOut)
 def outcome(
-    quote_id: uuid.UUID, body: OutcomeIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: OutcomeIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     view = quotations.record_outcome(
         db,
@@ -345,14 +365,17 @@ def outcome(
 
 @router.post("/quotations/{quote_id}/cancel", response_model=QuotationOut)
 def cancel(
-    quote_id: uuid.UUID, body: ReasonIn, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID,
+    body: ReasonIn,
+    auth: AuthContext = Depends(current_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> QuotationOut:
     return _out(db, quotations.cancel(db, auth.actor, auth.access, quote_id, body.reason))
 
 
 @router.post("/quotations/{quote_id}/revise", response_model=RevisionOut, status_code=201)
 def revise(
-    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> RevisionOut:
     view, dropped = quotations.revise(db, auth.actor, auth.access, quote_id)
     return RevisionOut(quotation=_out(db, view), dropped=dropped)
@@ -360,7 +383,7 @@ def revise(
 
 @router.get("/quotations/{quote_id}/pdf", response_class=Response)
 def quotation_pdf(
-    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session)
+    quote_id: uuid.UUID, auth: AuthContext = Depends(current_auth), db: Session = Depends(get_session, scope="function")
 ) -> Response:
     view = quotations.get(db, auth.access, quote_id)
     q = view.quote

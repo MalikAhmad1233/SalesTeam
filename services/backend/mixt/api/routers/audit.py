@@ -47,13 +47,15 @@ def list_entries(
     before_id: int | None = None,
     limit: int = 50,
     _: AuthContext = Depends(require("audit.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[AuditEntryOut]:
     return [AuditEntryOut.model_validate(e) for e in audit.list_entries(db, entity_type, entity_id, before_id, limit)]
 
 
 @router.post("/verify", response_model=VerificationOut)
-def verify(_: AuthContext = Depends(require("audit.verify")), db: Session = Depends(get_session)) -> VerificationOut:
+def verify(
+    _: AuthContext = Depends(require("audit.verify")), db: Session = Depends(get_session, scope="function")
+) -> VerificationOut:
     result = audit.verify_chain(db)
     return VerificationOut(
         ok=result.ok,

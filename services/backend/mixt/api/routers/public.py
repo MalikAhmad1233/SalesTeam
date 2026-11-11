@@ -69,7 +69,7 @@ def _cors(request: Request, response: Response, db: Session) -> bool:
 
 
 @router.options("/enquiries", include_in_schema=False)
-def enquiry_preflight(request: Request, db: Session = Depends(get_session)) -> Response:
+def enquiry_preflight(request: Request, db: Session = Depends(get_session, scope="function")) -> Response:
     response = Response(status_code=204)
     if not _cors(request, response, db):
         return Response(status_code=403)
@@ -78,7 +78,7 @@ def enquiry_preflight(request: Request, db: Session = Depends(get_session)) -> R
 
 @router.post("/enquiries", response_model=EnquiryOut, status_code=202)
 def submit_enquiry(
-    body: EnquiryIn, request: Request, response: Response, db: Session = Depends(get_session)
+    body: EnquiryIn, request: Request, response: Response, db: Session = Depends(get_session, scope="function")
 ) -> EnquiryOut:
     if not _cors(request, response, db):
         response.status_code = 403

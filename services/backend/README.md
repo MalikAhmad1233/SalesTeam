@@ -89,4 +89,5 @@ See the [operations runbook](../../docs/14-operations-runbook.md). In short:
 - `MIXT_REDIS_URL` is required in staging and production (shared rate limits). Put the TLS proxy's address in `MIXT_TRUSTED_PROXIES`.
 - `MIXT_ENCRYPTION_KEYS` must come from a secrets manager. Rotate by adding a key and switching `MIXT_ACTIVE_ENCRYPTION_KEY_ID`; old ciphertexts stay readable.
 - Production with real customer data is blocked until the hosting region is decided (Q-CMP-02, setting `infra.region`).
+- Each request runs in one transaction that commits **before** the response is sent: declare the session as `Depends(get_session, scope="function")` (FastAPI's default scope would commit after the response, so a client could see a success that is not saved yet). `tests/test_session_scope.py` enforces it.
 - The audit hash chain serialises audit writes with a database advisory lock held until commit. That is fine at Mixt's expected volume; if write volume grows a lot, move chaining to a background job.

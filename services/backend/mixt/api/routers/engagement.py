@@ -128,7 +128,7 @@ def list_tasks(
     due_before: datetime | None = None,
     limit: int = 100,
     auth: AuthContext = Depends(require("crm.tasks.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[TaskOut]:
     tasks = engagement.list_tasks(db, auth.access, assignee, status, account_id, opportunity_id, due_before, limit)
     return [TaskOut.model_validate(t) for t in tasks]
@@ -136,7 +136,9 @@ def list_tasks(
 
 @router.post("/tasks", response_model=TaskOut, status_code=201)
 def create_task(
-    body: TaskIn, auth: AuthContext = Depends(require("crm.tasks.manage")), db: Session = Depends(get_session)
+    body: TaskIn,
+    auth: AuthContext = Depends(require("crm.tasks.manage")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TaskOut:
     data: dict[str, Any] = body.model_dump(exclude_unset=True)
     data.setdefault("title", body.title)
@@ -148,7 +150,7 @@ def get_task(
     task_id: uuid.UUID,
     response: Response,
     auth: AuthContext = Depends(require("crm.tasks.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TaskOut:
     task = engagement.get_task(db, auth.access, task_id)
     response.headers["ETag"] = f'"{task.version}"'
@@ -162,7 +164,7 @@ def update_task(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.tasks.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TaskOut:
     task = engagement.update_task(db, auth.actor, auth.access, task_id, version, body.model_dump(exclude_unset=True))
     response.headers["ETag"] = f'"{task.version}"'
@@ -176,7 +178,7 @@ def transition(
     response: Response,
     version: int = Depends(if_match_version),
     auth: AuthContext = Depends(require("crm.tasks.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TaskOut:
     task = engagement.transition_task(db, auth.actor, auth.access, task_id, version, body.action, body.snooze_until)
     response.headers["ETag"] = f'"{task.version}"'
@@ -188,7 +190,9 @@ def transition(
 
 @router.get("/crm/accounts/{account_id}/notes", response_model=list[NoteOut])
 def list_notes(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[NoteOut]:
     return [NoteOut.model_validate(n) for n in engagement.list_notes(db, auth.access, account_id)]
 
@@ -198,7 +202,7 @@ def add_note(
     account_id: uuid.UUID,
     body: NoteIn,
     auth: AuthContext = Depends(require("crm.notes.write")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> NoteOut:
     note = engagement.add_note(db, auth.actor, auth.access, account_id, body.body, body.visibility, body.opportunity_id)
     return NoteOut.model_validate(note)
@@ -206,21 +210,25 @@ def add_note(
 
 @router.get("/crm/tags", response_model=list[TagOut])
 def list_tags(
-    _: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    _: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session, scope="function")
 ) -> list[TagOut]:
     return [TagOut.model_validate(t) for t in engagement.list_tags(db)]
 
 
 @router.post("/crm/tags", response_model=TagOut, status_code=201)
 def create_tag(
-    body: TagIn, auth: AuthContext = Depends(require("crm.tags.manage")), db: Session = Depends(get_session)
+    body: TagIn,
+    auth: AuthContext = Depends(require("crm.tags.manage")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> TagOut:
     return TagOut.model_validate(engagement.create_tag(db, auth.actor, auth.access, body.name, body.color))
 
 
 @router.get("/crm/accounts/{account_id}/tags", response_model=list[TagOut])
 def account_tags(
-    account_id: uuid.UUID, auth: AuthContext = Depends(require("crm.accounts.read")), db: Session = Depends(get_session)
+    account_id: uuid.UUID,
+    auth: AuthContext = Depends(require("crm.accounts.read")),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[TagOut]:
     return [TagOut.model_validate(t) for t in engagement.account_tags(db, auth.access, account_id)]
 
@@ -230,7 +238,7 @@ def tag_account(
     account_id: uuid.UUID,
     tag_id: uuid.UUID,
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     engagement.tag_account(db, auth.actor, auth.access, account_id, tag_id)
 
@@ -240,7 +248,7 @@ def untag_account(
     account_id: uuid.UUID,
     tag_id: uuid.UUID,
     auth: AuthContext = Depends(require("crm.accounts.update")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     engagement.untag_account(db, auth.actor, auth.access, account_id, tag_id)
 
@@ -251,7 +259,7 @@ def timeline(
     before: datetime | None = None,
     limit: int = 50,
     auth: AuthContext = Depends(require("crm.accounts.read")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[ActivityOut]:
     return [ActivityOut.model_validate(a) for a in engagement.timeline(db, auth.access, account_id, before, limit)]
 
@@ -263,7 +271,7 @@ def timeline(
 def dead_letters(
     include_replayed: bool = False,
     _: AuthContext = Depends(require("events.dead_letters.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> list[DeadLetterOut]:
     return [DeadLetterOut.model_validate(d) for d in events.list_dead_letters(db, include_replayed)]
 
@@ -272,6 +280,6 @@ def dead_letters(
 def replay(
     dead_letter_id: uuid.UUID,
     auth: AuthContext = Depends(require("events.dead_letters.manage")),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> None:
     events.replay_dead_letter(db, auth.actor, dead_letter_id)

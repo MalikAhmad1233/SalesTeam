@@ -98,7 +98,9 @@ def _clear_cookies(response: Response) -> None:
 
 
 @router.post("/login", response_model=SessionOut)
-def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_session)) -> SessionOut:
+def login(
+    body: LoginIn, request: Request, response: Response, db: Session = Depends(get_session, scope="function")
+) -> SessionOut:
     ip = client_ip(request)
     throttle.enforce("login_per_ip", ip)
     throttle.enforce("login_per_account", body.email.strip().lower())
@@ -117,13 +119,15 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
 
 
 @router.post("/logout", status_code=204)
-def logout(response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)) -> None:
+def logout(
+    response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session, scope="function")
+) -> None:
     identity.logout(db, auth.actor, auth.session)
     _clear_cookies(response)
 
 
 @router.get("/me", response_model=MeOut)
-def me(auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)) -> MeOut:
+def me(auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session, scope="function")) -> MeOut:
     return MeOut(
         id=auth.user.id,
         email=auth.user.email,
@@ -137,7 +141,9 @@ def me(auth: AuthContext = Depends(session_auth), db: Session = Depends(get_sess
 
 
 @router.post("/mfa/totp/setup", response_model=TotpSetupOut)
-def totp_setup(auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)) -> TotpSetupOut:
+def totp_setup(
+    auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session, scope="function")
+) -> TotpSetupOut:
     setup = identity.start_totp_enrollment(db, auth.actor, auth.user)
     return TotpSetupOut(secret=setup.secret, provisioning_uri=setup.provisioning_uri)
 
@@ -154,7 +160,10 @@ def _finish_mfa(db: Session, response: Response, auth: AuthContext, issued: Issu
 
 @router.post("/mfa/totp/confirm", response_model=SessionOut)
 def totp_confirm(
-    body: CodeIn, response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)
+    body: CodeIn,
+    response: Response,
+    auth: AuthContext = Depends(session_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SessionOut:
     throttle.enforce("mfa_per_session", str(auth.session.id))
     issued = identity.confirm_totp_enrollment(db, auth.actor, auth.user, auth.session, body.code)
@@ -163,7 +172,10 @@ def totp_confirm(
 
 @router.post("/mfa/verify", response_model=SessionOut)
 def mfa_verify(
-    body: CodeIn, response: Response, auth: AuthContext = Depends(session_auth), db: Session = Depends(get_session)
+    body: CodeIn,
+    response: Response,
+    auth: AuthContext = Depends(session_auth),
+    db: Session = Depends(get_session, scope="function"),
 ) -> SessionOut:
     throttle.enforce("mfa_per_session", str(auth.session.id))
     issued = identity.verify_mfa(db, auth.actor, auth.user, auth.session, body.code)
@@ -172,7 +184,7 @@ def mfa_verify(
 
 @router.post("/password", status_code=204)
 def change_password(
-    body: PasswordChangeIn, auth: AuthContext = Depends(mfa_auth), db: Session = Depends(get_session)
+    body: PasswordChangeIn, auth: AuthContext = Depends(mfa_auth), db: Session = Depends(get_session, scope="function")
 ) -> None:
     throttle.enforce("password_per_user", str(auth.user.id))
     identity.change_password(db, auth.actor, auth.user, auth.session, body.current_password, body.new_password)
