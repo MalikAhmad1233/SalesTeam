@@ -21,8 +21,12 @@ key32() { head -c 32 /dev/urandom | base64 | tr -d '\n'; }
 
 if command -v age-keygen >/dev/null 2>&1; then
   age-keygen -o backup-identity.txt 2>/dev/null
-else
+elif command -v docker >/dev/null 2>&1; then
   docker run --rm --entrypoint age-keygen "$(docker build -q ../backup)" > backup-identity.txt
+else
+  echo "Docker is not installed (the stack runs in Docker). Install Docker Engine with the Compose plugin," >&2
+  echo "and optionally 'age' (e.g. 'sudo apt install age'), then run this script again." >&2
+  exit 1
 fi
 chmod 600 backup-identity.txt
 recipient="$(grep -o 'age1[0-9a-z]*' backup-identity.txt | head -n 1)"
