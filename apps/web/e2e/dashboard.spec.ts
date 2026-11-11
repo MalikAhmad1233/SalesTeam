@@ -228,8 +228,13 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
 
   await test.step("tasks: add and complete", async () => {
     await page.getByRole("link", { name: "Tasks & Follow-ups" }).click();
+    // Wait until the Tasks page has loaded its list, so the form below is the Tasks form.
+    await expect(page).toHaveURL(/\/tasks$/);
+    await expect(page.getByRole("table", { name: "Tasks" }).or(page.getByText("Nothing here."))).toBeVisible();
     await page.getByLabel("Title").fill("Call Mona about the trial");
+    const saved = page.waitForResponse((r) => r.url().endsWith("/api/v1/tasks") && r.request().method() === "POST");
     await page.getByRole("button", { name: "Add task" }).click();
+    expect((await saved).status()).toBe(201);
     const row = page.getByRole("row", { name: /Call Mona about the trial/ });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "Done" }).click();
