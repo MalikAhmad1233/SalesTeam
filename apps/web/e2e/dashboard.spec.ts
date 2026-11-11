@@ -206,9 +206,10 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     runWorkerOnce(); // locally; a deployment's own worker delivers the events within seconds
     await expect(async () => {
       await page.reload();
+      // A deployment's worker delivers timeline events every few seconds, possibly in separate passes.
       await expect(page.getByText("Household created")).toBeVisible({ timeout: 2_000 });
+      await expect(page.getByText("Pricing market confirmed: United Arab Emirates")).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 30_000 });
-    await expect(page.getByText("Pricing market confirmed: United Arab Emirates")).toBeVisible();
     await shot("03-household");
   });
 
