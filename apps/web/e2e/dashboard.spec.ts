@@ -163,7 +163,9 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     const ruleDialog = page.getByRole("dialog", { name: "New pricing rule" });
     await ruleDialog.getByLabel("Code").fill("NEW-CUSTOMERS");
     await ruleDialog.getByLabel("Name").fill("New customers from the website");
+    const ruleSaved = page.waitForResponse((r) => r.url().endsWith("/api/v1/pricing/rules") && r.request().method() === "POST");
     await ruleDialog.getByRole("button", { name: "Save draft" }).click();
+    expect((await ruleSaved).status()).toBe(201);
     const row = page.getByRole("row", { name: /NEW-CUSTOMERS v1/ });
     await expect(row).toContainText("Draft");
     await row.getByRole("button", { name: "Try it" }).click();
