@@ -17,6 +17,13 @@
 > **Not built yet:** file storage for WhatsApp media and email attachments (Phase 3c), AI agents (Phase 4) and everything in later phases. A permanently hosted staging server needs a server or cloud account from Mixt. Real customer data waits for Q-CMP-01, Q-CMP-02 and Q-TECH-04.
 > A feature counts as implemented only when working code and passing tests exist for it.
 
+## Try it
+
+* **In your browser, with nothing to install:** on GitHub, click **Code**, then **Codespaces**, then **Create codespace**. The dashboard opens by itself when it's ready, and the sign-in details appear in the terminal.
+* **On your own computer:** run `infra/demo/demo.sh`, then open <http://localhost:3000>. If Docker is missing on Kali, Debian or Ubuntu, the script offers to install it.
+
+Both are demos for synthetic data only. Details are in [infra/demo/README.md](infra/demo/README.md).
+
 Mixt AI is an AI sales system being built for Mixt Academy, an international online 1:1 tutoring company.
 It will cover the whole customer journey: lead capture, qualification, AI-assisted sales conversations,
 tutor matching, trials, pricing, quotations, payments, enrolment, retention, renewals and referrals.
@@ -65,11 +72,13 @@ Claude API and OpenAI API behind interchangeable model adapters · Docker · Ale
 docs/                 architecture, decisions, open questions (start with docs/12-decision-log.md)
 apps/web/             Next.js dashboard (Phase 1c, hardened in 1d): see its README
 services/backend/     FastAPI backend (Phases 1a, 1b, 1d): see its README to run and test it
+infra/demo/           one-command demo (demo.sh), also used by GitHub Codespaces (.devcontainer/)
 infra/compose.yaml    local PostgreSQL, Redis, API and worker for development
 infra/staging/        staging stack: Caddy (TLS), API, worker, dashboard, PostgreSQL roles, Redis, backups (docs/14)
 infra/backup/         encrypted backup and restore image
 .github/workflows/    backend-ci: lint, strict types, tests on PostgreSQL 16 and 17 with Redis, dependency audit, Docker build
                       web-ci: type check, build, API-type drift check, browser end-to-end test
-                      staging-ci: full stack from the Dockerfiles, browser journey over HTTPS, smoke test, backup, restore check
+                      staging-ci: full stack from the Dockerfiles, browser journey over HTTPS, smoke test, backup, restore check;
+                                  the one-command demo started and signed in to like a person would
                       images: publishes container images to GitHub Container Registry (main branch)
 ```

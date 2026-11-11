@@ -3,11 +3,13 @@ name: staging-ci
 # Boots the complete staging stack (TLS proxy, API, worker, dashboard, PostgreSQL with separate
 # roles, Redis, encrypted backups) from the real Dockerfiles, then checks it from the outside:
 # the browser journey over HTTPS, the security smoke test, a backup and a restore check.
+# A second job starts the one-command demo (infra/demo, also used by GitHub Codespaces) exactly as a
+# person would and signs in to it.
 on:
   push:
-    paths: ["infra/**", "services/backend/**", "apps/web/**", ".github/workflows/staging-ci.yml"]
+    paths: ["infra/**", "services/backend/**", "apps/web/**", ".devcontainer/**", ".github/workflows/staging-ci.yml"]
   pull_request:
-    paths: ["infra/**", "services/backend/**", "apps/web/**", ".github/workflows/staging-ci.yml"]
+    paths: ["infra/**", "services/backend/**", "apps/web/**", ".devcontainer/**", ".github/workflows/staging-ci.yml"]
   workflow_dispatch:
 
 permissions:
@@ -84,3 +86,48 @@ jobs:
         if: always()
         working-directory: infra/staging
         run: docker compose --profile restore-check down -v
+
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the demo with one command (builds the real Dockerfiles)
+        run: infra/demo/demo.sh --yes
+      - name: Starting again keeps the data and the Owner
+        run: |
+          out="$(infra/demo/demo.sh --no-build)"
+          grep -q "Mixt AI is running" <<<"$out"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install browser test tools
+        working-directory: apps/web
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Sign in like a person (two-step verification, main pages, no browser errors)
+        working-directory: apps/web
+        run: |
+          mkdir -p demo-shots
+          node e2e/demo-check.mjs http://localhost:3000 owner@mixt-demo.example \
+            "$(sed -n 's/^MIXT_DEMO_OWNER_PASSWORD=//p' ../../infra/demo/.env)" demo-shots
+      - name: Stop, then reset
+        run: |
+          infra/demo/demo.sh stop
+          out="$(infra/demo/demo.sh info)"
+          grep -q "NOT running" <<<"$out"
+          infra/demo/demo.sh reset --yes
+          test ! -e infra/demo/.env
+      - name: Collect logs
+        if: failure()
+        run: |
+          cd infra/demo && docker compose -p mixtdemo logs --no-color --tail 150 || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: demo-screenshots
+          path: apps/web/demo-shots
+          retention-days: 7

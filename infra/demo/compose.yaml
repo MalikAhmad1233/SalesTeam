@@ -1,0 +1,93 @@
+# Mixt AI demo: the whole platform on one computer. Started and stopped by ./demo.sh, which also
+# writes .env (fresh random secrets) on the first run. See docs/14-operations-runbook.md §0.
+#
+# Synthetic data only: plain HTTP on this computer, no backups, "local" settings. Never put real
+# customer data in it. For a real deployment use infra/staging (HTTPS, Redis, backups, restore checks).
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp"]
+
+x-backend-env: &backend-env
+  MIXT_ENV: local
+  MIXT_DATABASE_URL: postgresql+psycopg://mixt_app:${MIXT_DB_APP_PASSWORD:?run ./demo.sh}@db:5432/mixt
+  MIXT_ENCRYPTION_KEYS: ${MIXT_ENCRYPTION_KEYS:?run ./demo.sh}
+  MIXT_ACTIVE_ENCRYPTION_KEY_ID: ${MIXT_ACTIVE_ENCRYPTION_KEY_ID:?run ./demo.sh}
+  MIXT_COOKIE_SECURE: "false" # plain HTTP on this computer (allowed only in the local environment)
+  MIXT_LOG_JSON: "false"
+
+services:
+  web:
+    <<: *hardening
+    build: ../../apps/web
+    image: mixt-web:demo
+    tmpfs: ["/tmp", "/app/.next/cache"]
+    environment:
+      MIXT_CSP_UPGRADE_INSECURE_REQUESTS: "false" # served over http://localhost (apps/web/src/proxy.ts)
+    ports: ["${MIXT_DEMO_BIND:-127.0.0.1}:${MIXT_DEMO_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+
+  api:
+    <<: *hardening
+    build: ../../services/backend
+    image: mixt-backend:demo
+    command: ["uvicorn", "mixt.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-proxy-headers", "--no-server-header"]
+    environment: *backend-env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      start_period: 20s
+      retries: 6
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    # Delivers events (customer timeline), runs scheduled actions and retries, checks mailboxes.
+    <<: *hardening
+    image: mixt-backend:demo
+    command: ["python", "-m", "mixt.cli", "worker", "--interval", "5"]
+    environment: *backend-env
+    depends_on:
+      api: { condition: service_healthy }
+
+  migrate:
+    # One-shot: upgrades the schema as the owner role, then re-applies the app/read-only grants.
+    image: mixt-backend:demo
+    command: ["python", "-m", "mixt.cli", "migrate", "--app-role", "mixt_app", "--readonly-role", "mixt_readonly"]
+    environment:
+      MIXT_MIGRATION_DATABASE_URL: postgresql+psycopg://mixt_owner:${MIXT_DB_OWNER_PASSWORD:?run ./demo.sh}@db:5432/mixt
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    # Not published: only the containers above can reach it.
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${MIXT_DB_SUPERUSER_PASSWORD:?run ./demo.sh}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      MIXT_DB_OWNER_PASSWORD: ${MIXT_DB_OWNER_PASSWORD:?run ./demo.sh}
+      MIXT_DB_APP_PASSWORD: ${MIXT_DB_APP_PASSWORD:?run ./demo.sh}
+      MIXT_DB_READONLY_PASSWORD: ${MIXT_DB_READONLY_PASSWORD:?run ./demo.sh}
+    volumes:
+      - demo-db:/var/lib/postgresql/data
+      - ../staging/db-init:/docker-entrypoint-initdb.d:ro # the same three roles as staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mixt"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  demo-db:

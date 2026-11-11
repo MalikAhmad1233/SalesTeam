@@ -22,7 +22,7 @@ Next.js 16 · React 19 · TypeScript (strict) · Tailwind CSS 4 · TanStack Quer
 | Integrations (3a, 3b) | Connect a mailbox over IMAP/SMTP (TLS or STARTTLS), check it, "Check for new mail now", replace its app password. Connect WhatsApp (secrets are never shown again), webhook address and verification state, check connection, sync templates and approve them for use, replace a secret, disconnect, webhooks that failed with "Process again" |
 | Settings | Outstanding decisions and all settings; change values with status and decision reference (permission-checked; dual-approval settings locked until Phase 2) |
 
-**Security (1d):** every page gets a Content-Security-Policy with a fresh nonce (`src/proxy.ts`): no inline scripts without the nonce, no `eval` in production, no framing. Pages are therefore rendered per request. The image (`Dockerfile`) runs the standalone server as a non-root user.
+**Security (1d):** every page gets a Content-Security-Policy with a fresh nonce (`src/proxy.ts`): no inline scripts without the nonce, no `eval` in production, no framing. Pages are therefore rendered per request. The policy also contains `upgrade-insecure-requests`, except when `MIXT_CSP_UPGRADE_INSECURE_REQUESTS=false`. Only the plain-HTTP demo (`infra/demo`) sets that; `e2e/demo-check.mjs` signs in to the demo in CI. The image (`Dockerfile`) runs the standalone server as a non-root user.
 
 Modules from later phases appear in the navigation, greyed out, with the phase they arrive in. Colours are placeholders until Mixt's brand assets arrive (Q-BRD-01).
 

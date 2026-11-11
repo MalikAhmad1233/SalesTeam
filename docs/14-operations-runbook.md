@@ -4,6 +4,25 @@ Status: **Phase 1d, 2026-11-10** · Applies to the staging stack in [`infra/stag
 
 Everything described here is implemented, and CI runs it on every push (`staging-ci`): build, start, browser journey over HTTPS, security smoke test, backup and restore check.
 
+## 0. Trying it out: the one-command demo (no server needed)
+
+For a look at the platform, use [`infra/demo`](../infra/demo/README.md), not this stack. Either:
+
+* **GitHub Codespaces** (nothing to install): on GitHub, click **Code**, then **Codespaces**, then **Create codespace**. [`.devcontainer`](../.devcontainer/devcontainer.json) builds and starts the demo, opens the dashboard and prints the sign-in details.
+* **Any computer with Docker:** run `infra/demo/demo.sh`. On Kali, Debian or Ubuntu it offers to install Docker if it is missing. It then opens on <http://localhost:3000>. Other commands: `info`, `stop`, `reset`, `logs`.
+
+The demo builds the same images and uses the same three database roles as staging. It differs in a few ways:
+
+* It is served over plain HTTP, and only on the computer it runs on (`127.0.0.1`). The dashboard therefore leaves `upgrade-insecure-requests` out of its CSP (`MIXT_CSP_UPGRADE_INSECURE_REQUESTS=false`).
+* It runs with `MIXT_ENV=local`, without Redis (rate limits are kept in memory) and without backups.
+* `demo.sh` writes fresh random secrets to `infra/demo/.env` on the first start, and creates the Owner `owner@mixt-demo.example` with a random password. Two-step verification is still required at the first sign-in.
+
+**Synthetic data only**, like staging. CI (`staging-ci`, job `demo`) starts the demo with the script exactly as a person would, then:
+
+* signs in with two-step verification;
+* opens the main pages and checks the browser reports no errors;
+* stops the demo and then resets it.
+
 ## 1. What runs where
 
 | Container | Purpose | Network | Database role |

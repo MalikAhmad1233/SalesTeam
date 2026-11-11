@@ -31,6 +31,11 @@ export default function OverviewPage() {
     queryFn: () => api<Schemas["LeadOut"][]>(`/leads${qs({ limit: 5 })}`),
     enabled: can(me, "leads.read"),
   });
+  const pricing = useQuery({
+    queryKey: ["pricing-status"],
+    queryFn: () => api<Schemas["PricingStatusOut"]>("/pricing/status"),
+    enabled: can(me, "pricing.read"),
+  });
   const stages = useStages();
 
   const overdue = (tasks.data ?? []).filter((t) => t.due_at && new Date(t.due_at) < new Date()).length;
@@ -45,7 +50,17 @@ export default function OverviewPage() {
         <Stat label="My open tasks" value={tasks.data?.length ?? "—"} hint={overdue ? `${overdue} overdue` : "None overdue"} />
         <Stat label="Open opportunities" value={opportunities.data?.length ?? "—"} hint={breached ? `${breached} past their SLA` : undefined} />
         <Stat label="Outstanding decisions" value={outstanding.data?.length ?? "—"} hint="Settings waiting for Mixt's confirmation" />
-        <Stat label="Pricing" value="Not active" hint="Pricing arrives in Phase 2; nothing can be quoted yet" />
+        <Stat
+          label="Pricing"
+          value={pricing.data ? (pricing.data.active_versions ? `${pricing.data.active_versions} active` : "Not active") : "—"}
+          hint={
+            pricing.data
+              ? pricing.data.active_versions
+                ? `Price books in use, of ${pricing.data.books} on file`
+                : `${pricing.data.books} price books on file, none active yet: nothing can be quoted`
+              : undefined
+          }
+        />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card title="Pipeline by stage" actions={<Link href="/pipeline" className="text-sm text-accent">Open pipeline</Link>}>

@@ -4,7 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 // Only scripts carrying this request's nonce may run; 'strict-dynamic' lets those scripts load the
 // page's own bundles. Inline scripts injected by an attacker (XSS) have no nonce and are blocked.
 // Next.js reads the nonce from the request's CSP header and adds it to its own scripts.
-export function buildCsp(nonce: string, isDev: boolean): string {
+// "upgrade-insecure-requests" is right whenever the dashboard is served over HTTPS (staging,
+// production). The local demo (infra/demo) is served over plain http://localhost, where some
+// browsers would upgrade the page's own scripts to https and break it, so the demo switches it off
+// with MIXT_CSP_UPGRADE_INSECURE_REQUESTS=false (read when each page is requested, not at build).
+export function buildCsp(nonce: string, isDev: boolean, upgradeInsecure: boolean = !isDev): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -16,13 +20,14 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+    ...(upgradeInsecure ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 }
 
 export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
-  const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+  const isDev = process.env.NODE_ENV === "development";
+  const csp = buildCsp(nonce, isDev, !isDev && process.env["MIXT_CSP_UPGRADE_INSECURE_REQUESTS"] !== "false");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
