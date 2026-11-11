@@ -1189,6 +1189,28 @@
             "title": "Id",
             "type": "string"
           },
+          "last_check_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Check Error"
+          },
+          "last_checked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Checked At"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -2378,6 +2400,10 @@
               }
             ]
           },
+          "reply_allowed": {
+            "title": "Reply Allowed",
+            "type": "boolean"
+          },
           "service_window_expires_at": {
             "anyOf": [
               {
@@ -2393,6 +2419,17 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
           },
           "suppressed": {
             "title": "Suppressed",
@@ -2432,7 +2469,9 @@
           "last_inbound_at",
           "service_window_expires_at",
           "window_open",
+          "reply_allowed",
           "suppressed",
+          "subject",
           "last_message",
           "updated_at"
         ],
@@ -2622,7 +2661,8 @@
               "verify_token",
               "client_secret",
               "api_key",
-              "refresh_token"
+              "refresh_token",
+              "password"
             ],
             "title": "Kind",
             "type": "string"
@@ -4256,6 +4296,90 @@
         "title": "LoginIn",
         "type": "object"
       },
+      "MailboxIn": {
+        "properties": {
+          "address": {
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Address",
+            "type": "string"
+          },
+          "display_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "imap_host": {
+            "maxLength": 253,
+            "minLength": 1,
+            "title": "Imap Host",
+            "type": "string"
+          },
+          "imap_port": {
+            "default": 993,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Imap Port",
+            "type": "integer"
+          },
+          "imap_security": {
+            "default": "ssl",
+            "enum": [
+              "ssl",
+              "starttls",
+              "none"
+            ],
+            "title": "Imap Security",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "smtp_host": {
+            "maxLength": 253,
+            "minLength": 1,
+            "title": "Smtp Host",
+            "type": "string"
+          },
+          "smtp_port": {
+            "default": 465,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Smtp Port",
+            "type": "integer"
+          },
+          "smtp_security": {
+            "default": "ssl",
+            "enum": [
+              "ssl",
+              "starttls",
+              "none"
+            ],
+            "title": "Smtp Security",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "address",
+          "username",
+          "password",
+          "imap_host",
+          "smtp_host"
+        ],
+        "title": "MailboxIn",
+        "type": "object"
+      },
       "MarketConfirmationIn": {
         "properties": {
           "market_id": {
@@ -4575,6 +4699,18 @@
             "title": "Direction",
             "type": "string"
           },
+          "email": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "failure_code": {
             "anyOf": [
               {
@@ -4690,6 +4826,7 @@
           "content_type",
           "body_text",
           "media",
+          "email",
           "template_id",
           "status",
           "failure_code",
@@ -5476,6 +5613,29 @@
           "new_password"
         ],
         "title": "PasswordChangeIn",
+        "type": "object"
+      },
+      "PollOut": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "mailboxes": {
+            "title": "Mailboxes",
+            "type": "integer"
+          },
+          "stored": {
+            "title": "Stored",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mailboxes",
+          "stored",
+          "failed"
+        ],
+        "title": "PollOut",
         "type": "object"
       },
       "PricingImportOut": {
@@ -8819,8 +8979,21 @@
       },
       "TextIn": {
         "properties": {
+          "subject": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email only; defaults to Re: <subject>",
+            "title": "Subject"
+          },
           "text": {
-            "maxLength": 4096,
+            "maxLength": 20000,
             "minLength": 1,
             "title": "Text",
             "type": "string"
@@ -13301,6 +13474,48 @@
         ]
       }
     },
+    "/api/v1/integrations/mailbox": {
+      "post": {
+        "description": "Connect an email mailbox over IMAP/SMTP (Mixt uses neither Google Workspace nor Microsoft 365, BD-034).",
+        "operationId": "connect_mailbox_api_v1_integrations_mailbox_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MailboxIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Connect Mailbox",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
     "/api/v1/integrations/webhooks/{event_id}/replay": {
       "post": {
         "operationId": "replay_webhook_api_v1_integrations_webhooks__event_id__replay_post",
@@ -13599,6 +13814,49 @@
           }
         },
         "summary": "Disconnect",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/integrations/{connection_id}/poll": {
+      "post": {
+        "operationId": "poll_mailbox_api_v1_integrations__connection_id__poll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Poll Mailbox",
         "tags": [
           "integrations"
         ]

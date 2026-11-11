@@ -33,6 +33,7 @@ dev = [
   "ruff>=0.6",
   "mypy>=1.11",
   "types-jsonschema",
+  "aiosmtpd>=1.4",
 ]
 
 [build-system]
@@ -70,6 +71,8 @@ addopts = "-q --strict-markers"
 filterwarnings = [
   "error::DeprecationWarning:mixt.*",
   "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+  # The test SMTP server runs without TLS on 127.0.0.1 (tests/mail_servers.py).
+  "ignore:Requiring AUTH while not requiring TLS:UserWarning",
 ]
 
 [tool.coverage.run]

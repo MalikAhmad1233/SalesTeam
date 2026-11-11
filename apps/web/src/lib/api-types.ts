@@ -957,6 +957,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect Mailbox
+         * @description Connect an email mailbox over IMAP/SMTP (Mixt uses neither Google Workspace nor Microsoft 365, BD-034).
+         */
+        post: operations["connect_mailbox_api_v1_integrations_mailbox_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/webhooks/{event_id}/replay": {
         parameters: {
             query?: never;
@@ -1054,6 +1074,23 @@ export interface paths {
         put?: never;
         /** Disconnect */
         post: operations["disconnect_api_v1_integrations__connection_id__disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{connection_id}/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Poll Mailbox */
+        post: operations["poll_mailbox_api_v1_integrations__connection_id__poll_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3056,6 +3093,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Last Check Error */
+            last_check_error?: string | null;
+            /** Last Checked At */
+            last_checked_at?: string | null;
             /** Status */
             status: string;
         };
@@ -3429,10 +3470,14 @@ export interface components {
             /** Last Inbound At */
             last_inbound_at: string | null;
             last_message: components["schemas"]["LastMessageOut"] | null;
+            /** Reply Allowed */
+            reply_allowed: boolean;
             /** Service Window Expires At */
             service_window_expires_at: string | null;
             /** Status */
             status: string;
+            /** Subject */
+            subject: string | null;
             /** Suppressed */
             suppressed: boolean;
             /** Unread Count */
@@ -3513,7 +3558,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "access_token" | "app_secret" | "verify_token" | "client_secret" | "api_key" | "refresh_token";
+            kind: "access_token" | "app_secret" | "verify_token" | "client_secret" | "api_key" | "refresh_token" | "password";
             /** Value */
             value: string;
         };
@@ -4053,6 +4098,43 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MailboxIn */
+        MailboxIn: {
+            /** Address */
+            address: string;
+            /** Display Name */
+            display_name: string;
+            /** Imap Host */
+            imap_host: string;
+            /**
+             * Imap Port
+             * @default 993
+             */
+            imap_port: number;
+            /**
+             * Imap Security
+             * @default ssl
+             * @enum {string}
+             */
+            imap_security: "ssl" | "starttls" | "none";
+            /** Password */
+            password: string;
+            /** Smtp Host */
+            smtp_host: string;
+            /**
+             * Smtp Port
+             * @default 465
+             */
+            smtp_port: number;
+            /**
+             * Smtp Security
+             * @default ssl
+             * @enum {string}
+             */
+            smtp_security: "ssl" | "starttls" | "none";
+            /** Username */
+            username: string;
+        };
         /** MarketConfirmationIn */
         MarketConfirmationIn: {
             /**
@@ -4196,6 +4278,10 @@ export interface components {
             delivered_at: string | null;
             /** Direction */
             direction: string;
+            /** Email */
+            email: {
+                [key: string]: unknown;
+            } | null;
             /** Failure Code */
             failure_code: string | null;
             /** Failure Detail */
@@ -4473,6 +4559,15 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** PollOut */
+        PollOut: {
+            /** Failed */
+            failed: number;
+            /** Mailboxes */
+            mailboxes: number;
+            /** Stored */
+            stored: number;
         };
         /** PricingImportOut */
         PricingImportOut: {
@@ -5530,6 +5625,11 @@ export interface components {
         };
         /** TextIn */
         TextIn: {
+            /**
+             * Subject
+             * @description Email only; defaults to Re: <subject>
+             */
+            subject?: string | null;
             /** Text */
             text: string;
         };
@@ -8051,6 +8151,39 @@ export interface operations {
             };
         };
     };
+    connect_mailbox_api_v1_integrations_mailbox_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailboxIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     replay_webhook_api_v1_integrations_webhooks__event_id__replay_post: {
         parameters: {
             query?: never;
@@ -8261,6 +8394,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_mailbox_api_v1_integrations__connection_id__poll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollOut"];
                 };
             };
             /** @description Validation Error */

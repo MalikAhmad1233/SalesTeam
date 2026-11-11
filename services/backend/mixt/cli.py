@@ -35,6 +35,7 @@ from mixt.core.db import _sessionmaker_for, get_engine
 from mixt.core.errors import DomainError
 from mixt.modules.events import service as events
 from mixt.modules.identity import service as identity
+from mixt.modules.messaging import channels as messaging_channels
 from mixt.modules.pricing import promotions
 from mixt.modules.quotations import service as quotations
 from mixt.ops import restore_check
@@ -108,6 +109,7 @@ def dispatch_once() -> tuple[events.DispatchResult, events.ActionRunResult]:
     session = _sessionmaker_for(get_config().database_url)()
     try:
         delivered = events.dispatch_outbox(session)
+        messaging_channels.poll_mailboxes(session)  # new email becomes queued work, processed just below
         actions = events.run_due_actions(session)
         promotions.expire_due(session)  # promotions end on their end date (docs/04 §9)
         quotations.expire_due(session)  # quotations end on their validity date

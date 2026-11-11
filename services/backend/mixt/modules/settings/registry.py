@@ -455,10 +455,21 @@ DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         "channels.email.provider",
         "channels",
-        "Email platform. Email channel stays off until chosen.",
-        _enum("unset", "gmail", "microsoft_graph"),
+        "How email is connected. Mixt uses neither Google Workspace nor Microsoft 365 (BD-034), so the only "
+        "option is a standard IMAP/SMTP mailbox. Email stays off until chosen.",
+        _enum("unset", "imap_smtp"),
         "unset",
         ADMIN,
+        open_question="Q-COM-03",
+    ),
+    SettingDefinition(
+        "channels.email.mailboxes",
+        "channels",
+        "Mailbox addresses that may send to customers. None = no email is sent (received email is still stored).",
+        {"type": "array", "items": {"type": "string", "format": "email", "maxLength": 320}},
+        [],
+        ADMIN,
+        scopes=("global", "market"),
         open_question="Q-COM-03",
     ),
     SettingDefinition(

@@ -36,7 +36,7 @@ from mixt.modules.identity import service as identity
 from mixt.modules.identity.access import Access, system_access
 from mixt.modules.integrations import service as integrations
 from mixt.modules.leads import service as leads
-from mixt.modules.messaging import channels, whatsapp
+from mixt.modules.messaging import channels, email_channel, whatsapp
 from mixt.modules.messaging.models import (
     ChannelAccount,
     Conversation,
@@ -59,6 +59,7 @@ _SYSTEM_CRM = ("crm.accounts.read_all", "crm.accounts.read", "crm.consents.recor
 
 def register() -> None:
     integrations.register_webhook_processor(channels.WHATSAPP, process_whatsapp)
+    integrations.register_webhook_processor(channels.MAILBOX, process_email)
     events.register_action_handler(SEND_ACTION, _send_action, on_dead_letter=_send_gave_up)
 
 
@@ -185,15 +186,25 @@ def _conversation_for(db: Session, account: ChannelAccount, handle: str) -> Conv
     return conversation
 
 
-def _match_customer(db: Session, conversation: Conversation) -> None:
-    """Link a new conversation to the one household that already has this number (never a guess)."""
+def _point_kind(channel: str) -> str:
+    """Contact-point kind for a channel's customer handle."""
+    return "email" if channel == "email" else "whatsapp"
+
+
+def _suppression_kind(channel: str) -> str:
+    return "email" if channel == "email" else "phone"
+
+
+def _match_customer(db: Session, conversation: Conversation, channel: str = "whatsapp") -> None:
+    """Link a new conversation to the one household that already has this number or address (never a guess)."""
     if conversation.account_id is not None:
         return
-    matches = crm.accounts_matching_contact_points(db, [("whatsapp", conversation.customer_handle)])
+    kind = _point_kind(channel)
+    matches = crm.accounts_matching_contact_points(db, [(kind, conversation.customer_handle)])
     if len(matches) != 1:
         return
     conversation.account_id = matches[0]
-    conversation.contact_id = crm.contact_with_point(db, matches[0], "whatsapp", conversation.customer_handle)
+    conversation.contact_id = crm.contact_with_point(db, matches[0], kind, conversation.customer_handle)
     if conversation.assigned_user_id is None:
         conversation.assigned_user_id = crm.account_for_system(db, matches[0]).owner_user_id
 
@@ -212,44 +223,47 @@ def _system_note(db: Session, conversation: Conversation, text: str) -> None:
     )
 
 
-def _record_messaging_consent(db: Session, conversation: Conversation, status: str, evidence: dict[str, Any]) -> None:
+_OPT_OUT = {
+    # channel: (suppression kind, consent purposes withdrawn, consent and suppression source, "number"/"address")
+    "whatsapp": ("phone", ("marketing_whatsapp", "service_messages"), "whatsapp_keyword", "number"),
+    "email": ("email", ("marketing_email",), "email_reply", "address"),
+}
+
+
+def _record_messaging_consent(
+    db: Session, conversation: Conversation, channel: str, status: str, evidence: dict[str, Any]
+) -> None:
     if conversation.contact_id is None:
         return
+    _, purposes, source, _ = _OPT_OUT[channel]
     access = system_access(*_SYSTEM_CRM)
-    for purpose in ("marketing_whatsapp", "service_messages"):
+    for purpose in purposes:
         if crm.latest_consent_status(db, conversation.contact_id, purpose) == "granted":
             crm.record_consent(
-                db,
-                SYSTEM_ACTOR,
-                access,
-                conversation.contact_id,
-                purpose,
-                status,
-                "consent",
-                "whatsapp_keyword",
-                evidence,
+                db, SYSTEM_ACTOR, access, conversation.contact_id, purpose, status, "consent", source, evidence
             )
 
 
-def _apply_keywords(db: Session, conversation: Conversation, msg: whatsapp.InboundMessage) -> None:
-    if msg.content_type != "text":
-        return
-    if _matches(msg.text, "messaging.opt_out_keywords", db):
-        added = _add_suppression(
-            db, SYSTEM_ACTOR, "phone", conversation.customer_handle, "opt_out", "whatsapp_keyword", None
-        )
+def _apply_keywords(
+    db: Session, conversation: Conversation, channel: str, texts: list[str | None], message_ref: str
+) -> None:
+    """Opt-out and opt-in words: a message (or email subject) that is exactly one of them."""
+    kind, _, source, noun = _OPT_OUT[channel]
+    if any(_matches(t, "messaging.opt_out_keywords", db) for t in texts):
+        added = _add_suppression(db, SYSTEM_ACTOR, kind, conversation.customer_handle, "opt_out", source, None)
+        keyword = next((t for t in texts if _matches(t, "messaging.opt_out_keywords", db)), "") or ""
         _record_messaging_consent(
-            db, conversation, "withdrawn", {"keyword": (msg.text or "").strip()[:40], "message_id": msg.message_id}
+            db, conversation, channel, "withdrawn", {"keyword": keyword.strip()[:40], "message_id": message_ref}
         )
         if added is not None:
             _system_note(
                 db,
                 conversation,
-                "The customer asked to stop messages. This number is now blocked; "
+                f"The customer asked to stop messages. This {noun} is now blocked; "
                 "a manager can allow messages again if the customer asks.",
             )
-    elif _matches(msg.text, "messaging.opt_in_keywords", db):
-        entry = _suppressed(db, "phone", conversation.customer_handle)
+    elif any(_matches(t, "messaging.opt_in_keywords", db) for t in texts):
+        entry = _suppressed(db, kind, conversation.customer_handle)
         if entry is not None and entry.reason == "opt_out":
             entry.lifted_at, entry.lifted_by = now_utc(), SYSTEM_ACTOR.principal_id
             entry.lift_reason = "The customer sent an opt-in keyword."
@@ -296,7 +310,8 @@ def _store_inbound(db: Session, account: ChannelAccount, msg: whatsapp.InboundMe
     conversation.unread_count += 1
     conversation.status = "open"
     _match_customer(db, conversation)
-    _apply_keywords(db, conversation, msg)
+    if msg.content_type == "text":
+        _apply_keywords(db, conversation, "whatsapp", [msg.text], msg.message_id)
     db.flush()
     events.emit(
         db,
@@ -373,6 +388,123 @@ def process_whatsapp(db: Session, event: integrations.WebhookEvent) -> str:
     return "processed" if applied else "ignored"
 
 
+# ------------------------------------------------------------------ email (IMAP/SMTP, BD-034)
+
+
+def _apply_bounce(db: Session, account: ChannelAccount, dsn: dict[str, Any]) -> bool:
+    """A delivery-status report: a permanent failure marks the message failed and blocks the address."""
+    status = str(dsn.get("status") or "")
+    permanent = status.startswith("5") or dsn.get("action") == "failed"
+    message = None
+    if dsn.get("original_message_id"):
+        message = db.scalar(
+            select(Message)
+            .where(Message.channel_account_id == account.id, Message.provider_message_id == dsn["original_message_id"])
+            .with_for_update()
+        )
+    recipient = None
+    try:
+        recipient = normalize_email(str(dsn.get("recipient") or "")) if dsn.get("recipient") else None
+    except ValidationFailed:
+        recipient = None
+    if message is not None:
+        db.add(
+            MessageStatusEvent(
+                message_id=message.id,
+                status="failed" if permanent else "delayed",
+                error_code=status or None,
+                error_detail=str(dsn.get("action") or "")[:200] or None,
+            )
+        )
+        if permanent and message.status != "failed":
+            message.status, message.failure_code = "failed", "BOUNCED"
+            message.failure_detail = f"The receiving mail server refused it ({status or 'permanent failure'})."
+            db.execute(
+                update(Conversation).where(Conversation.id == message.conversation_id).values(updated_at=func.now())
+            )
+        if recipient is None:
+            conversation = db.get(Conversation, message.conversation_id)
+            recipient = conversation.customer_handle if conversation else None
+    if permanent and recipient is not None:
+        _add_suppression(db, SYSTEM_ACTOR, "email", recipient, "bounce", "email_bounce", status or None)
+    db.flush()
+    return message is not None or (permanent and recipient is not None)
+
+
+def process_email(db: Session, event: integrations.WebhookEvent) -> str:
+    """Processor for mail read from a connected mailbox (stored by ``channels.poll_mailboxes``)."""
+    payload = event.payload
+    account = channels.channel_account_for(db, event.connection_id)
+    if account is None:
+        return "ignored"
+    if payload.get("dsn"):
+        return "processed" if _apply_bounce(db, account, payload["dsn"]) else "ignored"
+    try:
+        handle = normalize_email(str(payload.get("from_address") or ""))
+    except ValidationFailed:
+        return "ignored"
+    if handle == account.address:
+        return "ignored"  # our own message (a copy in the mailbox)
+    conversation = _conversation_for(db, account, handle)
+    received_at = None
+    if payload.get("date"):
+        try:
+            received_at = datetime.fromisoformat(str(payload["date"]))
+        except ValueError:
+            received_at = None
+    meta = {
+        key: payload.get(key)
+        for key in ("subject", "message_id", "in_reply_to", "references", "to", "cc", "attachments", "auto_reply")
+    }
+    meta["authentication"] = payload.get("authentication") or {}
+    message_id = db.scalar(
+        insert(Message)
+        .values(
+            conversation_id=conversation.id,
+            channel_account_id=account.id,
+            direction="inbound",
+            sender_type="customer",
+            content_type="email",
+            body_text=payload.get("text") or None,
+            email_meta=meta,
+            provider_message_id=payload.get("message_id"),
+            provider_timestamp=received_at,
+            status="received",
+        )
+        .on_conflict_do_nothing(index_elements=["channel_account_id", "provider_message_id"])
+        .returning(Message.id)
+    )
+    if message_id is None:
+        return "ignored"  # already stored
+    if payload.get("from_name"):
+        conversation.customer_name = str(payload["from_name"])[:200]
+    if payload.get("subject"):
+        conversation.subject = email_channel.strip_reply_prefix(str(payload["subject"]))
+    stamp = received_at or now_utc()
+    if conversation.last_inbound_at is None or stamp > conversation.last_inbound_at:
+        conversation.last_inbound_at = stamp
+    conversation.last_activity_at = now_utc()
+    if not payload.get("auto_reply"):  # out-of-office replies are kept but do not ask for attention
+        conversation.unread_count += 1
+        conversation.status = "open"
+    if (payload.get("authentication") or {}).get("dmarc") != "fail":  # a forged sender is never matched
+        _match_customer(db, conversation, "email")
+    first_line = next((line for line in str(payload.get("text") or "").splitlines() if line.strip()), None)
+    _apply_keywords(db, conversation, "email", [payload.get("subject"), first_line], str(payload.get("message_id")))
+    db.flush()
+    events.emit(
+        db,
+        SYSTEM_ACTOR,
+        "conversation.message_received",
+        "conversation",
+        conversation.id,
+        {"channel": "email", "message_id": message_id, "matched": conversation.account_id is not None},
+        conversation.account_id,
+    )
+    integrations.mark_success(db, integrations.get_connection(db, event.connection_id))
+    return "processed"
+
+
 # ------------------------------------------------------------------ visibility
 
 
@@ -408,6 +540,7 @@ class ConversationView:
     last_message: Message | None
     window_open: bool
     suppressed: bool
+    reply_allowed: bool  # WhatsApp: inside the 24-hour window; email: always (a reply in the thread)
 
 
 def _views(db: Session, rows: list[Conversation]) -> list[ConversationView]:
@@ -428,18 +561,19 @@ def _views(db: Session, rows: list[Conversation]) -> list[ConversationView]:
     suppressed = set(
         db.scalars(
             select(SuppressionEntry.value).where(
-                SuppressionEntry.kind == "phone",
+                SuppressionEntry.kind.in_(("phone", "email")),
                 SuppressionEntry.lifted_at.is_(None),
                 SuppressionEntry.value.in_([r.customer_handle for r in rows]),
             )
         )
     )
-    enabled = channels.enabled_numbers(db)
+    enabled = channels.enabled_numbers(db) | channels.enabled_mailboxes(db)
     now = now_utc()
     views = []
     for row in rows:
         account = channel_rows[row.channel_account_id]
         contact = crm.messaging_facts(db, row.contact_id) if row.contact_id else None
+        window_open = row.service_window_expires_at is not None and row.service_window_expires_at > now
         views.append(
             ConversationView(
                 row,
@@ -450,8 +584,9 @@ def _views(db: Session, rows: list[Conversation]) -> list[ConversationView]:
                 contact.name if contact else None,
                 users.get(row.assigned_user_id) if row.assigned_user_id else None,
                 last.get(row.id),
-                row.service_window_expires_at is not None and row.service_window_expires_at > now,
+                window_open,
                 row.customer_handle in suppressed,
+                True if account.channel == "email" else window_open,
             )
         )
     return views
@@ -635,7 +770,7 @@ def link_customer(
     if conversation.assigned_user_id is None:
         conversation.assigned_user_id = crm.account_for_system(db, account_id).owner_user_id
     if save_number and contact_id is not None:
-        kind = "whatsapp" if _channel_of(db, conversation) == "whatsapp" else "email"
+        kind = _point_kind(_channel_of(db, conversation))
         if crm.contact_with_point(db, account_id, kind, conversation.customer_handle) is None:
             crm.add_contact_point(db, actor, access, contact_id, kind, conversation.customer_handle)
     db.flush()
@@ -680,15 +815,18 @@ def create_lead(
         .order_by(Message.created_at)
         .limit(1)
     )
+    channel = _channel_of(db, conversation)
+    email = channel == "email"
     result = leads.intake(
         db,
         actor,
         access,
         leads.LeadInput(
-            source_code="whatsapp_inbound",
+            source_code="email_inbound" if email else "whatsapp_inbound",
             guardian_first_name=guardian_first_name or conversation.customer_name,
             guardian_last_name=guardian_last_name,
-            phone=conversation.customer_handle,
+            phone=None if email else conversation.customer_handle,
+            email=conversation.customer_handle if email else None,
             country=country,
             student_first_name=student_first_name,
             message=(first or "")[:2000] or None,
@@ -702,7 +840,7 @@ def create_lead(
     if lead.account_id is not None and (result.account_visible or result.created_account):
         conversation.account_id = lead.account_id
         conversation.contact_id = lead.contact_id or crm.contact_with_point(
-            db, lead.account_id, "whatsapp", conversation.customer_handle
+            db, lead.account_id, _point_kind(channel), conversation.customer_handle
         )
         if conversation.assigned_user_id is None:
             conversation.assigned_user_id = crm.account_for_system(db, lead.account_id).owner_user_id
@@ -761,23 +899,29 @@ def _student_rule(db: Session, conversation: Conversation) -> None:
 
 def _channel_checks(db: Session, conversation: Conversation) -> ChannelAccount:
     account = db.get(ChannelAccount, conversation.channel_account_id)
+    email = account is not None and account.channel == "email"
+    noun, name = ("mailbox", "email") if email else ("number", "WhatsApp")
     if account is None or account.status != "active":
-        raise ValidationFailed("CHANNEL_UNAVAILABLE", "This number is not connected any more.")
+        raise ValidationFailed("CHANNEL_UNAVAILABLE", f"This {noun} is not connected any more.")
     connection = integrations.get_connection(db, account.connection_id)
     if connection.status in ("disconnected", "error"):
         raise ValidationFailed(
             "CHANNEL_UNAVAILABLE",
-            "The WhatsApp connection needs an administrator (see Integrations) before messages can be sent.",
+            f"The {name} connection needs an administrator (see Integrations) before messages can be sent.",
         )
     if not channels.is_enabled(db, account):
         raise ValidationFailed(
             "CHANNEL_OFF",
-            "This WhatsApp number is not switched on yet (setting channels.whatsapp.numbers, question Q-COM-01).",
+            "This mailbox is not switched on yet (settings channels.email.provider and channels.email.mailboxes, "
+            "question Q-COM-03)."
+            if email
+            else "This WhatsApp number is not switched on yet (setting channels.whatsapp.numbers, question Q-COM-01).",
         )
-    if is_suppressed(db, "phone", conversation.customer_handle):
+    if is_suppressed(db, _suppression_kind(account.channel), conversation.customer_handle):
         raise ValidationFailed(
             "RECIPIENT_SUPPRESSED",
-            "Messages to this number are blocked (the customer opted out or a manager blocked it).",
+            f"Messages to this {'address' if email else 'number'} are blocked "
+            "(the customer opted out, an email bounced, or a manager blocked it).",
         )
     _student_rule(db, conversation)
     return account
@@ -819,32 +963,75 @@ def _queue(
     return Queued(message, action.id)
 
 
+MAX_EMAIL_LENGTH = 20_000
+
+
+def _email_reply_meta(
+    db: Session, conversation: Conversation, account: ChannelAccount, subject: str | None
+) -> dict[str, Any]:
+    """Subject and threading headers for a reply, from the customer's latest email."""
+    last = db.scalar(
+        select(Message)
+        .where(
+            Message.conversation_id == conversation.id,
+            Message.direction == "inbound",
+            Message.content_type == "email",
+        )
+        .order_by(Message.created_at.desc(), Message.id.desc())
+        .limit(1)
+    )
+    last_meta = (last.email_meta or {}) if last is not None else {}
+    chosen = (subject or "").strip()[:500] or email_channel.reply_subject(
+        last_meta.get("subject") or conversation.subject, f"Your message to {account.display_name}"
+    )
+    return {
+        "subject": chosen,
+        "message_id": email_channel.new_message_id(str(account.address)),
+        "in_reply_to": last_meta.get("message_id"),
+        "references": list(last_meta.get("references") or []),
+        "to": [conversation.customer_handle],
+    }
+
+
 def send_text(
-    db: Session, actor: Actor, access: Access, conversation_id: uuid.UUID, body: str, idempotency_key: str | None
+    db: Session,
+    actor: Actor,
+    access: Access,
+    conversation_id: uuid.UUID,
+    body: str,
+    idempotency_key: str | None,
+    subject: str | None = None,
 ) -> Queued:
+    """A reply. WhatsApp: only inside the 24-hour window. Email: a reply in the customer's thread."""
     access.require_somewhere("messaging.send")
     conversation = _get(db, access, conversation_id, lock=True)
     existing = _existing(db, conversation, idempotency_key)
     if existing is not None:
         return Queued(existing, None)
+    account = _channel_checks(db, conversation)
+    email = account.channel == "email"
+    limit = MAX_EMAIL_LENGTH if email else whatsapp.MAX_TEXT_LENGTH
     text = body.strip()
-    if not text or len(text) > whatsapp.MAX_TEXT_LENGTH:
-        raise ValidationFailed("INVALID_MESSAGE", f"A message needs 1 to {whatsapp.MAX_TEXT_LENGTH} characters.")
-    _channel_checks(db, conversation)
-    window = conversation.service_window_expires_at
-    if window is None or window <= now_utc():
-        raise ValidationFailed(
-            "WINDOW_CLOSED",
-            "The customer last wrote more than 24 hours ago, so WhatsApp only allows an approved template.",
-        )
+    if not text or len(text) > limit:
+        raise ValidationFailed("INVALID_MESSAGE", f"A message needs 1 to {limit} characters.")
+    if not email:
+        window = conversation.service_window_expires_at
+        if window is None or window <= now_utc():
+            raise ValidationFailed(
+                "WINDOW_CLOSED",
+                "The customer last wrote more than 24 hours ago, so WhatsApp only allows an approved template.",
+            )
+    meta = _email_reply_meta(db, conversation, account, subject) if email else None
     message = Message(
         conversation_id=conversation.id,
         channel_account_id=conversation.channel_account_id,
         direction="outbound",
         sender_type="user" if actor.kind == "user" else "agent",
         sender_principal_id=actor.principal_id,
-        content_type="text",
+        content_type="email" if email else "text",
         body_text=text,
+        email_meta=meta,
+        provider_message_id=meta["message_id"] if meta else None,
         status="queued",
         idempotency_key=idempotency_key,
     )
@@ -870,6 +1057,8 @@ def send_template(
     if existing is not None:
         return Queued(existing, None)
     account = _channel_checks(db, conversation)
+    if account.channel != "whatsapp":
+        raise ValidationFailed("TEMPLATES_WHATSAPP_ONLY", "Templates are for WhatsApp. Write an email reply instead.")
     template = channels.get_template(db, template_id)
     if template.channel_account_id != account.id:
         raise ValidationFailed("TEMPLATE_OTHER_NUMBER", "This template belongs to another WhatsApp number.")
@@ -925,8 +1114,11 @@ def _send_action(db: Session, action: events.Action) -> None:
     account = db.get(ChannelAccount, message.channel_account_id)
     if conversation is None or account is None:
         return
-    if is_suppressed(db, "phone", conversation.customer_handle):
-        _fail(db, message, "RECIPIENT_SUPPRESSED", "The number was blocked before the message was sent.")
+    if is_suppressed(db, _suppression_kind(account.channel), conversation.customer_handle):
+        _fail(db, message, "RECIPIENT_SUPPRESSED", "The recipient was blocked before the message was sent.")
+        return
+    if account.channel == "email":
+        _send_email(db, message, conversation, account)
         return
     window = conversation.service_window_expires_at
     if message.content_type == "text" and (window is None or window <= now_utc()):
@@ -962,6 +1154,38 @@ def _send_action(db: Session, action: events.Action) -> None:
     db.flush()
 
 
+def _send_email(db: Session, message: Message, conversation: Conversation, account: ChannelAccount) -> None:
+    connection = integrations.get_connection(db, account.connection_id)
+    meta = message.email_meta or {}
+    try:
+        cfg = channels.mailbox_config(db, connection, account)
+        email_channel.send(
+            cfg,
+            email_channel.compose(
+                cfg,
+                conversation.customer_handle,
+                conversation.customer_name,
+                str(meta.get("subject") or "Mixt Academy"),
+                message.body_text or "",
+                str(meta.get("message_id") or message.provider_message_id),
+                meta.get("in_reply_to"),
+                list(meta.get("references") or []),
+            ),
+        )
+    except email_channel.MailError as exc:
+        if exc.kind.retryable:
+            raise events.RetryLater(exc.kind.code) from exc
+        if exc.kind.connection_problem:
+            integrations.mark_error(db, connection, f"{exc.kind.code}: {exc.detail}")
+        _fail(db, message, exc.kind.code, exc.detail)
+        return
+    # Accepted by Mixt's mail server: email has no delivery receipts; a bounce may still arrive later.
+    message.status, message.sent_at = "sent", now_utc()
+    integrations.mark_success(db, connection)
+    db.execute(update(Conversation).where(Conversation.id == conversation.id).values(updated_at=func.now()))
+    db.flush()
+
+
 def _send_gave_up(db: Session, action: events.Action) -> None:
     message = db.get(Message, uuid.UUID(str(action.payload["message_id"])))
     if message is not None and message.status == "queued":
@@ -985,12 +1209,15 @@ def retry_failed(db: Session, actor: Actor, access: Access, message_id: uuid.UUI
             list(message.template_variables or []),
             None,
         )
-    return send_text(db, actor, access, message.conversation_id, message.body_text or "", None)
+    subject = (message.email_meta or {}).get("subject") if message.content_type == "email" else None
+    return send_text(db, actor, access, message.conversation_id, message.body_text or "", None, subject)
 
 
 def templates_for(db: Session, access: Access, conversation_id: uuid.UUID) -> list[tuple[MessageTemplate, str | None]]:
     """Templates of the conversation's number, each with the reason it cannot be sent now (or None)."""
     conversation = _get(db, access, conversation_id)
+    if _channel_of(db, conversation) != "whatsapp":
+        return []
     contact_consents: dict[str, str | None] = {}
     rows = []
     for template in channels.list_templates(db, conversation.channel_account_id):

@@ -95,6 +95,8 @@ class AppConfig(BaseSettings):
     sso_allowed_domains: list[str] = Field(default_factory=list)
     # Local and test only: point a provider at a test identity provider.
     sso_issuer_overrides: dict[str, str] = Field(default_factory=dict)
+    # How often the worker reads new mail from each connected mailbox (IMAP, BD-034).
+    email_poll_interval_seconds: int = Field(default=60, ge=15, le=3600)
     # Local and test only: send WhatsApp Graph API calls to a fake server (end-to-end tests).
     whatsapp_graph_base_url: str | None = None
 

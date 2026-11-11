@@ -4,7 +4,7 @@ Python 3.12+ · FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL 16/17. Architec
 
 ## What exists today (Phases 1 and 2)
 
-Everything listed here has working code **and** automated tests (`tests/`, 312 tests, 91% coverage). They run against a real PostgreSQL database **as the least-privileged application role**, like the API in staging.
+Everything listed here has working code **and** automated tests (`tests/`, 324 tests, 91% coverage). They run against a real PostgreSQL database **as the least-privileged application role**, like the API in staging.
 
 | Area | Implemented | Main tests |
 |------|-------------|-----------|
@@ -24,6 +24,7 @@ Everything listed here has working code **and** automated tests (`tests/`, 312 t
 | Quotations (2c) | Lines only from the customer's offered options (snapshot of book, version, entry, plan, tier, unit, totals, benefits); list price, promotion and discount separate; checks V-01 to V-09; approvals by people other than the preparer (sales approval; pricing approval for discounts unless the discount authority covers it); frozen snapshot with SHA-256 and database guards; deterministic PDF from the snapshot; issue to a contact; customer answer with the price-change rule; revisions; expiry | `test_quotations.py` |
 | Integrations (3a) | Connections with secrets encrypted per connection and kind, never returned; webhook signature check before anything is stored; each delivery stored once; processing by the worker with exponential backoff and jitter, dead letters and replay; raw bodies and message content protected by database guards | `test_messaging.py` |
 | WhatsApp and inbox (3a) | Cloud API adapter against a fake Graph API: handshake, inbound text/buttons/media metadata, statuses that never move backwards, template sync and status changes, error-code mapping (retry vs fail; token errors stop the connection). Sending rules: number switched on, 24-hour window, templates approved by Meta and Mixt, consent on the linked contact, student rule, suppression list, opt-out and opt-in words, idempotency keys. Inbox: matching to exactly one household, "Not linked" queue, visibility, assignment and take-over, notes, lead creation, close/reopen, Server-Sent Events | `test_messaging.py` |
+| Email (3b) | IMAP/SMTP mailbox (BD-034): TLS or STARTTLS only; read-only polling by UID from "now", UIDVALIDITY changes, Message-ID dedupe; MIME parsing (text, HTML to text, attachments listed, threading headers, auto-replies, delivery-status reports, Authentication-Results); replies with `Re:` subject, In-Reply-To and References; bounces and opt-out replies block the address; SMTP error handling; DMARC-failed senders not auto-linked. Tested against a local IMAP server and a real SMTP server (aiosmtpd) | `test_email.py` |
 | Website form (3a) | Off until switched on; honeypot; optional Turnstile; consent per tick box for listed wording versions only; rate limit per address; allowed origins; normal lead intake with UTM | `test_web_enquiries.py` |
 | Database roles (1d) | Migration owner, data-only application role (no DDL/TRUNCATE; append-only tables insert-only), read-only backup role; `migrate` command re-applies grants under a lock; staging/production refuse to start over-privileged or with an old schema; readiness checks database, schema and Redis | `test_hardening.py`, `test_database.py` |
 | Rate limiting (1d) | GCRA limits in Redis (atomic Lua) or memory: per address, per user, per account and per address for sign-in, per session for codes, per user for password changes and imports, per address for single sign-on; 429 with `Retry-After`; hashed keys; Redis outage fails open; `X-Forwarded-For` only from trusted proxies | `test_hardening.py` |
@@ -31,7 +32,7 @@ Everything listed here has working code **and** automated tests (`tests/`, 312 t
 | Operations (1d) | `migrate`, `check-db-role`, `worker` (clean SIGTERM stop, heartbeat), `backup-manifest`, `verify-restore` (schema, tables, triggers, audit chain, last audited entry, US exclusion) | `test_hardening.py` |
 | Architecture | Module boundary checks; entry points register every table and event consumer; models ↔ migrations identical | `test_architecture.py`, `test_entrypoints.py`, `test_database.py` |
 
-**Not built yet:** email and media storage (Phase 3b); renewal/upsell pipelines (Phase 7); AI and everything in later phases. The dashboard is in [apps/web](../../apps/web); the staging stack is in [infra/staging](../../infra/staging).
+**Not built yet:** media storage (Phase 3c); renewal/upsell pipelines (Phase 7); AI and everything in later phases. The dashboard is in [apps/web](../../apps/web); the staging stack is in [infra/staging](../../infra/staging).
 
 ## Run locally
 

@@ -546,7 +546,9 @@ def add_contact_point(
 
 CONSENT_STATUSES = frozenset({"granted", "withdrawn", "denied"})
 CONSENT_LEGAL_BASES = frozenset({"consent", "contract", "legitimate_interests", "legal_obligation"})
-CONSENT_SOURCES = frozenset({"web_form", "lead_ad_form", "whatsapp_keyword", "email_link", "staff_logged", "import"})
+CONSENT_SOURCES = frozenset(
+    {"web_form", "lead_ad_form", "whatsapp_keyword", "email_reply", "email_link", "staff_logged", "import"}
+)
 CONSENT_PURPOSES = frozenset(
     {
         "service_messages",

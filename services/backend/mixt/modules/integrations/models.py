@@ -12,7 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from mixt.core.db import Base, created_at_col, updated_at_col, uuid_pk
 
-PROVIDERS = ("meta_whatsapp_cloud", "gmail", "microsoft_graph", "website_forms")
+# Mixt uses neither Google Workspace nor Microsoft 365 (BD-034): email is a generic IMAP/SMTP mailbox.
+PROVIDERS = ("meta_whatsapp_cloud", "imap_smtp", "website_forms")
 
 
 class IntegrationConnection(Base):
@@ -43,7 +44,7 @@ class IntegrationCredential(Base):
     __table_args__ = (
         UniqueConstraint("connection_id", "kind"),
         CheckConstraint(
-            "kind IN ('access_token','refresh_token','app_secret','verify_token','client_secret','api_key')",
+            "kind IN ('access_token','refresh_token','app_secret','verify_token','client_secret','api_key','password')",
             name="kind",
         ),
     )

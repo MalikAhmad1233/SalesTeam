@@ -35,7 +35,7 @@ from mixt.modules.integrations.models import (
 )
 
 CREDENTIAL_KINDS = frozenset(
-    {"access_token", "refresh_token", "app_secret", "verify_token", "client_secret", "api_key"}
+    {"access_token", "refresh_token", "app_secret", "verify_token", "client_secret", "api_key", "password"}
 )
 PROCESS_ACTION = "integrations.process_webhook"
 MAX_SECRET_LENGTH = 4096

@@ -56,7 +56,7 @@ function Inbox() {
     <>
       <PageHeader
         title="Inbox"
-        description="Every customer conversation in one place. Replies follow the channel's rules: WhatsApp allows free text only within 24 hours of the customer's last message; after that, only templates approved by Meta and by Mixt, with the customer's consent."
+        description="Every customer conversation in one place, from WhatsApp and email. Replies follow the channel's rules: WhatsApp allows free text only within 24 hours of the customer's last message, and after that only templates approved by Meta and by Mixt, with the customer's consent. Email replies stay in the customer's thread."
         actions={
           can(me, "messaging.suppression.manage") ? (
             <Link href="/inbox/blocked" className="text-sm text-accent hover:underline">
@@ -84,8 +84,8 @@ function Inbox() {
             </div>
             <div className="flex gap-2">
               <Input
-                aria-label="Search by name or number"
-                placeholder="Search name or number"
+                aria-label="Search by name, number or email"
+                placeholder="Search name, number or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="min-w-0 flex-1"
@@ -124,7 +124,8 @@ function Inbox() {
                     <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted">
                       <span>{formatDateTime(c.last_activity_at, me?.timezone)}</span>
                       {!c.account_id ? <Badge tone="warning">Not linked</Badge> : null}
-                      {c.window_open ? <Badge tone="success">Window open</Badge> : null}
+                      {c.channel === "whatsapp" && c.window_open ? <Badge tone="success">Window open</Badge> : null}
+                      {c.channel === "email" ? <Badge>Email</Badge> : null}
                       {c.status === "pending_customer" ? <Badge>Waiting for customer</Badge> : null}
                     </span>
                   </button>
@@ -187,14 +188,19 @@ function ConversationPane({ id, me, summary }: { id: string; me: Me | undefined;
               <p className="text-xs text-muted">
                 {c.customer_handle} · {channelLabel(c.channel)} · {c.channel_name}
               </p>
+              {c.channel === "email" && c.subject ? <p className="mt-1 truncate text-sm text-ink">Subject: {c.subject}</p> : null}
             </div>
             <div className="flex flex-wrap gap-1">
               {c.suppressed ? <Badge tone="danger">Blocked: no messages</Badge> : null}
-              {!c.channel_enabled ? <Badge tone="warning">Number not switched on</Badge> : null}
+              {!c.channel_enabled ? (
+                <Badge tone="warning">{c.channel === "email" ? "Mailbox not switched on" : "Number not switched on"}</Badge>
+              ) : null}
               <Badge tone={c.status === "closed" ? "neutral" : "accent"}>{STATUS_LABEL[c.status] ?? humanize(c.status)}</Badge>
             </div>
           </div>
-          <p className={`mt-2 text-xs ${c.window_open ? "text-success" : "text-warning"}`}>{windowText(c.service_window_expires_at, c.window_open)}</p>
+          {c.channel === "whatsapp" ? (
+            <p className={`mt-2 text-xs ${c.window_open ? "text-success" : "text-warning"}`}>{windowText(c.service_window_expires_at, c.window_open)}</p>
+          ) : null}
         </header>
         <div className="max-h-[55vh] min-h-64 space-y-2 overflow-y-auto bg-surface/50 px-4 py-3" aria-live="polite">
           {messages.isLoading ? <Loading /> : null}
@@ -230,6 +236,7 @@ function MessageBubble({ m, me, onRetried }: { m: Message; me: Me | undefined; o
     <div className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${outbound ? "bg-primary-soft" : "border border-border bg-white"}`} data-testid={outbound ? "outbound-message" : "inbound-message"}>
         {m.content_type === "template" ? <p className="text-[11px] font-medium text-accent">Template</p> : null}
+        {m.email ? <EmailHeader email={m.email} /> : null}
         {m.media ? <p className="text-xs text-muted">[{String(m.media.type ?? "attachment")}]{m.media.stored === false ? " · file not downloaded yet" : ""}</p> : null}
         {m.body_text ? <p className="whitespace-pre-wrap text-ink">{m.body_text}</p> : null}
         <p className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted">
@@ -254,8 +261,28 @@ function MessageBubble({ m, me, onRetried }: { m: Message; me: Me | undefined; o
   );
 }
 
+function EmailHeader({ email }: { email: Record<string, unknown> }) {
+  const attachments = Array.isArray(email.attachments) ? (email.attachments as { filename?: string }[]) : [];
+  const auth = (email.authentication ?? {}) as Record<string, string>;
+  return (
+    <div className="mb-1 space-y-0.5 text-[11px] text-muted">
+      {email.subject ? <p className="font-medium text-ink">{String(email.subject)}</p> : null}
+      {email.auto_reply ? <Badge>Automatic reply</Badge> : null}
+      {auth.dmarc === "fail" ? (
+        <p className="text-danger">The sender could not be verified (DMARC failed): it may not be who it claims to be.</p>
+      ) : null}
+      {attachments.length > 0 ? (
+        <p>
+          Attachments (not downloaded yet): {attachments.map((a) => a.filename ?? "file").join(", ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function Composer({ c, onSent }: { c: Conversation; onSent: () => void }) {
-  const [mode, setMode] = useState<"reply" | "template" | "note">(c.window_open ? "reply" : "template");
+  const isEmail = c.channel === "email";
+  const [mode, setMode] = useState<"reply" | "template" | "note">(c.reply_allowed ? "reply" : "template");
   const [text, setText] = useState("");
   const [key, setKey] = useState(newKey);
   const [templateId, setTemplateId] = useState("");
@@ -286,9 +313,11 @@ function Composer({ c, onSent }: { c: Conversation; onSent: () => void }) {
     onSuccess: done,
   });
   const blocked = c.suppressed
-    ? "Messages to this number are blocked."
+    ? `Messages to this ${isEmail ? "address" : "number"} are blocked.`
     : !c.channel_enabled
-      ? "This WhatsApp number is not switched on yet (setting channels.whatsapp.numbers)."
+      ? isEmail
+        ? "This mailbox is not switched on yet (settings channels.email.provider and channels.email.mailboxes)."
+        : "This WhatsApp number is not switched on yet (setting channels.whatsapp.numbers)."
       : null;
 
   function submit(event: FormEvent) {
@@ -302,7 +331,7 @@ function Composer({ c, onSent }: { c: Conversation; onSent: () => void }) {
         {(
           [
             ["reply", "Reply"],
-            ["template", "Template"],
+            ...(isEmail ? [] : [["template", "Template"] as const]),
             ["note", "Internal note"],
           ] as const
         ).map(([key_, label]) => (
@@ -320,8 +349,14 @@ function Composer({ c, onSent }: { c: Conversation; onSent: () => void }) {
       </div>
       {mode !== "note" && blocked ? <p className="text-sm text-warning">{blocked}</p> : null}
       {mode === "reply" ? (
-        c.window_open ? (
-          <Textarea aria-label="Reply" value={text} onChange={(e) => setText(e.target.value)} maxLength={4096} placeholder="Write a reply" />
+        c.reply_allowed ? (
+          <Textarea
+            aria-label="Reply"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={isEmail ? 20000 : 4096}
+            placeholder={isEmail ? `Reply by email to ${c.customer_handle}` : "Write a reply"}
+          />
         ) : (
           <p className="text-sm text-muted">The 24-hour window is closed. Use an approved template.</p>
         )
@@ -377,7 +412,7 @@ function Composer({ c, onSent }: { c: Conversation; onSent: () => void }) {
           disabled={
             send.isPending ||
             (mode !== "note" && !!blocked) ||
-            (mode === "reply" && (!c.window_open || !text.trim())) ||
+            (mode === "reply" && (!c.reply_allowed || !text.trim())) ||
             (mode === "note" && !text.trim()) ||
             (mode === "template" && (!chosen || values.some((v) => !v.trim())))
           }
@@ -414,7 +449,10 @@ function CustomerPanel({ c, me, summary, onChanged }: { c: Conversation; me: Me 
           </div>
         ) : (
           <div className="space-y-2 text-sm">
-            <p className="text-muted">Not linked to a customer yet. Templates need a linked customer (consent is checked on the contact).</p>
+            <p className="text-muted">
+              Not linked to a customer yet.
+              {c.channel === "whatsapp" ? " Templates need a linked customer (consent is checked on the contact)." : ""}
+            </p>
             {summary?.can_see_unmatched ? (
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" onClick={() => setLinking(true)}>

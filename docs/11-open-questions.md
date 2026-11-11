@@ -26,6 +26,7 @@ Every question below is **OPEN** unless it appears in §1. Each open question ha
 | Q-ACA-04 | Other programmes (IB etc.)? | **Unchanged: OPEN.** IB is **not** on the confirmed list and is not added unless separately approved. | BD-008 |
 | Q-MKT-01 | Which markets use the USD schedules? | **Unchanged: OPEN.** Re-confirmed: assignment unconfirmed; USD never means US. | BD-006 |
 | Q-PRC-21 | *(new)* Malaysia correction | **New: OPEN.** See §3. | BD-015 |
+| Q-COM-03 | Google Workspace or Microsoft 365? Which mailboxes? | **Narrowed (2026-11-10).** CONFIRMED: neither. OPEN: which email service and which mailboxes Mixt uses, if any (needed to connect; the IMAP/SMTP adapter works with most services). | BD-034 |
 
 ---
 
@@ -177,7 +178,7 @@ These don't block Phase 1, but **Q-COM-01 and Q-COM-02 should be answered early*
 |----|---------------|----------------|-----------|----------------|
 | Q-COM-01 | WhatsApp: one number for all markets or one per market? Which numbers exist? | Channel accounts, templates. | P3 | WhatsApp off |
 | Q-COM-02 | How is WhatsApp used today (app, provider, API)? | Migration/coexistence plan. | P3 | — |
-| Q-COM-03 | Google Workspace or Microsoft 365? Which mailboxes? | Email adapter. | P3 | Email off |
+| Q-COM-03 | Which email service and which mailboxes does Mixt use, if any? (Not Google Workspace or Microsoft 365: BD-034.) | Connecting the IMAP/SMTP mailbox; whether email is a channel at all. | P3 | Email off |
 | Q-COM-04 | Instagram: lead ads, DMs, or both? | Integration scope. | P7 | Instagram off |
 | Q-COM-05 | Sending domain(s); SPF/DKIM/DMARC status. | Deliverability. | P3 | — |
 | Q-COM-06 | Which opt-out and opt-in words (and languages) should Mixt honour on WhatsApp? Confirm that an opt-out stops **all** messages to that number until the customer opts back in or a manager lifts the block. | Suppression list, consent withdrawal. | P3 | Proposed English and Arabic list (`messaging.opt_out_keywords`); an opt-out blocks everything |

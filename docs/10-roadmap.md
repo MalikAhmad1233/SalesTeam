@@ -1,6 +1,6 @@
 # 10: Implementation Roadmap
 
-Status: **APPROVED 2026-11-10** (BD-032) · **Phases 0 to 2 code complete; Phase 3a (WhatsApp, unified inbox, website form) done 2026-11-10; Phase 3b (email) waits for Q-COM-03.** Nothing customer-facing is switched on until Mixt's accounts and confirmations are in place.
+Status: **APPROVED 2026-11-10** (BD-032) · **Phases 0 to 2 code complete; Phase 3a (WhatsApp, unified inbox, website form) and 3b (email over IMAP/SMTP) done; 3c (media storage) next.** Nothing customer-facing is switched on until Mixt's accounts and confirmations are in place.
 
 ## Approach
 
@@ -91,12 +91,13 @@ Original Phase 1 scope:
 
 **Exit criteria status (2026-11-10):** golden tests for all 91 entries, property tests, activation-gate tests and a quotation round trip (create, approve, freeze, PDF, issue, accept) pass in CI. Staging runs the same code. **Open: Mixt's pricing owner has not signed off any book (G-01), so nothing is active.**
 
-## Phase 3: Communication channels and unified inbox (L): **3a done**; 3b (email) waits for Mixt's choice of platform
+## Phase 3: Communication channels and unified inbox (L): **3a and 3b done**; 3c (media storage) next
 
 | Increment | Scope | Status |
 |-----------|-------|--------|
 | **3a** Framework, WhatsApp, inbox, website form | Integration framework (connections, encrypted secrets, verified webhook store, retries with backoff, dead letters and replay); WhatsApp Cloud API (handshake, signatures, inbound, statuses, templates, 24-hour window, consent, opt-out and opt-in words, suppression list, error mapping); unified inbox (matching, "Not linked" queue, assignment, take-over, notes, lead creation, live updates); website enquiry form | **Done 2026-11-10**, built and tested against a fake Graph API (unit, API and end-to-end tests: signatures valid, invalid and tampered; redelivered webhooks stored once; failures replayed from the dead-letter queue). Implementation notes IN-43 to IN-48. **Not connected**: connecting needs Mixt's Meta business account, a registered number and templates (EXT-01 to EXT-03). Not in 3a: downloading media files (needs private object storage), quiet hours and frequency caps (no automated or bulk sending exists yet; every message is sent by a person), and a separate ingress process (webhooks are served by the API on their own path and can move behind it later). |
-| **3b** Email, media storage | Email adapter (Gmail **or** Microsoft 365), media download to private storage with malware scanning | Waiting for Q-COM-03 (which platform) and Q-COM-05 (sending domain). |
+| **3b** Email | Provider-neutral email over IMAP (read) and SMTP (send), because Mixt uses neither Google Workspace nor Microsoft 365 (BD-034) | **Done 2026-11-11**, tested against local IMAP and SMTP servers (unit, API and end-to-end tests): read-only polling from "now", UIDVALIDITY changes, Message-ID dedupe, threading headers on replies, HTML to text, attachments listed, DMARC-failed senders never auto-linked, auto-replies, bounces block the address, opt-out by reply, SMTP error handling. Implementation notes IN-49 to IN-51. **Not connected**: needs Mixt's mailbox details (Q-COM-03, EXT-04). |
+| **3c** Media storage | Download WhatsApp media and email attachments to private object storage, malware scanning, viewing in the inbox | Next. |
 
 
 - Integration framework: connections, encrypted credentials, ingress service, webhook verification, raw event store, retries, DLQ UI.
@@ -107,7 +108,7 @@ Original Phase 1 scope:
 
 **Exit criteria:** end-to-end tests with WhatsApp **test numbers** and test mailboxes; webhook signature tests (valid/invalid/replayed); no lost messages under simulated outages (replay from DLQ); Mixt team using the inbox in staging.
 
-**Exit criteria status (2026-11-10):** webhook signature tests (valid, invalid, tampered, redelivered) and replay from the dead-letter queue pass; the end-to-end test drives the inbox against a fake Graph API. **Open:** tests with Meta's WhatsApp test numbers once Mixt's account exists; email (3b); the Mixt team using the inbox in staging.
+**Exit criteria status (2026-11-10):** webhook signature tests (valid, invalid, tampered, redelivered) and replay from the dead-letter queue pass; the end-to-end test drives the inbox against a fake Graph API. **Open:** tests with Meta's WhatsApp test numbers and Mixt's real mailbox once the accounts exist; media storage (3c); the Mixt team using the inbox in staging.
 
 ## Phase 4: AI core and Sales Agent in draft mode (XL)
 

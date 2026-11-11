@@ -30,6 +30,7 @@ class ChannelAccount(Base):
     display_name: Mapped[str] = mapped_column(Text)
     address: Mapped[str | None] = mapped_column(Text)  # the number or address customers see (E.164 / email)
     status: Mapped[str] = mapped_column(String(16), server_default=text("'active'"))
+    sync_state: Mapped[dict[str, Any] | None] = mapped_column(JSONB)  # mailbox polling: UIDVALIDITY, last UID
     created_at: Mapped[datetime] = created_at_col()
 
 
@@ -85,6 +86,8 @@ class Message(Base):
     content_type: Mapped[str] = mapped_column(String(16))
     body_text: Mapped[str | None] = mapped_column(Text)
     media: Mapped[dict[str, Any] | None] = mapped_column(JSONB)  # type, provider media id, mime type, caption
+    # Email only: subject, Message-ID, In-Reply-To, References, To, Cc, attachments, auto-reply, authentication.
+    email_meta: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("message_templates.id"))
     template_variables: Mapped[list[str] | None] = mapped_column(JSONB)
     provider_message_id: Mapped[str | None] = mapped_column(Text)

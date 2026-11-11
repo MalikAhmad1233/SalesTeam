@@ -7,8 +7,10 @@ are synced from Meta; staff can use one only after Meta **and** a Mixt approver 
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -17,16 +19,17 @@ from sqlalchemy.orm import Session
 from mixt.core.config import get_config
 from mixt.core.context import Actor
 from mixt.core.errors import Conflict, NotFound, ValidationFailed
-from mixt.core.normalize import normalize_phone
+from mixt.core.normalize import normalize_email, normalize_phone
 from mixt.core.timezones import now_utc
 from mixt.modules.audit import service as audit
 from mixt.modules.identity.access import Access
 from mixt.modules.integrations import service as integrations
-from mixt.modules.messaging import whatsapp
+from mixt.modules.messaging import email_channel, whatsapp
 from mixt.modules.messaging.models import ChannelAccount, MessageTemplate
 from mixt.modules.settings import service as settings
 
 WHATSAPP = "meta_whatsapp_cloud"
+MAILBOX = "imap_smtp"
 MIN_VERIFY_TOKEN_LENGTH = 16
 
 
@@ -151,11 +154,29 @@ def enabled_numbers(db: Session) -> set[str]:
     return enabled
 
 
+def enabled_mailboxes(db: Session) -> set[str]:
+    """Mailboxes switched on: ``channels.email.provider = imap_smtp`` and listed in ``channels.email.mailboxes``."""
+    if settings.get_value(db, "channels.email.provider") != MAILBOX:
+        return set()
+    values: list[Any] = list(settings.get_value(db, "channels.email.mailboxes") or [])
+    for row in settings.list_scoped_overrides(db, "channels.email.mailboxes"):
+        values.extend(row.value or [])
+    enabled: set[str] = set()
+    for value in values:
+        try:
+            enabled.add(normalize_email(str(value)))
+        except ValidationFailed:
+            continue
+    return enabled
+
+
 def is_enabled(db: Session, account: ChannelAccount) -> bool:
     if account.status != "active" or account.address is None:
         return False
     if account.channel == "whatsapp":
         return account.address in enabled_numbers(db)
+    if account.channel == "email":
+        return account.address in enabled_mailboxes(db)
     return False
 
 
@@ -168,6 +189,14 @@ class CheckResult:
     quality_rating: str | None = None
     display_phone_number: str | None = None
     number_matches: bool | None = None
+
+
+def check_connection(db: Session, actor: Actor, access: Access, connection_id: uuid.UUID) -> CheckResult:
+    """Confirm a connection works with its stored secrets (WhatsApp: Graph API; mailbox: IMAP and SMTP sign-in)."""
+    access.require_somewhere("integrations.manage")
+    if integrations.get_connection(db, connection_id).provider == MAILBOX:
+        return _check_mailbox(db, actor, connection_id)
+    return check_whatsapp(db, actor, access, connection_id)
 
 
 def check_whatsapp(db: Session, actor: Actor, access: Access, connection_id: uuid.UUID) -> CheckResult:
@@ -364,3 +393,201 @@ def apply_template_update(db: Session, account: ChannelAccount, update: whatsapp
     template.provider_status, template.synced_at = status, now_utc()
     db.flush()
     return True
+
+
+# ------------------------------------------------------------------ email mailboxes (IMAP/SMTP, BD-034)
+
+
+@dataclass
+class MailboxSetup:
+    display_name: str
+    address: str
+    username: str
+    password: str
+    imap_host: str
+    imap_port: int
+    imap_security: str
+    smtp_host: str
+    smtp_port: int
+    smtp_security: str
+
+
+_HOST_RE = re.compile(r"^[A-Za-z0-9.-]{1,253}$")
+
+
+def _validate_mailbox(data: MailboxSetup) -> str:
+    address = normalize_email(data.address)
+    deployed = get_config().env.value in ("staging", "production")
+    for label, host, port, security in (
+        ("IMAP", data.imap_host, data.imap_port, data.imap_security),
+        ("SMTP", data.smtp_host, data.smtp_port, data.smtp_security),
+    ):
+        if not _HOST_RE.match(host.strip()):
+            raise ValidationFailed("INVALID_HOST", f"The {label} server name is not valid.")
+        if not 1 <= port <= 65535:
+            raise ValidationFailed("INVALID_PORT", f"The {label} port is not valid.")
+        if security not in email_channel.SECURITY_MODES or (security == "none" and deployed):
+            raise ValidationFailed(
+                "INSECURE_MAIL_CONNECTION", f"The {label} connection must be encrypted (TLS or STARTTLS)."
+            )
+    if not data.username.strip() or not data.password:
+        raise ValidationFailed("CREDENTIALS_REQUIRED", "Give the mailbox user name and its app password.")
+    return address
+
+
+def connect_mailbox(db: Session, actor: Actor, access: Access, data: MailboxSetup) -> ConnectedChannel:
+    """Store an IMAP/SMTP mailbox. Its password is encrypted; the first check starts from 'now'."""
+    access.require_somewhere("integrations.manage")
+    address = _validate_mailbox(data)
+    existing = db.scalar(
+        select(ChannelAccount).where(ChannelAccount.channel == "email", ChannelAccount.external_id == address)
+    )
+    if existing is not None and integrations.get_connection(db, existing.connection_id).status != "disconnected":
+        raise Conflict("CHANNEL_ALREADY_CONNECTED", "This mailbox is already connected. Disconnect it first.")
+    connection = integrations.create_connection(
+        db,
+        actor,
+        access,
+        MAILBOX,
+        data.display_name,
+        {
+            "address": address,
+            "username": data.username.strip(),
+            "imap_host": data.imap_host.strip().lower(),
+            "imap_port": data.imap_port,
+            "imap_security": data.imap_security,
+            "smtp_host": data.smtp_host.strip().lower(),
+            "smtp_port": data.smtp_port,
+            "smtp_security": data.smtp_security,
+        },
+        {"password": data.password},
+    )
+    if existing is not None:  # reconnecting keeps the mailbox's conversation history
+        existing.connection_id, existing.status, existing.sync_state = connection.id, "active", None
+        existing.display_name = data.display_name.strip()
+        account = existing
+    else:
+        account = ChannelAccount(
+            channel="email",
+            connection_id=connection.id,
+            external_id=address,
+            display_name=data.display_name.strip(),
+            address=address,
+        )
+        db.add(account)
+    db.flush()
+    return ConnectedChannel(integrations.view_connection(db, access, connection.id), account)
+
+
+def mailbox_config(
+    db: Session, connection: integrations.Connection, account: ChannelAccount
+) -> email_channel.MailboxConfig:
+    password = integrations.secret(db, connection.id, "password")
+    if password is None or connection.status == "disconnected":
+        raise email_channel.MailError(
+            email_channel.MailErrorKind("CONNECTION_PROBLEM", False, True), "The mailbox has no password stored."
+        )
+    c = connection.config
+    return email_channel.MailboxConfig(
+        address=str(account.address),
+        display_name=account.display_name,
+        username=str(c.get("username", "")),
+        password=password,
+        imap_host=str(c.get("imap_host", "")),
+        imap_port=int(c.get("imap_port", 993)),
+        imap_security=str(c.get("imap_security", "ssl")),
+        smtp_host=str(c.get("smtp_host", "")),
+        smtp_port=int(c.get("smtp_port", 465)),
+        smtp_security=str(c.get("smtp_security", "ssl")),
+    )
+
+
+def _check_mailbox(db: Session, actor: Actor, connection_id: uuid.UUID) -> CheckResult:
+    connection = integrations.get_connection(db, connection_id)
+    account = channel_account_for(db, connection.id)
+    if account is None:
+        raise NotFound("CONNECTION_NOT_FOUND", "Mailbox not found.")
+    try:
+        email_channel.check(mailbox_config(db, connection, account))
+    except email_channel.MailError as exc:
+        if exc.kind.connection_problem:
+            integrations.mark_error(db, connection, f"{exc.kind.code}: {exc.detail}")
+        audit.record(
+            db,
+            actor,
+            "integration_checked",
+            "integration_connection",
+            connection.id,
+            {"ok": False, "code": exc.kind.code},
+        )
+        return CheckResult(False, exc.kind.code, exc.detail)
+    integrations.mark_success(db, connection)
+    audit.record(db, actor, "integration_checked", "integration_connection", connection.id, {"ok": True})
+    return CheckResult(True, None, "Connected: signed in to IMAP and SMTP.")
+
+
+@dataclass
+class PollResult:
+    mailboxes: int = 0
+    stored: int = 0
+    failed: int = 0
+
+
+def poll_mailboxes(
+    db: Session, now: datetime | None = None, force: bool = False, connection_id: uuid.UUID | None = None
+) -> PollResult:
+    """Read new mail from every connected mailbox that is due (worker). Each email is stored as a
+    verified inbound event, so processing, retries and replay work as for webhooks."""
+    now = now or now_utc()
+    interval = timedelta(seconds=get_config().email_poll_interval_seconds)
+    result = PollResult()
+    for connection in integrations.connections_for(db, MAILBOX):
+        if connection_id is not None and connection.id != connection_id:
+            continue
+        account = channel_account_for(db, connection.id)
+        if account is None or account.status != "active" or (connection.status == "error" and not force):
+            continue
+        state = dict(account.sync_state or {})
+        last_polled = state.get("last_polled_at")
+        if not force and last_polled and datetime.fromisoformat(last_polled) + interval > now:
+            continue
+        result.mailboxes += 1
+        try:
+            fetched = email_channel.fetch_new(mailbox_config(db, connection, account), state or None)
+        except email_channel.MailError as exc:
+            result.failed += 1
+            if exc.kind.connection_problem:
+                integrations.mark_error(db, connection, f"{exc.kind.code}: {exc.detail}")
+            account.sync_state = {**state, "last_polled_at": now.isoformat(), "last_error": exc.detail[:500]}
+            db.flush()
+            continue
+        started = state.get("started_at") or now.isoformat()
+        for uid, raw in fetched.messages:
+            parsed = email_channel.parse(raw)
+            if fetched.resynced and parsed.get("date") and str(parsed["date"]) < started:
+                continue  # after a mailbox rebuild: mail from before Mixt was connected is not imported
+            stored = integrations.store_webhook(
+                db, connection, email_channel.event_id(str(connection.id), parsed), {**parsed, "uid": uid}
+            )
+            result.stored += 1 if stored else 0
+        account.sync_state = {
+            "started_at": started,
+            "uidvalidity": fetched.uidvalidity,
+            "last_uid": fetched.last_uid,
+            "last_polled_at": now.isoformat(),
+            "last_error": None,
+        }
+        integrations.mark_success(db, connection)
+        db.flush()
+    return result
+
+
+def poll_now(db: Session, actor: Actor, access: Access, connection_id: uuid.UUID) -> PollResult:
+    """Read a mailbox straight away (admin button), instead of waiting for the worker's next check."""
+    access.require_somewhere("integrations.manage")
+    connection = integrations.get_connection(db, connection_id)
+    if connection.provider != MAILBOX:
+        raise NotFound("CONNECTION_NOT_FOUND", "Mailbox not found.")
+    result = poll_mailboxes(db, force=True, connection_id=connection.id)
+    audit.record(db, actor, "mailbox_checked", "integration_connection", connection.id, {"stored": result.stored})
+    return result

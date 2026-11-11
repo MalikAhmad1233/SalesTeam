@@ -61,7 +61,7 @@ docker compose up -d --build --wait
 | `MIXT_REDIS_PASSWORD` | API, redis | Update `.env`, `docker compose up -d` (counters reset; harmless) |
 | `BACKUP_AGE_RECIPIENT` + private key | backup / restore | Generate a new pair with `age-keygen`, update the recipient, keep the old private key as long as backups made with it are retained |
 | Single sign-on client secrets | API | Rotate at the provider, update `.env`, `docker compose up -d` |
-| WhatsApp access token, app secret, webhook verify token; Turnstile secret | API, worker (stored encrypted in the database, not in `.env`) | **Integrations → Replace a secret**. Change the verify token in the Meta app at the same time. Disconnecting destroys the stored secrets |
+| WhatsApp access token, app secret, webhook verify token; mailbox app passwords; Turnstile secret | API, worker (stored encrypted in the database, not in `.env`) | **Integrations → Replace a secret**. Change the verify token in the Meta app at the same time. Disconnecting destroys the stored secrets |
 
 `.env` and `backup-identity.txt` are git-ignored. Never paste them into tickets or chat.
 
@@ -150,6 +150,17 @@ Operating it:
 * A connection in **error** (expired token, account restricted) stops sending; replace the token, then **Check connection**.
 * Rejected webhooks (bad signature) are counted on the card. A rising count means a wrong app secret or someone probing the address.
 * Customers who reply with an opt-out word are blocked automatically; managers see and lift blocks under **Inbox → Blocked numbers**.
+
+## 9c. Email mailbox (IMAP/SMTP)
+
+Mixt uses neither Google Workspace nor Microsoft 365 (BD-034), so a mailbox is connected with the standard IMAP and SMTP settings that its email service publishes.
+
+1. From the email service, get the IMAP server (usually port 993, TLS) and SMTP server (465 TLS or 587 STARTTLS), and create an **app password** for the mailbox (not a person's main password).
+2. **Integrations → Connect a mailbox**: the name customers see, the address, user name, app password and the two servers. Then **Check connection** (signs in to both without reading or sending).
+3. Switch it on: **Settings → `channels.email.provider`** = `imap_smtp` and add the address to **`channels.email.mailboxes`**. Until then received mail is stored but nothing is sent.
+4. The worker checks for new mail about once a minute (`MIXT_EMAIL_POLL_INTERVAL_SECONDS`, default 60). The first check starts from "now"; older mail is not imported. **Check for new mail now** on the card does it straight away.
+
+Operating it: a mailbox in **error** (password changed or revoked) stops reading and sending until the app password is replaced (**Replace a secret**) and **Check connection** succeeds. A temporary problem (server unreachable) is shown as the last check's error and retried automatically. Bounced addresses are blocked automatically and listed under **Inbox → Blocked numbers**.
 
 ## 9b. Website enquiry form
 

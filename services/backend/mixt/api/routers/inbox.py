@@ -57,7 +57,9 @@ class ConversationOut(BaseModel):
     last_inbound_at: datetime | None
     service_window_expires_at: datetime | None
     window_open: bool
+    reply_allowed: bool
     suppressed: bool
+    subject: str | None
     last_message: LastMessageOut | None
     updated_at: datetime
 
@@ -94,7 +96,9 @@ def conversation_out(view: messaging.ConversationView) -> ConversationOut:
         last_inbound_at=c.last_inbound_at,
         service_window_expires_at=c.service_window_expires_at,
         window_open=view.window_open,
+        reply_allowed=view.reply_allowed,
         suppressed=view.suppressed,
+        subject=c.subject,
         last_message=LastMessageOut(
             direction=last.direction,
             content_type=last.content_type,
@@ -116,6 +120,7 @@ class MessageOut(BaseModel):
     content_type: str
     body_text: str | None
     media: dict[str, Any] | None
+    email: dict[str, Any] | None
     template_id: uuid.UUID | None
     status: str
     failure_code: str | None
@@ -136,6 +141,7 @@ def message_out(message: Any, names: dict[uuid.UUID, str]) -> MessageOut:
         content_type=message.content_type,
         body_text=message.body_text,
         media=message.media,
+        email=message.email_meta,
         template_id=message.template_id,
         status=message.status,
         failure_code=message.failure_code,
@@ -339,7 +345,8 @@ def add_note(
 
 
 class TextIn(BaseModel):
-    text: str = Field(min_length=1, max_length=4096)
+    text: str = Field(min_length=1, max_length=20_000)
+    subject: str | None = Field(default=None, max_length=500, description="Email only; defaults to Re: <subject>")
 
 
 IdempotencyKey = Header(default=None, alias="Idempotency-Key", min_length=8, max_length=100)
@@ -361,7 +368,7 @@ def send_text(
     auth: AuthContext = Depends(require("messaging.send")),
     db: Session = Depends(get_session),
 ) -> MessageOut:
-    queued = messaging.send_text(db, auth.actor, auth.access, conversation_id, body.text, idempotency_key)
+    queued = messaging.send_text(db, auth.actor, auth.access, conversation_id, body.text, idempotency_key, body.subject)
     return _queued(db, queued, background)
 
 

@@ -141,7 +141,8 @@ class Consent(Base):
             "legal_basis IN ('consent','contract','legitimate_interests','legal_obligation')", name="legal_basis"
         ),
         CheckConstraint(
-            "source IN ('web_form','lead_ad_form','whatsapp_keyword','email_link','staff_logged','import')",
+            "source IN ('web_form','lead_ad_form','whatsapp_keyword','email_reply','email_link','staff_logged',"
+            "'import')",
             name="source",
         ),
         CheckConstraint("jsonb_typeof(evidence) = 'object' AND evidence <> '{}'::jsonb", name="evidence_present"),

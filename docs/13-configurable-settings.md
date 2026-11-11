@@ -68,7 +68,8 @@ Who may change: **Owner** = Owner/Super Admin; **PM** = Pricing Manager; **SM** 
 
 | Setting | Scope | Value now | Status | Other options | Question | Changed by |
 |---------|-------|-----------|--------|---------------|----------|-----------|
-| `channels.email.provider` | global | unset (email channel off) | safe_default | `gmail`, `microsoft_graph` | Q-COM-03 | Admin |
+| `channels.email.provider` | global | unset (email channel off) | safe_default | `imap_smtp` (Mixt uses neither Google Workspace nor Microsoft 365, BD-034) | Q-COM-03 | Admin |
+| `channels.email.mailboxes` | market | none: no email is sent; received email is still stored | safe_default | Mixt's customer-facing mailbox addresses | Q-COM-03 | Admin |
 | `channels.whatsapp.numbers` | market | none (WhatsApp channel off): a connected number sends nothing until it is listed here, globally or for a market; inbound messages are always stored | safe_default | number(s) per market or shared | Q-COM-01, Q-COM-02 | Admin |
 | `channels.instagram` | global | `disabled` | safe_default | `lead_ads`, `dms`, `both` | Q-COM-04 | Admin |
 | `messaging.student_direct_contact` | global | `disabled`: messages go to guardians only | safe_default | `enabled_from_age:N` | Q-AI-05 | Owner |

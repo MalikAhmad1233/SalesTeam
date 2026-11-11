@@ -36,6 +36,8 @@ class ChannelAccountOut(BaseModel):
     address: str | None
     status: str
     enabled: bool
+    last_checked_at: str | None = None
+    last_check_error: str | None = None
 
 
 class ConnectionOut(BaseModel):
@@ -66,6 +68,8 @@ def _channel_out(db: Session, account: Any | None) -> ChannelAccountOut | None:
         address=account.address,
         status=account.status,
         enabled=channels.is_enabled(db, account),
+        last_checked_at=(account.sync_state or {}).get("last_polled_at"),
+        last_check_error=(account.sync_state or {}).get("last_error"),
     )
 
 
@@ -120,6 +124,45 @@ def connect_whatsapp(
     return _out(db, connected.view)
 
 
+class MailboxIn(BaseModel):
+    display_name: str = Field(min_length=1, max_length=120)
+    address: str = Field(min_length=3, max_length=320)
+    username: str = Field(min_length=1, max_length=320)
+    password: str = Field(min_length=1, max_length=1024)
+    imap_host: str = Field(min_length=1, max_length=253)
+    imap_port: int = Field(default=993, ge=1, le=65535)
+    imap_security: Literal["ssl", "starttls", "none"] = "ssl"
+    smtp_host: str = Field(min_length=1, max_length=253)
+    smtp_port: int = Field(default=465, ge=1, le=65535)
+    smtp_security: Literal["ssl", "starttls", "none"] = "ssl"
+
+
+@router.post("/integrations/mailbox", response_model=ConnectionOut, status_code=201)
+def connect_mailbox(
+    body: MailboxIn,
+    auth: AuthContext = Depends(require("integrations.manage")),
+    db: Session = Depends(get_session),
+) -> ConnectionOut:
+    """Connect an email mailbox over IMAP/SMTP (Mixt uses neither Google Workspace nor Microsoft 365, BD-034)."""
+    connected = channels.connect_mailbox(db, auth.actor, auth.access, channels.MailboxSetup(**body.model_dump()))
+    return _out(db, connected.view)
+
+
+class PollOut(BaseModel):
+    mailboxes: int
+    stored: int
+    failed: int
+
+
+@router.post("/integrations/{connection_id}/poll", response_model=PollOut)
+def poll_mailbox(
+    connection_id: uuid.UUID,
+    auth: AuthContext = Depends(require("integrations.manage")),
+    db: Session = Depends(get_session),
+) -> PollOut:
+    return PollOut(**channels.poll_now(db, auth.actor, auth.access, connection_id).__dict__)
+
+
 @router.get("/integrations/{connection_id}", response_model=ConnectionOut)
 def get_connection(
     connection_id: uuid.UUID,
@@ -145,11 +188,11 @@ def check_connection(
     auth: AuthContext = Depends(require("integrations.manage")),
     db: Session = Depends(get_session),
 ) -> CheckOut:
-    return CheckOut(**channels.check_whatsapp(db, auth.actor, auth.access, connection_id).__dict__)
+    return CheckOut(**channels.check_connection(db, auth.actor, auth.access, connection_id).__dict__)
 
 
 class CredentialIn(BaseModel):
-    kind: Literal["access_token", "app_secret", "verify_token", "client_secret", "api_key", "refresh_token"]
+    kind: Literal["access_token", "app_secret", "verify_token", "client_secret", "api_key", "refresh_token", "password"]
     value: str = Field(min_length=1, max_length=4096)
 
 

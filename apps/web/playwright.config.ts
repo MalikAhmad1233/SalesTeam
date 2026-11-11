@@ -49,6 +49,14 @@ export default defineConfig({
   },
   webServer: deployed ? undefined : [
     {
+      // Local IMAP/SMTP servers for the email steps (services/backend/scripts/fake_mail_servers.py).
+      command: "uv run python scripts/fake_mail_servers.py",
+      cwd: E2E.backendDir,
+      url: "http://127.0.0.1:8144/health",
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
       command: "node e2e/fake-graph.mjs",
       url: "http://127.0.0.1:8099/health",
       reuseExistingServer: false,

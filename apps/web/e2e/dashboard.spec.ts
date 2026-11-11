@@ -353,11 +353,85 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     await expect(page.getByRole("link", { name: /WhatsApp · Layla Nasser/ })).toBeVisible();
   });
 
+  if (!deployed) {
+    await test.step("email: connect a mailbox, receive a customer email, reply in the thread", async () => {
+      // The local test servers have no TLS, which only local runs allow, so this mailbox is created
+      // through the API; the form in the dashboard offers TLS and STARTTLS only.
+      const created = await page.request.post("/api/v1/integrations/mailbox", {
+        data: {
+          display_name: "Mixt Sales",
+          address: "sales@mixt.example",
+          username: "sales@mixt.example",
+          password: "app-password-1234",
+          imap_host: "127.0.0.1",
+          imap_port: 8143,
+          imap_security: "none",
+          smtp_host: "127.0.0.1",
+          smtp_port: 8025,
+          smtp_security: "none",
+        },
+        headers: { "X-CSRF-Token": await csrf() },
+      });
+      expect(created.status(), await created.text()).toBe(201);
+      await putSetting("channels.email.provider", "imap_smtp");
+      await putSetting("channels.email.mailboxes", ["sales@mixt.example"]);
+      await page.getByRole("link", { name: "Integrations" }).click();
+      const card = page.locator("section").filter({ hasText: "Mixt Sales · Email (IMAP/SMTP)" });
+      await card.getByRole("button", { name: "Check connection" }).click();
+      await expect(card.getByRole("status").filter({ hasText: "signed in to IMAP and SMTP" })).toBeVisible();
+      await card.getByRole("button", { name: "Check for new mail now" }).click(); // first check: starts from now
+      await expect(card.getByRole("status").filter({ hasText: "0 new message(s)" })).toBeVisible();
+      const raw = [
+        "From: Hana Saleh <hana.saleh@example.com>",
+        "To: Mixt Sales <sales@mixt.example>",
+        "Subject: Maths tutoring for Year 9",
+        `Date: ${new Date().toUTCString()}`,
+        "Message-ID: <e2e-email-1@example.com>",
+        "Content-Type: text/plain; charset=utf-8",
+        "",
+        "Hello, my son needs help with Year 9 maths. Do you have evening slots?",
+        "",
+      ].join("\r\n");
+      expect((await page.request.post("http://127.0.0.1:8144/inbox", { data: raw })).status()).toBe(200);
+      await card.getByRole("button", { name: "Check for new mail now" }).click();
+      await expect(card.getByRole("status").filter({ hasText: "1 new message(s)" })).toBeVisible();
+      runWorkerOnce();
+      await page.getByRole("link", { name: "Inbox" }).click();
+      await page.getByRole("tab", { name: "Not linked" }).click();
+      await expect(async () => {
+        await page.getByRole("tab", { name: "All" }).click();
+        await page.getByRole("tab", { name: "Not linked" }).click();
+        await expect(page.getByRole("button", { name: /Hana Saleh/ })).toBeVisible({ timeout: 2_000 });
+      }).toPass({ timeout: 30_000 });
+      await page.getByRole("button", { name: /Hana Saleh/ }).click();
+      await expect(page.getByText("Subject: Maths tutoring for Year 9")).toBeVisible();
+      await expect(page.getByTestId("inbound-message").last()).toContainText("evening slots");
+      await expect(page.getByRole("tab", { name: "Template" })).toHaveCount(0); // templates are WhatsApp only
+      await page.getByLabel("Reply").fill("Hello Hana, yes: we have evening slots. Shall we book a free trial?");
+      await page.getByRole("button", { name: "Send", exact: true }).click();
+      await expect(async () => {
+        await page.reload();
+        await expect(page.getByTestId("outbound-message").last()).toContainText("Sent", { timeout: 2_000 });
+      }).toPass({ timeout: 30_000 });
+      const sent = (await (await page.request.get("http://127.0.0.1:8144/sent")).json()) as {
+        to: string[];
+        subject: string;
+        in_reply_to: string;
+      }[];
+      expect(sent.at(-1)).toEqual({
+        to: ["hana.saleh@example.com"],
+        subject: "Re: Maths tutoring for Year 9",
+        in_reply_to: "<e2e-email-1@example.com>",
+      });
+      await shot("07-email");
+    });
+  }
+
   await test.step("the website form is off until switched on; then an enquiry arrives as a lead", async () => {
     const form = {
-      guardian_first_name: "Hana",
-      guardian_last_name: "Saleh",
-      email: "hana.saleh@example.com",
+      guardian_first_name: "Rana",
+      guardian_last_name: "Haddad",
+      email: "rana.haddad@example.com",
       country: "QA",
       message: "British curriculum, Year 9 maths",
       utm: { source: "e2e" },
@@ -367,7 +441,7 @@ test("sign in with two-step verification, work a lead through the CRM, sign out"
     expect((await page.request.post(`${apiBase}/public/v1/enquiries`, { data: form })).status()).toBe(202);
     await putSetting("web.enquiries.enabled", false);
     await page.getByRole("link", { name: "Leads" }).click();
-    await expect(page.getByRole("cell", { name: "Hana Saleh" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Rana Haddad" })).toBeVisible();
   });
 
   await test.step("sign out", async () => {

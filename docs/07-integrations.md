@@ -18,7 +18,7 @@ Every integration follows the same pattern:
 | Rate limits | Respect provider limits via Redis token buckets per connection; back off on 429 using provider hints. |
 | Audit | Connect/disconnect, scope changes, credential rotation, every outbound send and every webhook outcome are audited. |
 | Testing | Recorded webhook fixtures for contract tests; provider test/sandbox accounts in staging; signature verification tests including tampered payloads. |
-| Sync gaps | Periodic reconciliation jobs fetch anything missed during outages (e.g. Gmail history, Graph delta, Meta leads by form). |
+| Sync gaps | Periodic reconciliation jobs fetch anything missed during outages (e.g. re-checking recent mailbox messages, Meta leads by form). |
 
 ---
 
@@ -38,29 +38,21 @@ Every integration follows the same pattern:
 | Existing number | If Mixt already uses the WhatsApp Business **app** on a number, migrating it or using Meta's coexistence option must be planned (Q-COM-02). |
 | Lead time | Business verification, display-name and template approvals can take days to weeks: **start in Phase 0**. |
 
-## 3. Email: Gmail API **or** Microsoft 365 (Graph)
+## 3. Email: IMAP and SMTP (BD-034)
 
-Mixt uses one of these (Q-COM-03). Both adapters share one internal email interface; only one is needed at launch.
+Mixt does not use Google Workspace or Microsoft 365 (BD-034), so the Gmail API and Microsoft Graph adapters are not built. Email uses the standard protocols that almost every mailbox service offers (IMAP to read, SMTP to send), so the adapter works with whichever service Mixt uses (Q-COM-03).
 
-### 3.1 Gmail API (Google Workspace)
 | Item | Requirement |
 |------|-------------|
-| Auth | OAuth 2.0. If Mixt's Google Cloud project is set as **Internal** to its Workspace domain, Google's external app verification is not needed. Reading mail uses **restricted** scopes; external apps using them need Google verification and a security assessment. Alternative for shared mailboxes: a service account with domain-wide delegation, approved by Mixt's Workspace admin. |
-| Scopes (minimum) | Send + read/modify for the connected sales mailbox(es) only. |
-| Inbound | `users.watch` → Cloud Pub/Sub push to our ingress (authenticated push); then `history.list` from the last `historyId`. **Watches expire**, so they are renewed daily by the scheduler. |
-| Threading | Keep `threadId`, `Message-ID`, `In-Reply-To`, `References`. |
-| Bounces | Parse delivery-status notifications → contact point `bounced` + suppression. |
-
-### 3.2 Microsoft 365 (Microsoft Graph)
-| Item | Requirement |
-|------|-------------|
-| Auth | Microsoft Entra ID app registration. Delegated permissions (per user) or application permissions **restricted to specific mailboxes** by Exchange Online application access policy / RBAC for applications. |
-| Permissions (minimum) | Mail send + read/write for the connected mailbox(es). |
-| Inbound | Graph **change notifications** subscriptions for mail: validation-token handshake, `clientState` secret checked on every notification, **subscriptions expire and must be renewed** (scheduler); delta queries to catch anything missed. |
-| Threading | `conversationId`, `internetMessageId`, reply endpoints. |
-
-### 3.3 Email deliverability (both)
-SPF, DKIM and DMARC on Mixt's sending domain (Q-COM-05); one-click unsubscribe for marketing; bounce and complaint handling; sending caps for sequences.
+| Mixt must provide | The mailbox address(es) used with customers; the IMAP and SMTP server names and ports from the email service; a separate password or app password for each mailbox (never a person's main password). |
+| Security | Encrypted connections only: IMAP over TLS (usually port 993) and SMTP over TLS (465) or STARTTLS (587), with certificate checks. Unencrypted connections are refused outside local tests. The password is stored encrypted like every other integration secret. |
+| Inbound | The worker checks each connected mailbox about once a minute for new messages by IMAP UID, read-only (Mixt never deletes, moves or marks messages read). The first check starts from "now", so old mail is not imported. If the mailbox's UIDVALIDITY changes, the last two days are checked again; each message is stored once (Message-ID). |
+| Threading | One conversation per customer address and mailbox. `Message-ID`, `In-Reply-To`, `References` and the subject are kept, and replies carry them, so they stay in the customer's thread. |
+| Authenticity | The `Authentication-Results` header added by Mixt's mail service is kept. A message that fails DMARC is never linked to a household automatically and is marked in the inbox. |
+| Bounces and auto-replies | Delivery-status reports are matched to the original message: a permanent failure (5.x.x) marks it failed and blocks the address (`bounce`). Auto-replies (out-of-office, `Auto-Submitted`) are stored but do not count as unread or reopen the conversation. |
+| Opt-out | A reply whose subject or text is exactly an opt-out word blocks the address and withdraws email marketing consent, as on WhatsApp. |
+| Content | Text is kept (HTML is converted to plain text and never rendered); attachments are listed but not downloaded until private file storage exists (Phase 3c). |
+| Deliverability | SPF, DKIM and DMARC for Mixt's sending domain are set at the email service (Q-COM-05). Marketing email, one-click unsubscribe and sending caps for sequences are not built yet. |
 
 ## 4. Facebook Lead Ads (Meta)
 
@@ -121,7 +113,7 @@ Payment **tracking** is in scope. Card data never touches Mixt AI.
 
 | Need | Options |
 |------|---------|
-| Tutor availability and bookings | Google Calendar API or Microsoft Graph calendar (busy/free + event creation), or Mixt AI as the master calendar if tutors don't use a shared calendar |
+| Tutor availability and bookings | A calendar API that Mixt's tutors already use (busy/free + event creation), or Mixt AI as the master calendar if tutors don't use a shared calendar. Mixt does not use Google Workspace or Microsoft 365 (BD-034). |
 | Trial/lesson video links | Zoom API, Google Meet (via Calendar conference data) or Microsoft Teams online meetings, whichever platform Mixt teaches on |
 | Reminders | Through WhatsApp templates (utility) and email |
 
@@ -142,7 +134,7 @@ Payment **tracking** is in scope. Card data never touches Mixt AI.
 | EXT-01 | Meta Business portfolio + **business verification** | Mixt | Prerequisite for WhatsApp API and Lead Ads app review |
 | EXT-02 | WhatsApp numbers decision + display name | Mixt | Approval lead time |
 | EXT-03 | First WhatsApp templates (greeting/re-engagement, trial reminder, quotation follow-up, payment reminder) drafted and submitted | Mixt + us | Meta review lead time |
-| EXT-04 | Confirm Google Workspace vs Microsoft 365; admin contact | Mixt | Determines the email adapter and auth model |
+| EXT-04 | Which email service and mailboxes Mixt uses (not Google Workspace or Microsoft 365, BD-034); IMAP/SMTP details and an app password per mailbox | Mixt | Connecting email |
 | EXT-05 | Sending domain SPF/DKIM/DMARC status | Mixt IT | Deliverability |
 | EXT-06 | Meta app for Lead Ads + App Review submission | Us, under Mixt's business | Review lead time |
 | EXT-07 | Payment provider choice and merchant account | Mixt finance | Underwriting lead time |
